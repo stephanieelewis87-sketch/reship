@@ -39,7 +39,14 @@ export interface Order {
   tracking?: string;
   shipTo?: Address;
   parcel?: Parcel;
+  // The shipping label the marketplace generated, uploaded as a PDF.
+  label?: LabelFile;
   source: OrderSource;
+}
+
+export interface LabelFile {
+  fileName: string;
+  uploadedAt: string;
 }
 
 export interface Settings {

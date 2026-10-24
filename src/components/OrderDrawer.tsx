@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
-import { Plus, Trash2, X } from "lucide-react";
+import { ExternalLink, FileText, Plus, ShoppingCart, Trash2, Upload, X } from "lucide-react";
 import type { LabelStatus, Order, OrderItem, PackageType, Platform } from "@/lib/types";
 import { ALL_PLATFORMS, CARRIER_SERVICES, PACKAGE_TYPES, emptyAddress } from "@/lib/types";
 import { newId } from "@/lib/ids";
 import { AddressFields } from "./AddressFields";
 import { Field, PhotoCollage, SectionLabel, STATUS_CONFIG, inputClass, primaryButton, secondaryButton } from "./ui";
+
+export interface LabelChange {
+  file?: File;
+  remove?: boolean;
+}
 
 export const blankOrder = (carrier: string): Order => ({
   id: newId(),
@@ -27,13 +32,20 @@ export function OrderDrawer({
   onClose,
   onSave,
   onDelete,
+  onViewLabel,
+  onBuyLabel,
 }: {
   order: Order;
   isNew: boolean;
   onClose: () => void;
-  onSave: (o: Order) => void;
+  onSave: (o: Order, label: LabelChange) => void;
   onDelete: (id: string) => void;
+  onViewLabel: (o: Order) => void;
+  onBuyLabel: (o: Order) => void;
 }) {
+  const [labelFile, setLabelFile] = useState<File | null>(null);
+  const [removeLabel, setRemoveLabel] = useState(false);
+  const currentLabelName = labelFile?.name ?? (removeLabel ? undefined : order.label?.fileName);
   const [draft, setDraft] = useState<Order>(() => ({
     ...order,
     shipTo: order.shipTo ?? emptyAddress(),
@@ -67,7 +79,8 @@ export function OrderDrawer({
       shipTo: hasAddress ? draft.shipTo : undefined,
       parcel: { weightLbs: parseFloat(weightText) || null, packageType: draft.parcel!.packageType },
       tracking: draft.tracking?.trim() || undefined,
-    });
+      label: removeLabel ? undefined : draft.label,
+    }, { file: labelFile ?? undefined, remove: removeLabel && !labelFile });
   };
 
   return (
@@ -118,6 +131,56 @@ export function OrderDrawer({
               <Field label="Tracking number">
                 <input className={`${inputClass} font-mono`} value={draft.tracking ?? ""} onChange={(e) => set("tracking", e.target.value)} />
               </Field>
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <SectionLabel>Shipping label</SectionLabel>
+            {currentLabelName ? (
+              <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-2">
+                <FileText className="w-4 h-4 text-[#B5607A] shrink-0" />
+                <p className="text-sm text-foreground truncate flex-1">{currentLabelName}</p>
+                {!labelFile && order.label && (
+                  <button type="button" onClick={() => onViewLabel(order)} className="text-xs text-[#B5607A] hover:underline flex items-center gap-1">
+                    View <ExternalLink className="w-3 h-3" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  aria-label="Remove label"
+                  onClick={() => {
+                    setLabelFile(null);
+                    setRemoveLabel(true);
+                  }}
+                  className="p-1 rounded text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">Upload the label PDF the marketplace gave you for this order.</p>
+            )}
+            <div className="flex items-center gap-3 flex-wrap">
+              <label className="text-xs text-[#B5607A] hover:underline flex items-center gap-1 cursor-pointer">
+                <Upload className="w-3 h-3" /> {currentLabelName ? "Replace label PDF" : "Upload label PDF"}
+                <input
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      setLabelFile(f);
+                      setRemoveLabel(false);
+                    }
+                  }}
+                />
+              </label>
+              {!isNew && (
+                <button type="button" onClick={() => onBuyLabel(order)} className="text-xs text-muted-foreground hover:text-foreground hover:underline flex items-center gap-1">
+                  <ShoppingCart className="w-3 h-3" /> Buy a different label
+                </button>
+              )}
             </div>
           </section>
 

@@ -65,5 +65,58 @@ export function useReshipData(store: Store) {
     [store],
   );
 
-  return { orders, settings, loading, error, clearError: () => setError(null), saveOrders, patchOrders, deleteOrders, saveSettings };
+  // Stores the marketplace label PDF, then records it on the order.
+  const attachLabel = useCallback(
+    async (order: Order, file: File) => {
+      try {
+        await store.saveLabelPdf(order.id, file);
+        saveOrders([{ ...order, label: { fileName: file.name, uploadedAt: new Date().toISOString() } }]);
+      } catch (e) {
+        report(e);
+      }
+    },
+    [store, saveOrders],
+  );
+
+  const removeLabel = useCallback(
+    async (order: Order) => {
+      saveOrders([{ ...order, label: undefined }]);
+      await store.deleteLabelPdf(order.id).catch(report);
+    },
+    [store, saveOrders],
+  );
+
+  const loadLabels = useCallback(
+    async (list: Order[]) => {
+      const entries = await Promise.all(
+        list.filter((o) => o.label).map(async (o) => [o.id, await store.getLabelPdf(o.id)] as const),
+      );
+      return new Map(entries.filter((e): e is readonly [string, Blob] => !!e[1]));
+    },
+    [store],
+  );
+
+  const deleteOrdersAndLabels = useCallback(
+    (ids: string[]) => {
+      const withLabels = orders.filter((o) => ids.includes(o.id) && o.label).map((o) => o.id);
+      deleteOrders(ids);
+      withLabels.forEach((id) => store.deleteLabelPdf(id).catch(report));
+    },
+    [orders, deleteOrders, store],
+  );
+
+  return {
+    orders,
+    settings,
+    loading,
+    error,
+    clearError: () => setError(null),
+    saveOrders,
+    patchOrders,
+    deleteOrders: deleteOrdersAndLabels,
+    saveSettings,
+    attachLabel,
+    removeLabel,
+    loadLabels,
+  };
 }

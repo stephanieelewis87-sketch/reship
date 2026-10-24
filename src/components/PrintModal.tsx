@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, Printer, Tag } from "lucide-react";
+import { AlertCircle, CheckCircle2, FileText, Printer, Tag } from "lucide-react";
 import type { Order, PrintOptions } from "@/lib/types";
 import { BundleBadge, Modal, ModalHeader, PhotoCollage, PlatformBadge, SectionLabel, Toggle, isBundle, primaryButton, secondaryButton } from "./ui";
 
@@ -10,13 +10,15 @@ export function PrintModal({
 }: {
   orders: Order[];
   onClose: () => void;
-  onConfirm: (ids: string[], opts: PrintOptions) => void;
+  onConfirm: (ids: string[], opts: PrintOptions) => Promise<void>;
 }) {
+  const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set(orders.map((o) => o.id)));
   const [opts, setOpts] = useState<PrintOptions>({ skuOnLabel: false, packingSlip: true });
 
   const selectedOrders = orders.filter((o) => selected.has(o.id));
   const selectedHasSku = selectedOrders.some((o) => o.items.some((i) => i.sku));
+  const withoutLabel = selectedOrders.filter((o) => !o.label).length;
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -52,6 +54,15 @@ export function PrintModal({
                   <span className="font-mono text-[11px] text-muted-foreground">{order.orderId}</span>
                 </div>
                 <p className="text-sm text-foreground truncate">{isBundle(order) ? `Bundle · ${order.items.length} items` : order.items[0]?.name}</p>
+                {order.label ? (
+                  <p className="text-[11px] text-emerald-700 flex items-center gap-1 mt-0.5">
+                    <CheckCircle2 className="w-3 h-3" /> Label ready
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-amber-700 flex items-center gap-1 mt-0.5">
+                    <AlertCircle className="w-3 h-3" /> No label uploaded yet
+                  </p>
+                )}
               </div>
               <span className="hidden sm:inline text-xs text-muted-foreground whitespace-nowrap shrink-0">{order.carrier}</span>
             </label>
@@ -85,9 +96,12 @@ export function PrintModal({
           </div>
           <Toggle label="Print packing slip" checked={opts.packingSlip} onChange={() => setOpts((o) => ({ ...o, packingSlip: !o.packingSlip }))} />
         </div>
-        <p className="text-[11px] text-muted-foreground">
-          Shipping labels themselves print once label buying is connected. For now this marks orders as printed and prints packing slips.
-        </p>
+        {withoutLabel > 0 && (
+          <p className="text-[11px] text-amber-800 bg-amber-50 rounded-md px-2.5 py-1.5">
+            {withoutLabel} selected order{withoutLabel !== 1 ? "s have" : " has"} no marketplace label yet.
+            {opts.packingSlip ? " Their packing slips will print, and they'll stay in To Print." : " They'll stay in To Print."}
+          </p>
+        )}
       </div>
 
       <div className="flex items-center gap-2 px-5 sm:px-6 pb-4">
@@ -96,15 +110,17 @@ export function PrintModal({
         </button>
         <button
           type="button"
-          onClick={() => {
-            onConfirm(Array.from(selected), opts);
+          onClick={async () => {
+            setBusy(true);
+            await onConfirm(Array.from(selected), opts);
+            setBusy(false);
             onClose();
           }}
-          disabled={selected.size === 0}
+          disabled={selected.size === 0 || busy || (withoutLabel === selected.size && !opts.packingSlip)}
           className={`flex-1 ${primaryButton}`}
         >
           <Printer className="w-3.5 h-3.5" />
-          Print {selected.size} Label{selected.size !== 1 ? "s" : ""}
+          {busy ? "Preparing…" : `Print ${selected.size - withoutLabel} Label${selected.size - withoutLabel !== 1 ? "s" : ""}`}
           {opts.packingSlip && selected.size > 0 && <span className="text-white/70 text-xs">+ slips</span>}
         </button>
       </div>

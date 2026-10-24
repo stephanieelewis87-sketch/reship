@@ -1,6 +1,6 @@
 import type { Order, Settings } from "./types";
 import { DEFAULT_SETTINGS } from "./types";
-import { SAMPLE_ORDERS } from "./sampleData";
+import { SAMPLE_ORDERS, sampleLabelPdf } from "./sampleData";
 import { supabase } from "./supabase";
 
 // One interface, two backends: Supabase when it's configured, otherwise this browser's storage (demo mode).
@@ -10,6 +10,29 @@ export interface Store {
   deleteOrders(ids: string[]): Promise<void>;
   getSettings(): Promise<Settings>;
   saveSettings(settings: Settings): Promise<void>;
+  // Label PDFs are kept apart from order rows because they're large.
+  saveLabelPdf(orderId: string, pdf: Blob): Promise<void>;
+  getLabelPdf(orderId: string): Promise<Blob | null>;
+  deleteLabelPdf(orderId: string): Promise<void>;
+}
+
+// Small IndexedDB wrapper for label PDFs in demo mode; localStorage is too small for files.
+function labelDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("reship-labels", 1);
+    req.onupgradeneeded = () => req.result.createObjectStore("labels");
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function labelTx<T>(mode: IDBTransactionMode, run: (s: IDBObjectStore) => IDBRequest): Promise<T> {
+  const db = await labelDb();
+  return new Promise((resolve, reject) => {
+    const req = run(db.transaction("labels", mode).objectStore("labels"));
+    req.onsuccess = () => resolve(req.result as T);
+    req.onerror = () => reject(req.error);
+  });
 }
 
 const ORDERS_KEY = "reship.orders.v1";
@@ -66,6 +89,21 @@ export class LocalStore implements Store {
     this.memSettings = settings;
     writeJson(SETTINGS_KEY, settings);
   }
+
+  async saveLabelPdf(orderId: string, pdf: Blob) {
+    await labelTx("readwrite", (s) => s.put(pdf, orderId));
+  }
+
+  async getLabelPdf(orderId: string) {
+    const stored = await labelTx<Blob | undefined>("readonly", (s) => s.get(orderId));
+    if (stored) return stored;
+    const sample = (await this.listOrders()).find((o) => o.id === orderId && o.source === "sample");
+    return sample?.label ? sampleLabelPdf(sample) : null;
+  }
+
+  async deleteLabelPdf(orderId: string) {
+    await labelTx("readwrite", (s) => s.delete(orderId));
+  }
 }
 
 interface OrderRow {
@@ -80,6 +118,7 @@ interface OrderRow {
   tracking: string | null;
   ship_to: Order["shipTo"] | null;
   parcel: Order["parcel"] | null;
+  label: Order["label"] | null;
   source: Order["source"];
 }
 
@@ -96,6 +135,7 @@ const toRow = (o: Order, userId: string) => ({
   tracking: o.tracking ?? null,
   ship_to: o.shipTo ?? null,
   parcel: o.parcel ?? null,
+  label: o.label ?? null,
   source: o.source,
 });
 
@@ -111,6 +151,7 @@ const fromRow = (r: OrderRow): Order => ({
   tracking: r.tracking ?? undefined,
   shipTo: r.ship_to ?? undefined,
   parcel: r.parcel ?? undefined,
+  label: r.label ?? undefined,
   source: r.source,
 });
 
@@ -147,6 +188,29 @@ export class SupabaseStore implements Store {
 
   async saveSettings(settings: Settings) {
     const { error } = await this.db.from("settings").upsert({ user_id: this.userId, data: settings });
+    if (error) throw error;
+  }
+
+  // Files live in the private "labels" bucket under the user's own folder.
+  private labelPath(orderId: string) {
+    return `${this.userId}/${orderId}.pdf`;
+  }
+
+  async saveLabelPdf(orderId: string, pdf: Blob) {
+    const { error } = await this.db.storage
+      .from("labels")
+      .upload(this.labelPath(orderId), pdf, { upsert: true, contentType: "application/pdf" });
+    if (error) throw error;
+  }
+
+  async getLabelPdf(orderId: string) {
+    const { data, error } = await this.db.storage.from("labels").download(this.labelPath(orderId));
+    if (error) return null;
+    return data;
+  }
+
+  async deleteLabelPdf(orderId: string) {
+    const { error } = await this.db.storage.from("labels").remove([this.labelPath(orderId)]);
     if (error) throw error;
   }
 }

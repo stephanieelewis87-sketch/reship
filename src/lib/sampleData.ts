@@ -100,4 +100,27 @@ const RAW: Omit<Order, "source">[] = [
   },
 ];
 
-export const SAMPLE_ORDERS: Order[] = RAW.map((o) => ({ ...o, id: `sample-${o.id}`, source: "sample" }));
+// Sample orders come with a stand-in label so printing can be tried before uploading real ones.
+export const SAMPLE_ORDERS: Order[] = RAW.map((o) => ({
+  ...o,
+  id: `sample-${o.id}`,
+  source: "sample",
+  label: { fileName: `sample-label-${o.orderId}.pdf`, uploadedAt: "2026-07-20T00:00:00.000Z" },
+}));
+
+export async function sampleLabelPdf(order: Order): Promise<Blob> {
+  const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([288, 432]);
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  page.drawRectangle({ x: 10, y: 10, width: 268, height: 412, borderColor: rgb(0, 0, 0), borderWidth: 1.5 });
+  page.drawText("SAMPLE LABEL", { x: 24, y: 392, size: 18, font: bold });
+  page.drawText("Not valid for shipping", { x: 24, y: 374, size: 10, font });
+  page.drawText(order.carrier, { x: 24, y: 330, size: 14, font: bold });
+  page.drawText(`${order.platform} order ${order.orderId}`, { x: 24, y: 300, size: 11, font });
+  page.drawText(`Ship to: @${order.buyer}`, { x: 24, y: 282, size: 11, font });
+  for (let i = 0; i < 38; i++) page.drawRectangle({ x: 24 + i * 6.4, y: 140, width: i % 3 ? 2 : 4, height: 90, color: rgb(0, 0, 0) });
+  page.drawText(order.tracking ?? "9400 0000 0000 0000 0000 00", { x: 40, y: 120, size: 11, font });
+  return new Blob([await doc.save()], { type: "application/pdf" });
+}

@@ -7,29 +7,27 @@ import {
   FileUp,
   LayoutGrid,
   List,
-  MapPin,
   Menu,
   Plus,
   Printer,
   Search,
-  ShoppingCart,
+  Upload,
   X,
 } from "lucide-react";
 import type { LabelStatus, Order, OrderItem, Platform, PrintOptions } from "@/lib/types";
 import { isAddressComplete } from "@/lib/types";
 import type { useReshipData } from "@/lib/useReshipData";
-import { printPackingSlips } from "@/lib/packingSlips";
+import { buildPrintJob } from "@/lib/printJob";
 import { trackingUrl } from "@/lib/tracking";
 import { Sidebar } from "./Sidebar";
 import { PrintModal } from "./PrintModal";
 import { BuyLabelsModal } from "./BuyLabelsModal";
 import { OrderDrawer, blankOrder } from "./OrderDrawer";
 import { ImportCsvModal } from "./ImportCsvModal";
+import { UploadLabelsModal } from "./UploadLabelsModal";
 import { SettingsModal, type SettingsTab } from "./SettingsModal";
 import { BundleBadge, PhotoCollage, PlatformBadge, SkuCell, StatusBadge, isBundle, orderTitle } from "./ui";
 
-// Marketplaces where the seller buys their own label; the others hand out prepaid labels.
-const BUYS_OWN_LABEL: Platform[] = ["eBay", "Etsy", "Other"];
 const LIST_COLUMNS = "2rem 3rem minmax(0,1.6fr) 7.5rem minmax(0,1fr) 8.5rem 5.5rem";
 
 type Data = ReturnType<typeof useReshipData>;
@@ -45,7 +43,7 @@ export function Dashboard({
   demoMode: boolean;
   onSignOut: () => void;
 }) {
-  const { orders, settings, saveOrders, patchOrders, deleteOrders, saveSettings } = data;
+  const { orders, settings, saveOrders, patchOrders, deleteOrders, saveSettings, attachLabel, removeLabel, loadLabels } = data;
 
   const [activePlatforms, setActivePlatforms] = useState<Set<Platform>>(new Set());
   const [activeStatus, setActiveStatus] = useState<LabelStatus | "all">("all");
@@ -55,7 +53,8 @@ export function Dashboard({
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [printOrders, setPrintOrders] = useState<Order[] | null>(null);
-  const [buyOpen, setBuyOpen] = useState(false);
+  const [buyFor, setBuyFor] = useState<Order[] | null>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [drawer, setDrawer] = useState<{ order: Order; isNew: boolean } | null>(null);
@@ -85,7 +84,6 @@ export function Dashboard({
   );
 
   const pendingOrders = filteredOrders.filter((o) => o.status === "pending");
-  const buyLabelOrders = orders.filter((o) => o.status === "pending" && BUYS_OWN_LABEL.includes(o.platform));
   const selectedPending = filteredOrders.filter((o) => selectedIds.has(o.id) && o.status === "pending");
   const sampleCount = orders.filter((o) => o.source === "sample").length;
 
@@ -97,13 +95,46 @@ export function Dashboard({
   const updateItemSku = (order: Order, itemIndex: number, sku: string) =>
     saveOrders([{ ...order, items: order.items.map((item, i): OrderItem => (i === itemIndex ? { ...item, sku: sku || undefined } : item)) }]);
 
-  const handlePrintConfirm = (ids: string[], opts: PrintOptions) => {
+  // Combines the chosen orders' label PDFs (and packing slips) into one file and opens it to print.
+  const handlePrintConfirm = async (ids: string[], opts: PrintOptions) => {
     const chosen = orders.filter((o) => ids.includes(o.id));
-    if (opts.packingSlip && !printPackingSlips(chosen, settings, opts.skuOnLabel)) {
-      setNotice({ text: "Your browser blocked the print window. Allow pop-ups for Reship and try again.", ok: false });
+    // Open the tab right away, while the click still counts, so pop-up blockers allow it.
+    const win = window.open("", "_blank");
+    try {
+      const labels = await loadLabels(chosen);
+      const job = await buildPrintJob({ orders: chosen, labels, skuOnLabel: opts.skuOnLabel, packingSlip: opts.packingSlip, settings });
+      if (job.pageCount === 0) {
+        win?.close();
+        setNotice({ text: "None of those orders has a label yet. Upload the marketplace label PDFs first.", ok: false });
+        return;
+      }
+      const url = URL.createObjectURL(new Blob([job.pdf], { type: "application/pdf" }));
+      if (win) win.location.href = url;
+      else window.location.assign(url);
+      if (job.printedOrderIds.length) patchOrders(job.printedOrderIds, () => ({ status: "printed" }));
+      const skipped = job.missingLabelIds.length + job.unreadableLabelIds.length;
+      setNotice(
+        job.unreadableLabelIds.length
+          ? { text: `${job.unreadableLabelIds.length} label file${job.unreadableLabelIds.length !== 1 ? "s" : ""} couldn't be read. Try uploading ${job.unreadableLabelIds.length !== 1 ? "them" : "it"} again.`, ok: false }
+          : { text: `Opened ${job.printedOrderIds.length} label${job.printedOrderIds.length !== 1 ? "s" : ""} to print${skipped ? `; ${skipped} order${skipped !== 1 ? "s" : ""} without a label stayed in To Print` : ""}.`, ok: true },
+      );
+      setSelectedIds(new Set());
+    } catch (e) {
+      win?.close();
+      setNotice({ text: `Couldn't prepare the labels: ${e instanceof Error ? e.message : e}`, ok: false });
     }
-    patchOrders(ids, () => ({ status: "printed" }));
-    setSelectedIds(new Set());
+  };
+
+  const viewLabel = async (order: Order) => {
+    const win = window.open("", "_blank");
+    const blob = (await loadLabels([order])).get(order.id);
+    if (!blob) {
+      win?.close();
+      setNotice({ text: "That label file couldn't be found. Try uploading it again.", ok: false });
+      return;
+    }
+    const url = URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
+    if (win) win.location.href = url;
   };
 
   const today = new Date().toLocaleDateString(undefined, { weekday: "short", month: "long", day: "numeric", year: "numeric" });
@@ -167,17 +198,6 @@ export function Dashboard({
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {buyLabelOrders.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setBuyOpen(true)}
-                className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg border border-border bg-card text-foreground text-sm font-medium hover:bg-muted transition-colors"
-              >
-                <ShoppingCart className="w-3.5 h-3.5 text-[#B5607A]" />
-                Buy Labels
-                <span className="font-mono text-xs font-semibold bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded">{buyLabelOrders.length}</span>
-              </button>
-            )}
             <button
               type="button"
               onClick={() => setPrintOrders(selectedPending.length > 0 ? selectedPending : pendingOrders)}
@@ -213,6 +233,13 @@ export function Dashboard({
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-xs font-medium text-foreground hover:bg-muted"
           >
             <FileUp className="w-3.5 h-3.5" /> Import CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => setUploadOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-xs font-medium text-foreground hover:bg-muted"
+          >
+            <Upload className="w-3.5 h-3.5" /> Upload labels
           </button>
           <div className="ml-auto flex items-center gap-2">
             <span className="font-mono text-xs text-muted-foreground">
@@ -274,7 +301,7 @@ export function Dashboard({
                 const isSelected = selectedIds.has(order.id);
                 const bundle = isBundle(order);
                 const expanded = expandedIds.has(order.id);
-                const needsAddress = order.status === "pending" && !isAddressComplete(order.shipTo) && BUYS_OWN_LABEL.includes(order.platform);
+                const needsLabel = order.status === "pending" && !order.label;
 
                 return (
                   <div key={order.id} className={`border-b border-border last:border-0 ${isSelected ? "bg-rose-50/50" : ""}`}>
@@ -332,14 +359,14 @@ export function Dashboard({
                               )}
                             </button>
                           )}
-                          {needsAddress && (
+                          {needsLabel && (
                             <button
                               type="button"
                               onClick={() => setDrawer({ order, isNew: false })}
                               className="inline-flex items-center gap-0.5 text-[11px] text-amber-700 hover:underline"
                             >
-                              <MapPin className="w-3 h-3" />
-                              Add address
+                              <Upload className="w-3 h-3" />
+                              Add label
                             </button>
                           )}
                         </div>
@@ -469,11 +496,22 @@ export function Dashboard({
 
       {printOrders && <PrintModal orders={printOrders} onClose={() => setPrintOrders(null)} onConfirm={handlePrintConfirm} />}
 
-      {buyOpen && (
+      {uploadOpen && (
+        <UploadLabelsModal
+          orders={orders}
+          onClose={() => setUploadOpen(false)}
+          onAttach={async (pairs) => {
+            for (const { order, file } of pairs) await attachLabel(order, file);
+            setNotice({ text: `Attached ${pairs.length} label${pairs.length !== 1 ? "s" : ""}.`, ok: true });
+          }}
+        />
+      )}
+
+      {buyFor && (
         <BuyLabelsModal
-          orders={buyLabelOrders}
+          orders={buyFor}
           hasShipFrom={isAddressComplete(settings.shipFrom)}
-          onClose={() => setBuyOpen(false)}
+          onClose={() => setBuyFor(null)}
           onSaveParcels={(rows) =>
             saveOrders(
               rows.map((r) => {
@@ -503,9 +541,16 @@ export function Dashboard({
           order={drawer.order}
           isNew={drawer.isNew}
           onClose={() => setDrawer(null)}
-          onSave={(o) => {
+          onSave={(o, label) => {
             saveOrders([o]);
+            if (label.file) attachLabel(o, label.file);
+            else if (label.remove) removeLabel(o);
             setDrawer(null);
+          }}
+          onViewLabel={viewLabel}
+          onBuyLabel={(o) => {
+            setDrawer(null);
+            setBuyFor([o]);
           }}
           onDelete={(id) => {
             deleteOrders([id]);

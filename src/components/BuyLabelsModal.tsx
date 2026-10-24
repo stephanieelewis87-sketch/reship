@@ -12,7 +12,7 @@ interface Draft {
   rate: CarrierRate | null;
 }
 
-// Rate shopping for orders where Reship buys the label (eBay, Etsy, manual orders).
+// Optional: shop rates for a label of your own instead of (or in addition to) the marketplace's.
 // Prices are estimates until a shipping account is connected; package details are saved to each order.
 export function BuyLabelsModal({
   orders,
@@ -58,9 +58,9 @@ export function BuyLabelsModal({
   };
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-2xl" label="Buy labels">
+    <Modal onClose={onClose} maxWidth="max-w-2xl" label="Buy a different label">
       <ModalHeader
-        title="Buy Labels"
+        title={orders.length === 1 ? "Buy a Different Label" : "Buy Different Labels"}
         subtitle={`${orders.length} order${orders.length !== 1 ? "s" : ""} · estimated rates`}
         onClose={onClose}
         icon={<ShoppingCart className="w-5 h-5 text-[#B5607A]" />}
@@ -175,7 +175,7 @@ export function BuyLabelsModal({
 
       <div className="px-5 sm:px-6 py-4 border-t border-border bg-muted/20 flex flex-col gap-3 shrink-0">
         <p className="text-[11px] text-muted-foreground">
-          These are estimates. Real prices and label purchase arrive when a shipping account (EasyPost) is connected.
+          Use this when you want a carrier or service other than the marketplace's label. Prices are estimates until label buying is connected.
           {!hasShipFrom && " Add your ship-from address in Settings too."}
           {missingAddress > 0 && ` ${missingAddress} order${missingAddress !== 1 ? "s" : ""} still need${missingAddress === 1 ? "s" : ""} a buyer address.`}
         </p>
