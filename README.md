@@ -43,11 +43,12 @@ Marketplaces don't offer label APIs, so the extension in `extension/` reads sold
   1. Log in to each marketplace in the same Chrome profile that has the extension.
   2. Make sure Chrome isn't blocking third-party cookies. Go to Settings, then Privacy and security, then Third-party cookies, and choose "Allow third-party cookies" (or add each marketplace under "Allowed to use third-party cookies"). When they're blocked, marketplace pages such as Mercari may not load and syncs fail.
   3. Turn off ad or privacy blockers on marketplace sites.
-- Poshmark works today. Mercari, Depop, Vinted and Whatnot show as "coming soon". The "Capture this page" and "Test Poshmark" buttons help map and check a marketplace.
+- Poshmark and Mercari work today. Depop, Vinted and Whatnot show as "coming soon". The "Capture this page" and "Test" buttons help map and check a marketplace.
+- Mercari's pages are drawn in the browser, so the extension reads them in a minimized window it opens and closes during a sync. Mercari's letter-size label is cut out and turned upright when printing on 4x6 labels.
 
 ## Coming next
 
-Paid sign-up ($16.99/month), Mercari and other marketplaces in the extension, inventory tracking, real purchase of alternative labels, and returns.
+Paid sign-up ($16.99/month), QR code drop-off sheets, more marketplaces in the extension, inventory tracking, real purchase of alternative labels, and returns.
 
 ## Scripts
 

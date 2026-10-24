@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { PDFDocument, StandardFonts, degrees, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import type { Address, LabelFormat, Order, Settings } from "./types";
 
 const PAGE_SIZES: Record<LabelFormat, [number, number]> = {
@@ -50,6 +50,29 @@ export function stampSku(page: PDFPage, font: PDFFont, skus: string[]) {
 // Poshmark's label download already ends with its own packing slip page, so Reship's would be a
 // second one for the same order.
 export const labelIncludesSlip = (order: Pick<Order, "platform">, labelPages: number) => order.platform === "Poshmark" && labelPages > 1;
+
+// Mercari's label download is a letter page with the 4x6 label turned sideways in its top half
+// (inside the dashed cut line). On a 4x6 label printer, that part is cut out and turned upright.
+const MERCARI_LETTER_LABEL = { left: 54, bottom: 425, right: 558, top: 764 };
+const isLetterPage = (page: PDFPage) => {
+  const { width, height } = page.getSize();
+  return Math.abs(width - 612) < 2 && Math.abs(height - 792) < 2;
+};
+
+async function addUprightLabel(doc: PDFDocument, src: PDFPage): Promise<PDFPage> {
+  const box = MERCARI_LETTER_LABEL;
+  const embedded = await doc.embedPage(src, box);
+  const [pageW, pageH] = PAGE_SIZES["4x6"];
+  const w = box.right - box.left;
+  const h = box.top - box.bottom;
+  // Turned a quarter-turn counterclockwise, the label is h wide and w tall.
+  const scale = Math.min(pageW / h, pageH / w);
+  const page = doc.addPage([pageW, pageH]);
+  const x = (pageW - h * scale) / 2 + h * scale;
+  const y = (pageH - w * scale) / 2;
+  page.drawPage(embedded, { x, y, width: w * scale, height: h * scale, rotate: degrees(90) });
+  return page;
+}
 
 function wrap(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
   const words = safe(text).split(/\s+/);
@@ -128,8 +151,13 @@ export async function buildPrintJob(input: PrintJobInput): Promise<PrintJobResul
     else {
       try {
         const src = await PDFDocument.load(await toBytes(raw), { ignoreEncryption: true });
-        const pages = await doc.copyPages(src, src.getPageIndices());
-        pages.forEach((p) => doc.addPage(p));
+        let pages: PDFPage[];
+        if (order.platform === "Mercari" && input.settings.labelFormat === "4x6" && src.getPageCount() === 1 && isLetterPage(src.getPage(0))) {
+          pages = [await addUprightLabel(doc, src.getPage(0))];
+        } else {
+          pages = await doc.copyPages(src, src.getPageIndices());
+          pages.forEach((p) => doc.addPage(p));
+        }
         const skus = order.items.map((i) => i.sku).filter((s): s is string => !!s);
         if (input.skuOnLabel && skus.length && pages[0]) stampSku(pages[0], font, skus);
         hasOwnSlip = labelIncludesSlip(order, pages.length);

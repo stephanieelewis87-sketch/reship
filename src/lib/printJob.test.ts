@@ -70,6 +70,19 @@ describe("print job", () => {
     expect(page.drawText.mock.calls[0]).toEqual(["SKU: N-104-C", expect.objectContaining({ x: 170, y: 329 })]);
   });
 
+  it("turns Mercari's letter-size label upright onto a 4x6 page", async () => {
+    const letter = await PDFDocument.create();
+    letter.addPage([612, 792]).drawText("label", { x: 100, y: 600 });
+    const labels = new Map([["m", await letter.save()]]);
+    const res = await buildPrintJob({ orders: [order("m")], labels, skuOnLabel: false, packingSlip: false, settings });
+    const out = await PDFDocument.load(res.pdf);
+    expect(out.getPageCount()).toBe(1);
+    expect(out.getPage(0).getSize()).toEqual({ width: 288, height: 432 });
+
+    const onLetter = await buildPrintJob({ orders: [order("m")], labels, skuOnLabel: false, packingSlip: false, settings: { ...settings, labelFormat: "letter" } });
+    expect((await PDFDocument.load(onLetter.pdf)).getPage(0).getSize()).toEqual({ width: 612, height: 792 });
+  });
+
   it("prints labels only when slips are off", async () => {
     const res = await buildPrintJob({
       orders: [order("a")],
