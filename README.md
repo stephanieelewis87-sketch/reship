@@ -39,6 +39,10 @@ Marketplaces don't offer label APIs, so the extension in `extension/` reads sold
 - `node extension/build.mjs` builds it into `extension/dist` (it reads the same Supabase settings from `.env.local`).
 - In Chrome, open `chrome://extensions`, turn on Developer mode, click Load unpacked and pick `extension/dist`.
 - Sign in with your Reship account, turn on a marketplace and press Sync now. It also syncs every 15 minutes.
+- New seller setup checklist (also shown in the extension popup):
+  1. Log in to each marketplace in the same Chrome profile that has the extension.
+  2. Make sure Chrome isn't blocking third-party cookies. Go to Settings, then Privacy and security, then Third-party cookies, and choose "Allow third-party cookies" (or add each marketplace under "Allowed to use third-party cookies"). When they're blocked, marketplace pages such as Mercari may not load and syncs fail.
+  3. Turn off ad or privacy blockers on marketplace sites.
 - Poshmark works today. Mercari, Depop, Vinted and Whatnot show as "coming soon". The "Capture this page" and "Test Poshmark" buttons help map and check a marketplace.
 
 ## Coming next

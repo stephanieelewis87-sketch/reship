@@ -43,6 +43,14 @@
           Reship reads your sold orders and labels using the marketplace sessions you are already logged in to in this browser. Marketplaces don't officially support this, and it may break their terms. Use it at your own risk.
           <div style="margin-top: 8px"><button class="primary" id="accept" type="button">I understand, turn it on</button></div>
         </div>
+        <details id="setup-tips" class="notice" style="background: transparent; border-color: var(--border); color: inherit">
+          <summary>Setup checklist</summary>
+          <ol style="margin: 6px 0 0; padding-left: 16px">
+            <li>Log in to each marketplace in this Chrome profile.</li>
+            <li>Let Chrome use third-party cookies. Without them, marketplace pages may not load or sync. Go to Chrome Settings, then Privacy and security, then Third-party cookies. Choose "Allow third-party cookies", or add each marketplace under "Allowed to use third-party cookies".</li>
+            <li>If an ad or privacy blocker is installed, turn it off on marketplace sites.</li>
+          </ol>
+        </details>
         <div id="platforms"></div>
         <p class="muted" id="last-run"></p>
         <button class="primary" id="sync" type="button">Sync now</button>
