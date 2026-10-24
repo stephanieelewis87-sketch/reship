@@ -15,10 +15,15 @@ export default function App() {
 
 function SignedInGate() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
+  // True after opening a password reset email link, until a new password is saved.
+  const [recovering, setRecovering] = useState(false);
 
   useEffect(() => {
     supabase!.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data } = supabase!.auth.onAuthStateChange((_event, s) => setSession(s));
+    const { data } = supabase!.auth.onAuthStateChange((event, s) => {
+      if (event === "PASSWORD_RECOVERY") setRecovering(true);
+      setSession(s);
+    });
     return () => data.subscription.unsubscribe();
   }, []);
 
@@ -26,6 +31,7 @@ function SignedInGate() {
   const store = useMemo(() => (userId ? new SupabaseStore(userId) : null), [userId]);
 
   if (session === undefined) return null;
+  if (recovering && session) return <AuthScreen recovery onRecovered={() => setRecovering(false)} />;
   if (!session || !store) return <AuthScreen />;
   return <ReshipApp key={userId} store={store} email={session.user.email ?? null} demoMode={false} onSignOut={() => supabase!.auth.signOut()} />;
 }
