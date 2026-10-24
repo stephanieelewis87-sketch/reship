@@ -74,6 +74,24 @@ const RAW: Omit<Order, "source">[] = [
       { name: "Tommy Hilfiger Windbreaker", sku: "TH-WIND-L", photo: "https://images.unsplash.com/photo-1611308725032-74f0a551d018?w=400&h=400&fit=crop&auto=format" },
     ],
   },
+  {
+    id: "16", platform: "Depop", orderId: "DP-55871", buyer: "grunge_garden", date: "2026-07-20", status: "pending", carrier: "USPS Ground Advantage",
+    items: [
+      { name: "Juicy Couture Velour Hoodie S", sku: "JC-HOOD-S", photo: "https://images.unsplash.com/photo-1776409683606-d7ce632d96a5?w=400&h=400&fit=crop&auto=format" },
+    ],
+  },
+  {
+    id: "17", platform: "Vinted", orderId: "VT-88912", buyer: "capsule_closet", date: "2026-07-20", status: "pending", carrier: "USPS Ground Advantage",
+    items: [
+      { name: "Zara Belted Trench Coat S", sku: "ZR-TRENCH-S", photo: "https://images.unsplash.com/photo-1592327877233-90b9bfd92e48?w=400&h=400&fit=crop&auto=format" },
+    ],
+  },
+  {
+    id: "18", platform: "WhatNot", orderId: "WN-30877", buyer: "slab_hunter", date: "2026-07-20", status: "pending", carrier: "USPS Ground Advantage",
+    items: [
+      { name: "Pokémon Jungle Holo Lot (12 cards)", sku: "PKM-JNG-12", photo: "https://images.unsplash.com/photo-1611931960487-4932667079f1?w=400&h=400&fit=crop&auto=format" },
+    ],
+  },
   // --- Bundle orders ---
   {
     id: "13", platform: "Poshmark", orderId: "PM-45100", buyer: "stylestack_sam", date: "2026-07-20", status: "pending", carrier: "USPS Priority",
@@ -128,19 +146,80 @@ export const SAMPLE_ORDERS: Order[] = RAW.map((o) => {
   };
 });
 
+// Made-up ship-to addresses for the sample labels.
+const SAMPLE_ADDRESSES = [
+  ["Jessica Morales", "1842 Willow Creek Dr", "Austin TX 78704"],
+  ["Daniel Okafor", "77 Harbor View Ln Apt 3B", "Portland ME 04101"],
+  ["Kate Lindqvist", "209 Maple Ave", "Asheville NC 28801"],
+  ["Priya Raman", "5120 Sunset Blvd", "Los Angeles CA 90027"],
+  ["Marcus Bell", "16 Orchard St", "Brooklyn NY 11211"],
+  ["Hannah Cho", "930 Pine St Unit 12", "Seattle WA 98101"],
+  ["Luis Alvarez", "4401 Mesa Verde Rd", "Albuquerque NM 87110"],
+  ["Emma Novak", "58 Lakeshore Dr", "Madison WI 53703"],
+  ["Tyler Brooks", "3307 Peachtree Rd NE", "Atlanta GA 30326"],
+  ["Sofia Rossi", "12 Beacon St Apt 4", "Boston MA 02108"],
+  ["Jordan Reyes", "781 Elm Ridge Ct", "Denver CO 80205"],
+  ["Grace Kim", "455 Lantern Way", "San Diego CA 92101"],
+  ["Noah Patel", "2290 Riverbend Pkwy", "Columbus OH 43215"],
+  ["Ava Thompson", "64 Magnolia St", "Savannah GA 31401"],
+  ["Ethan Walsh", "1015 Cedar Hollow Rd", "Nashville TN 37203"],
+  ["Mia Fischer", "300 Prairie Ln", "Omaha NE 68102"],
+  ["Leo Santos", "88 Ocean Pkwy Apt 7C", "Miami FL 33139"],
+  ["Chloe Martin", "5 Aspen Grove", "Boise ID 83702"],
+];
+
+const SAMPLE_SERVICE: Record<string, [string, string]> = {
+  "USPS Priority": ["P", "USPS PRIORITY MAIL"],
+  "USPS First Class": ["F", "USPS FIRST-CLASS MAIL"],
+  "USPS Ground Advantage": ["G", "USPS GROUND ADVANTAGE"],
+  "UPS Ground": ["G", "UPS GROUND"],
+};
+
+// A stand-in label laid out like a real 4x6 prepaid label, with made-up addresses and a
+// "sample" note, so the print flow can be shown without real orders.
 export async function sampleLabelPdf(order: Order): Promise<Blob> {
   const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
   const doc = await PDFDocument.create();
   const page = doc.addPage([288, 432]);
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
-  page.drawRectangle({ x: 10, y: 10, width: 268, height: 412, borderColor: rgb(0, 0, 0), borderWidth: 1.5 });
-  page.drawText("SAMPLE LABEL", { x: 24, y: 392, size: 18, font: bold });
-  page.drawText("Not valid for shipping", { x: 24, y: 374, size: 10, font });
-  page.drawText(order.carrier, { x: 24, y: 330, size: 14, font: bold });
-  page.drawText(`${order.platform} order ${order.orderId}`, { x: 24, y: 300, size: 11, font });
-  page.drawText(`Ship to: @${order.buyer}`, { x: 24, y: 282, size: 11, font });
-  for (let i = 0; i < 38; i++) page.drawRectangle({ x: 24 + i * 6.4, y: 140, width: i % 3 ? 2 : 4, height: 90, color: rgb(0, 0, 0) });
-  page.drawText(order.tracking ?? "9400 0000 0000 0000 0000 00", { x: 40, y: 120, size: 11, font });
+  const black = rgb(0, 0, 0);
+  const n = Number(order.id.replace(/\D/g, "")) || 1;
+  const [name, street, city] = SAMPLE_ADDRESSES[(n - 1) % SAMPLE_ADDRESSES.length];
+  const [letter, service] = SAMPLE_SERVICE[order.carrier] ?? ["P", order.carrier.toUpperCase()];
+  const tracking = order.tracking ?? `9400 1118 9956 ${String(1000 + n * 37).slice(-4)} ${String(4821 + n * 113).slice(-4)} ${String(10 + n).slice(-2)}`;
+
+  page.drawRectangle({ x: 6, y: 6, width: 276, height: 420, borderColor: black, borderWidth: 1.5 });
+  // Service letter box and postage block
+  page.drawRectangle({ x: 14, y: 346, width: 72, height: 72, borderColor: black, borderWidth: 2 });
+  page.drawText(letter, { x: letter === "F" ? 35 : 30, y: 360, size: 54, font: bold });
+  page.drawRectangle({ x: 168, y: 362, width: 106, height: 56, borderColor: black, borderWidth: 1 });
+  ["POSTAGE PAID", order.platform.toUpperCase(), "COMMERCIAL"].forEach((t, i) =>
+    page.drawText(t, { x: 176, y: 404 - i * 13, size: 8, font: i === 1 ? bold : font }),
+  );
+  // Service banner
+  page.drawRectangle({ x: 6, y: 316, width: 276, height: 24, color: black });
+  page.drawText(service, { x: 14, y: 323, size: 13, font: bold, color: rgb(1, 1, 1) });
+  // From
+  ["YOUR SHOP", "123 MAIN ST", "NEW ORLEANS LA 70122"].forEach((t, i) => page.drawText(t, { x: 14, y: 300 - i * 10, size: 8, font }));
+  page.drawText(`Ship Date: ${order.date}`, { x: 186, y: 300, size: 7, font });
+  page.drawText("Weight: 1 lb", { x: 186, y: 290, size: 7, font });
+  // To
+  page.drawText("SHIP TO:", { x: 14, y: 250, size: 8, font: bold });
+  [name.toUpperCase(), street.toUpperCase(), city.toUpperCase()].forEach((t, i) => page.drawText(t, { x: 60, y: 236 - i * 15, size: 12, font: i === 0 ? bold : font }));
+  // Tracking barcode
+  page.drawRectangle({ x: 6, y: 176, width: 276, height: 1.5, color: black });
+  const carrierName = order.carrier.startsWith("UPS") ? "UPS" : "USPS";
+  page.drawText(`${carrierName} TRACKING #`, { x: carrierName === "UPS" ? 104 : 100, y: 164, size: 9, font: bold });
+  let x = 26;
+  for (let i = 0; x < 262; i++) {
+    const w = [1, 2, 1, 3, 1, 2][(i * 7 + n) % 6];
+    page.drawRectangle({ x, y: 84, width: w, height: 70, color: black });
+    x += w + [1, 2, 3][(i + n) % 3];
+  }
+  page.drawText(tracking, { x: 64, y: 70, size: 10, font: bold });
+  page.drawRectangle({ x: 6, y: 58, width: 276, height: 1.5, color: black });
+  page.drawText(`${order.platform} order ${order.orderId}`, { x: 14, y: 40, size: 8, font });
+  page.drawText("SAMPLE LABEL - NOT VALID FOR POSTAGE", { x: 14, y: 24, size: 7, font, color: rgb(0.45, 0.45, 0.45) });
   return new Blob([await doc.save()], { type: "application/pdf" });
 }

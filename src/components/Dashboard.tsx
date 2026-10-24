@@ -13,6 +13,7 @@ import { ImportCsvModal } from "./ImportCsvModal";
 import { SettingsModal, type SettingsTab } from "./SettingsModal";
 import { OrderList } from "./OrderList";
 import { orderTitle } from "./ui";
+import { WithdrawShortcuts } from "./WithdrawShortcuts";
 
 type Data = ReturnType<typeof useReshipData>;
 
@@ -47,11 +48,13 @@ export function Dashboard({
   email,
   demoMode,
   onSignOut,
+  onResetDemo,
 }: {
   data: Data;
   email: string | null;
   demoMode: boolean;
   onSignOut: () => void;
+  onResetDemo?: () => void;
 }) {
   const { orders, settings, saveOrders, patchOrders, deleteOrders, saveSettings, attachLabel, removeLabel, loadLabels } = data;
 
@@ -237,7 +240,14 @@ export function Dashboard({
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {demoMode && (
-          <div className="px-4 md:px-8 py-1.5 bg-amber-50 border-b border-amber-200 text-[11px] text-amber-900">Demo mode: orders are saved in this browser only.</div>
+          <div className="px-4 md:px-8 py-1.5 bg-amber-50 border-b border-amber-200 text-[11px] text-amber-900 flex items-center gap-3">
+            <span className="flex-1">Demo mode: sample orders, saved in this browser only.</span>
+            {onResetDemo && (
+              <button type="button" onClick={onResetDemo} className="underline hover:no-underline">
+                Reset demo
+              </button>
+            )}
+          </div>
         )}
         {(notice || data.error) && (
           <div
@@ -310,6 +320,7 @@ export function Dashboard({
                 <StatCard label="In transit" value={summary.inTransit} hint="On the way to buyers" tone="text-sky-600" onClick={() => goTo("shipped")} />
                 <StatCard label="Delivered" value={summary.delivered} hint="Arrived" tone="text-emerald-600" onClick={() => goTo("shipped")} />
               </div>
+              <WithdrawShortcuts platforms={[...new Set(orders.map((o) => o.platform))]} />
             </section>
           )}
 
