@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { PDFDocument } from "pdf-lib";
-import { buildPrintJob } from "./printJob";
+import { describe, expect, it, vi } from "vitest";
+import { PDFDocument, StandardFonts, type PDFPage } from "pdf-lib";
+import { buildPrintJob, stampSku } from "./printJob";
 import type { Order } from "./types";
 
 async function fakeLabel(pages = 1) {
@@ -9,9 +9,9 @@ async function fakeLabel(pages = 1) {
   return doc.save();
 }
 
-const order = (id: string, sku?: string): Order => ({
+const order = (id: string, sku?: string, platform: Order["platform"] = "Mercari"): Order => ({
   id,
-  platform: "Poshmark",
+  platform,
   orderId: `PM-${id}`,
   buyer: "jessica_m",
   items: [{ name: "Levi’s 501 Jeans — W28", sku, price: 32 }],
@@ -44,6 +44,30 @@ describe("print job", () => {
     expect(res.unreadableLabelIds).toEqual(["bad"]);
     expect(res.printedOrderIds).toEqual([]);
     expect(res.pageCount).toBe(2);
+  });
+
+  it("skips Reship's slip when a Poshmark label already includes Poshmark's", async () => {
+    const labels = new Map([
+      ["p2", await fakeLabel(2)],
+      ["p1", await fakeLabel(1)],
+    ]);
+    const res = await buildPrintJob({
+      orders: [order("p2", undefined, "Poshmark"), order("p1", undefined, "Poshmark")],
+      labels,
+      skuOnLabel: false,
+      packingSlip: true,
+      settings,
+    });
+    expect(res.pageCount).toBe(2 + 1 + 1);
+  });
+
+  it("stamps the SKU inside labels whose page doesn't start at (0, 0)", async () => {
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    const page = { getCropBox: () => ({ x: 160, y: 322, width: 292, height: 436 }), drawRectangle: vi.fn(), drawText: vi.fn() };
+    stampSku(page as unknown as PDFPage, font, ["N-104-C"]);
+    expect(page.drawRectangle.mock.calls[0][0]).toMatchObject({ x: 166, y: 326 });
+    expect(page.drawText.mock.calls[0]).toEqual(["SKU: N-104-C", expect.objectContaining({ x: 170, y: 329 })]);
   });
 
   it("prints labels only when slips are off", async () => {

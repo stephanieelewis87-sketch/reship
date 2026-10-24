@@ -36,14 +36,20 @@ const safe = (s: string) =>
     .replace(/[–—]/g, "-")
     .replace(/[^\x20-\x7E]/g, "?");
 
-function stampSku(page: PDFPage, font: PDFFont, skus: string[]) {
+// Stamps the SKUs in the label's bottom-left corner. Marketplace labels often place the visible
+// page away from (0, 0) (Poshmark's starts at 160, 322), so positions follow the crop box.
+export function stampSku(page: PDFPage, font: PDFFont, skus: string[]) {
   const text = safe(`SKU: ${skus.join(", ")}`);
-  const { width } = page.getSize();
+  const { x, y, width } = page.getCropBox();
   const size = Math.max(7, Math.min(10, width / 40));
   const textWidth = Math.min(font.widthOfTextAtSize(text, size), width - 16);
-  page.drawRectangle({ x: 6, y: 4, width: textWidth + 8, height: size + 6, color: rgb(1, 1, 1) });
-  page.drawText(text, { x: 10, y: 7, size, font, color: rgb(0, 0, 0), maxWidth: width - 20 });
+  page.drawRectangle({ x: x + 6, y: y + 4, width: textWidth + 8, height: size + 6, color: rgb(1, 1, 1) });
+  page.drawText(text, { x: x + 10, y: y + 7, size, font, color: rgb(0, 0, 0), maxWidth: width - 20 });
 }
+
+// Poshmark's label download already ends with its own packing slip page, so Reship's would be a
+// second one for the same order.
+export const labelIncludesSlip = (order: Pick<Order, "platform">, labelPages: number) => order.platform === "Poshmark" && labelPages > 1;
 
 function wrap(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
   const words = safe(text).split(/\s+/);
@@ -106,7 +112,7 @@ function drawSlip(doc: PDFDocument, order: Order, input: PrintJobInput, font: PD
 }
 
 // Builds one PDF to print: each order's marketplace label (optionally stamped with its SKUs),
-// followed by its packing slip when asked for.
+// followed by its packing slip when asked for (unless the label already brings the marketplace's own).
 export async function buildPrintJob(input: PrintJobInput): Promise<PrintJobResult> {
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
@@ -116,6 +122,7 @@ export async function buildPrintJob(input: PrintJobInput): Promise<PrintJobResul
   const unreadableLabelIds: string[] = [];
 
   for (const order of input.orders) {
+    let hasOwnSlip = false;
     const raw = input.labels.get(order.id);
     if (!raw) missingLabelIds.push(order.id);
     else {
@@ -125,12 +132,13 @@ export async function buildPrintJob(input: PrintJobInput): Promise<PrintJobResul
         pages.forEach((p) => doc.addPage(p));
         const skus = order.items.map((i) => i.sku).filter((s): s is string => !!s);
         if (input.skuOnLabel && skus.length && pages[0]) stampSku(pages[0], font, skus);
+        hasOwnSlip = labelIncludesSlip(order, pages.length);
         printedOrderIds.push(order.id);
       } catch {
         unreadableLabelIds.push(order.id);
       }
     }
-    if (input.packingSlip) drawSlip(doc, order, input, font, bold);
+    if (input.packingSlip && !hasOwnSlip) drawSlip(doc, order, input, font, bold);
   }
 
   return { pdf: await doc.save(), pageCount: doc.getPageCount(), printedOrderIds, missingLabelIds, unreadableLabelIds };

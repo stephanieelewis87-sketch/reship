@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findUserId, needsShipping, toImportedOrder, type PoshmarkSale } from "./poshmark";
+import { findSkus, findUserId, needsShipping, toImportedOrder, type PoshmarkSale } from "./poshmark";
 
 const sale: PoshmarkSale = {
   id: "6adcb4081a48840e3f9507ea",
@@ -41,5 +41,11 @@ describe("Poshmark connector", () => {
     expect(findUserId('fetch("/vm-rest/users/67708f2603829173901a5387/orders")')).toBe("67708f2603829173901a5387");
     expect(findUserId('data-et-prop-lister_id="67708f2603829173901a5387"')).toBe("67708f2603829173901a5387");
     expect(findUserId("<html>login</html>")).toBeNull();
+  });
+
+  it("reads SKUs from the order page data or its SKU lines", () => {
+    expect(findSkus('{"post":{"sku":"N-104-C"},"other":{"sku":"N-104-C"}}')).toEqual(["N-104-C"]);
+    expect(findSkus('<div class="order-items__item-info">\n            SKU: N-104-C\n          </div>')).toEqual(["N-104-C"]);
+    expect(findSkus("<div>No sku here</div>")).toEqual([]);
   });
 });

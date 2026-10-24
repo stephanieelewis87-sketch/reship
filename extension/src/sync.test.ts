@@ -22,11 +22,15 @@ function fakeConnector(overrides: Partial<Connector> = {}): Connector {
   };
 }
 
-function memorySink(known: [string, boolean][] = []) {
+function memorySink(known: [string, boolean, boolean?][] = []) {
   const saved: { order: ImportedOrder; label: Blob | null }[] = [];
   const attached: string[] = [];
+  const skuFilled: string[] = [];
   const sink: OrderSink = {
-    knownOrders: async () => new Map(known),
+    knownOrders: async () => new Map(known.map(([n, hasLabel, missingSku = false]) => [n, { hasLabel, missingSku }])),
+    fillSkus: async (order) => {
+      skuFilled.push(order.orderNumber);
+    },
     saveOrder: async (order, label) => {
       saved.push({ order, label });
     },
@@ -34,7 +38,7 @@ function memorySink(known: [string, boolean][] = []) {
       attached.push(order.orderNumber);
     },
   };
-  return { sink, saved, attached };
+  return { sink, saved, attached, skuFilled };
 }
 
 describe("syncAll", () => {
@@ -64,6 +68,13 @@ describe("syncAll", () => {
     expect(saved).toHaveLength(0);
     expect(attached).toEqual(["A1"]);
     expect(res).toMatchObject({ imported: 0, labels: 1 });
+  });
+
+  it("fills in SKUs on orders imported before their SKU was known", async () => {
+    const { sink, skuFilled } = memorySink([["A1", true, true], ["A2", true, false], ["A3", true, true]]);
+    const withSku = (n: string) => ({ ...order(n), items: [{ name: "Jeans", sku: "N-1" }] });
+    await syncAll([fakeConnector({ listOrdersToShip: async () => [withSku("A1"), withSku("A2"), order("A3")] })], new Set(["Poshmark"]), sink);
+    expect(skuFilled).toEqual(["A1"]);
   });
 
   it("reports logged-out, not-ready and skipped marketplaces without stopping the rest", async () => {
