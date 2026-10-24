@@ -120,6 +120,37 @@ export async function describeLabelResponse(url: string): Promise<string> {
   }
 }
 
+const LABEL_FILE = /^https:\/\/labels-poshmark-production\.s3[.\w-]*\.amazonaws\.com\/.+\.pdf/;
+const LABEL_WAIT_MS = 20_000;
+
+// Poshmark's label link is a page that looks up the label and then downloads the PDF from
+// Poshmark's label storage through a short-lived signed address. Reship opens that page in a
+// background tab, catches the download as it starts, cancels it (so nothing lands in the
+// seller's Downloads folder) and returns the signed address to fetch the PDF from.
+function labelFileUrl(labelUrl: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    let tabId: number | undefined;
+    const finish = (url: string | null) => {
+      clearTimeout(timer);
+      chrome.downloads.onCreated.removeListener(onDownload);
+      if (tabId !== undefined) chrome.tabs.remove(tabId).catch(() => {});
+      resolve(url);
+    };
+    const onDownload = (item: chrome.downloads.DownloadItem) => {
+      const url = [item.finalUrl, item.url].find((u) => u && LABEL_FILE.test(u));
+      if (!url) return;
+      chrome.downloads.cancel(item.id).then(() => chrome.downloads.erase({ id: item.id })).catch(() => {});
+      finish(url);
+    };
+    const timer = setTimeout(() => finish(null), LABEL_WAIT_MS);
+    chrome.downloads.onCreated.addListener(onDownload);
+    chrome.tabs.create({ url: labelUrl, active: false }).then(
+      (tab) => (tabId = tab.id),
+      () => finish(null),
+    );
+  });
+}
+
 export const poshmark: Connector = {
   platform: "Poshmark",
   loginUrl: `${ORIGIN}/login`,
@@ -146,17 +177,9 @@ export const poshmark: Connector = {
 
   async downloadLabel(order) {
     if (!order.labelUrl) return null;
-    const res = await fetch(order.labelUrl, { credentials: "include" });
-    if (!res.ok) return null;
-    const type = res.headers.get("content-type") ?? "";
-    if (type.includes("pdf")) return res.blob();
-    if (type.includes("json")) {
-      // Some label links answer with the file's address instead of the file itself.
-      const pdfUrl = JSON.stringify(await res.json()).match(/https:[^"]+\.pdf[^"]*/)?.[0];
-      if (!pdfUrl) return null;
-      const pdf = await fetch(JSON.parse(`"${pdfUrl}"`));
-      return pdf.ok ? pdf.blob() : null;
-    }
-    return null;
+    const pdfUrl = await labelFileUrl(order.labelUrl);
+    if (!pdfUrl) return null;
+    const pdf = await fetch(pdfUrl);
+    return pdf.ok ? pdf.blob() : null;
   },
 };
