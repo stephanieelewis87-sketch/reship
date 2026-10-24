@@ -26,7 +26,11 @@ function memorySink(known: [string, boolean, boolean?][] = []) {
   const saved: { order: ImportedOrder; label: Blob | null }[] = [];
   const attached: string[] = [];
   const skuFilled: string[] = [];
+  const shipments: string[] = [];
   const sink: OrderSink = {
+    updateShipment: async (_p, n, status) => {
+      shipments.push(`${n}:${status}`);
+    },
     knownOrders: async () => new Map(known.map(([n, hasLabel, missingSku = false]) => [n, { hasLabel, missingSku }])),
     fillSkus: async (order) => {
       skuFilled.push(order.orderNumber);
@@ -38,7 +42,7 @@ function memorySink(known: [string, boolean, boolean?][] = []) {
       attached.push(order.orderNumber);
     },
   };
-  return { sink, saved, attached, skuFilled };
+  return { sink, saved, attached, skuFilled, shipments };
 }
 
 describe("syncAll", () => {
@@ -99,5 +103,18 @@ describe("syncAll", () => {
       ["Depop", "not-ready"],
       ["Poshmark", "ok"],
     ]);
+  });
+
+  it("records shipment changes for orders Reship already has", async () => {
+    const { sink, shipments } = memorySink([["A1", true], ["Z9", true]]);
+    const c = fakeConnector({
+      listShipmentUpdates: async () => [
+        { orderNumber: "A1", status: "in_transit" },
+        { orderNumber: "UNKNOWN", status: "delivered" },
+      ],
+    });
+    const [res] = await syncAll([c], new Set(["Poshmark"]), sink);
+    expect(res.status).toBe("ok");
+    expect(shipments).toEqual(["A1:in_transit"]);
   });
 });

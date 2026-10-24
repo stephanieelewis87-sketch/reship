@@ -101,12 +101,32 @@ const RAW: Omit<Order, "source">[] = [
 ];
 
 // Sample orders come with a stand-in label so printing can be tried before uploading real ones.
-export const SAMPLE_ORDERS: Order[] = RAW.map((o) => ({
-  ...o,
-  id: `sample-${o.id}`,
-  source: "sample",
-  label: { fileName: `sample-label-${o.orderId}.pdf`, uploadedAt: "2026-07-20T00:00:00.000Z" },
-}));
+// Their dates are moved so the newest falls on today, so the demo never looks late to ship.
+const SAMPLE_NEWEST = Date.parse("2026-07-20");
+const shiftDate = (date: string) => {
+  const now = new Date();
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return new Date(today - (SAMPLE_NEWEST - Date.parse(date))).toISOString().slice(0, 10);
+};
+const DELIVERED_SAMPLES = new Set(["7", "12"]);
+
+export const SAMPLE_ORDERS: Order[] = RAW.map((o) => {
+  const date = shiftDate(o.date);
+  return {
+    ...o,
+    id: `sample-${o.id}`,
+    date,
+    source: "sample",
+    label: { fileName: `sample-label-${o.orderId}.pdf`, uploadedAt: `${date}T00:00:00.000Z` },
+    printedAt: o.status === "pending" ? undefined : `${date}T18:00:00.000Z`,
+    shipment:
+      o.status === "shipped"
+        ? { status: DELIVERED_SAMPLES.has(o.id) ? "delivered" : "in_transit", updatedAt: `${date}T18:00:00.000Z` }
+        : o.status === "printed"
+          ? { status: "label_created", updatedAt: `${date}T18:00:00.000Z` }
+          : undefined,
+  };
+});
 
 export async function sampleLabelPdf(order: Order): Promise<Blob> {
   const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");

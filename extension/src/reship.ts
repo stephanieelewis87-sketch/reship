@@ -29,12 +29,12 @@ export function supabaseSink(userId: string): OrderSink {
 
   return {
     async knownOrders(platform: Platform) {
-      const { data, error } = await reship.from("orders").select("order_number, label, items").eq("platform", platform);
+      const { data, error } = await reship.from("orders").select("*").eq("platform", platform);
       if (error) throw error;
       return new Map(
-        (data ?? []).map((r: { order_number: string; label: Order["label"] | null; items: Order["items"] | null }) => [
+        (data ?? []).map((r: { order_number: string; label: Order["label"] | null; items: Order["items"] | null; shipment?: Order["shipment"] | null }) => [
           r.order_number,
-          { hasLabel: !!r.label, missingSku: !(r.items ?? []).some((i) => i.sku) },
+          { hasLabel: !!r.label, missingSku: !(r.items ?? []).some((i) => i.sku), shipment: r.shipment?.status },
         ]),
       );
     },
@@ -50,6 +50,13 @@ export function supabaseSink(userId: string): OrderSink {
       const items = (data.items as Order["items"]).map((item, i) => ({ ...item, sku: item.sku || o.items[i]?.sku }));
       const { error: updateError } = await reship.from("orders").update({ items }).eq("id", data.id);
       if (updateError) throw updateError;
+    },
+
+    async updateShipment(platform, orderNumber, status) {
+      const patch: Record<string, unknown> = { shipment: { status, updatedAt: new Date().toISOString() } };
+      if (status === "in_transit" || status === "delivered") patch.status = "shipped";
+      const { error } = await reship.from("orders").update(patch).eq("platform", platform).eq("order_number", orderNumber);
+      if (error) throw error;
     },
 
     async saveOrder(o, label) {

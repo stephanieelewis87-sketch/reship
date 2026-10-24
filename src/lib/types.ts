@@ -27,6 +27,14 @@ export interface OrderItem {
   price?: number;
 }
 
+// Where a shipped package is, as reported by the marketplace the order came from.
+export type ShipmentStatus = "label_created" | "in_transit" | "delivered" | "cancelled";
+
+export interface Shipment {
+  status: ShipmentStatus;
+  updatedAt: string; // ISO time Reship last saw this status
+}
+
 export interface Order {
   id: string;
   platform: Platform;
@@ -42,6 +50,8 @@ export interface Order {
   // The shipping label the marketplace generated, uploaded as a PDF.
   label?: LabelFile;
   source: OrderSource;
+  printedAt?: string; // ISO time the label was last printed
+  shipment?: Shipment;
 }
 
 export interface LabelFile {
@@ -57,6 +67,9 @@ export interface Settings {
   notifications: boolean;
   shipFrom: Address | null;
   displayName: string;
+  // Defaults for one-click printing.
+  printSkuOnLabel: boolean;
+  printPackingSlip: boolean;
 }
 
 export interface PrintOptions {
@@ -76,6 +89,8 @@ export const DEFAULT_SETTINGS: Settings = {
   notifications: true,
   shipFrom: null,
   displayName: "",
+  printSkuOnLabel: true,
+  printPackingSlip: true,
 };
 
 export const emptyAddress = (): Address => ({ name: "", street1: "", street2: "", city: "", state: "", zip: "", country: "US", phone: "" });
