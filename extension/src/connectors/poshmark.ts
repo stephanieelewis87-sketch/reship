@@ -63,6 +63,23 @@ export function toImportedOrder(sale: PoshmarkSale): ImportedOrder {
   };
 }
 
+// SKUs the seller set on the listings in an order, read from Poshmark's order page (its embedded
+// page data, or the "SKU: ..." line it shows under each item).
+export function findSkus(html: string): string[] {
+  const fromData = [...html.matchAll(/"sku"\s*:\s*"([^"]+)"/g)].map((m) => m[1]);
+  const fromText = [...html.matchAll(/SKU:\s*([^<\s][^<]*?)\s*</g)].map((m) => m[1]);
+  return [...new Set((fromData.length ? fromData : fromText).map((s) => s.trim()).filter(Boolean))];
+}
+
+async function orderSkus(orderId: string): Promise<string[]> {
+  try {
+    const res = await fetch(`${ORIGIN}/order/sales/${orderId}`, { credentials: "include" });
+    return res.ok ? findSkus(await res.text()) : [];
+  } catch {
+    return [];
+  }
+}
+
 const USER_ID_PATTERNS = [
   /vm-rest\/users\/([0-9a-f]{24})\//,
   /"(?:user_id|userId|uid|lister_id)"\s*:\s*"([0-9a-f]{24})"/,
@@ -167,7 +184,12 @@ export const poshmark: Connector = {
     for (let page = 0; page < MAX_PAGES; page++) {
       const { data, meta } = await salesPage(uid, maxId);
       const toShip = (data?.sales_summary ?? []).filter(needsShipping);
-      orders.push(...toShip.map(toImportedOrder));
+      for (const sale of toShip) {
+        const order = toImportedOrder(sale);
+        const skus = await orderSkus(sale.id);
+        if (skus.length) order.items[0].sku = skus.join(", ");
+        orders.push(order);
+      }
       maxId = meta?.next_max_id;
       // Sales come newest first, so a page with nothing left to ship means older pages are done.
       if (!maxId || toShip.length === 0) break;

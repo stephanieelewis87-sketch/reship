@@ -11,13 +11,23 @@ export interface PlatformResult {
   message?: string;
 }
 
+export interface KnownOrder {
+  hasLabel: boolean;
+  // No item in Reship has a SKU yet, so one found on the marketplace can be filled in.
+  missingSku: boolean;
+}
+
 // Where synced orders go: the seller's Reship account.
 export interface OrderSink {
-  // Order numbers already in Reship for this marketplace, mapped to whether each has its label.
-  knownOrders(platform: Platform): Promise<Map<string, boolean>>;
+  // Orders already in Reship for this marketplace, by order number.
+  knownOrders(platform: Platform): Promise<Map<string, KnownOrder>>;
   saveOrder(order: ImportedOrder, label: Blob | null): Promise<void>;
   attachLabel(order: ImportedOrder, label: Blob): Promise<void>;
+  // Copies the marketplace's SKUs onto an order already in Reship.
+  fillSkus(order: ImportedOrder): Promise<void>;
 }
+
+const hasSku = (order: ImportedOrder) => order.items.some((i) => i.sku);
 
 // Pulls new orders (and their labels) from every enabled marketplace. One marketplace failing
 // never stops the others; each reports its own status for the popup.
@@ -34,11 +44,12 @@ export async function syncAll(connectors: Connector[], enabled: Set<Platform>, s
       }
       const known = await sink.knownOrders(c.platform);
       for (const order of await c.listOrdersToShip()) {
-        const hasLabel = known.get(order.orderNumber);
-        if (hasLabel) continue;
+        const existing = known.get(order.orderNumber);
+        if (existing?.missingSku && hasSku(order)) await sink.fillSkus(order);
+        if (existing?.hasLabel) continue;
         // A label can be missing because the marketplace hadn't made it yet; later syncs retry.
         const label = await c.downloadLabel(order).catch(() => null);
-        if (hasLabel === undefined) {
+        if (!existing) {
           await sink.saveOrder(order, label);
           result.imported++;
           if (label) result.labels++;

@@ -36,7 +36,8 @@ async function checkPlatform(platform: Platform): Promise<string> {
     const orders = await connector.listOrdersToShip();
     let labels = 0;
     for (const order of orders) if (await connector.downloadLabel(order).catch(() => null)) labels++;
-    const summary = `Found ${orders.length} order${orders.length === 1 ? "" : "s"} to ship on ${platform}, with ${labels} label${labels === 1 ? "" : "s"} ready.`;
+    const withSku = orders.filter((o) => o.items.some((i) => i.sku)).length;
+    const summary = `Found ${orders.length} order${orders.length === 1 ? "" : "s"} to ship on ${platform}, with ${labels} label${labels === 1 ? "" : "s"} ready and ${withSku} SKU${withSku === 1 ? "" : "s"}.`;
     if (platform !== "Poshmark" || labels === orders.length || !orders[0].labelUrl) return summary;
     return `${summary}\nDetails for Claude: ${await describeLabelResponse(orders[0].labelUrl)}`;
   } catch (e) {

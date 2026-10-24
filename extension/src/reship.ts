@@ -29,9 +29,27 @@ export function supabaseSink(userId: string): OrderSink {
 
   return {
     async knownOrders(platform: Platform) {
-      const { data, error } = await reship.from("orders").select("order_number, label").eq("platform", platform);
+      const { data, error } = await reship.from("orders").select("order_number, label, items").eq("platform", platform);
       if (error) throw error;
-      return new Map((data ?? []).map((r: { order_number: string; label: Order["label"] | null }) => [r.order_number, !!r.label]));
+      return new Map(
+        (data ?? []).map((r: { order_number: string; label: Order["label"] | null; items: Order["items"] | null }) => [
+          r.order_number,
+          { hasLabel: !!r.label, missingSku: !(r.items ?? []).some((i) => i.sku) },
+        ]),
+      );
+    },
+
+    async fillSkus(o) {
+      const { data, error } = await reship
+        .from("orders")
+        .select("id, items")
+        .eq("platform", o.platform)
+        .eq("order_number", o.orderNumber)
+        .single();
+      if (error) throw error;
+      const items = (data.items as Order["items"]).map((item, i) => ({ ...item, sku: item.sku || o.items[i]?.sku }));
+      const { error: updateError } = await reship.from("orders").update({ items }).eq("id", data.id);
+      if (updateError) throw updateError;
     },
 
     async saveOrder(o, label) {
