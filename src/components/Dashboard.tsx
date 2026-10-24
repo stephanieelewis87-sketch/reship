@@ -24,7 +24,6 @@ import { PrintModal } from "./PrintModal";
 import { BuyLabelsModal } from "./BuyLabelsModal";
 import { OrderDrawer, blankOrder } from "./OrderDrawer";
 import { ImportCsvModal } from "./ImportCsvModal";
-import { UploadLabelsModal } from "./UploadLabelsModal";
 import { SettingsModal, type SettingsTab } from "./SettingsModal";
 import { BundleBadge, PhotoCollage, PlatformBadge, SkuCell, StatusBadge, isBundle, orderTitle } from "./ui";
 
@@ -54,7 +53,6 @@ export function Dashboard({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [printOrders, setPrintOrders] = useState<Order[] | null>(null);
   const [buyFor, setBuyFor] = useState<Order[] | null>(null);
-  const [uploadOpen, setUploadOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [drawer, setDrawer] = useState<{ order: Order; isNew: boolean } | null>(null);
@@ -105,7 +103,7 @@ export function Dashboard({
       const job = await buildPrintJob({ orders: chosen, labels, skuOnLabel: opts.skuOnLabel, packingSlip: opts.packingSlip, settings });
       if (job.pageCount === 0) {
         win?.close();
-        setNotice({ text: "None of those orders has a label yet. Upload the marketplace label PDFs first.", ok: false });
+        setNotice({ text: "None of those orders has a label yet.", ok: false });
         return;
       }
       const url = URL.createObjectURL(new Blob([job.pdf], { type: "application/pdf" }));
@@ -234,13 +232,6 @@ export function Dashboard({
           >
             <FileUp className="w-3.5 h-3.5" /> Import CSV
           </button>
-          <button
-            type="button"
-            onClick={() => setUploadOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-xs font-medium text-foreground hover:bg-muted"
-          >
-            <Upload className="w-3.5 h-3.5" /> Upload labels
-          </button>
           <div className="ml-auto flex items-center gap-2">
             <span className="font-mono text-xs text-muted-foreground">
               {filteredOrders.length} order{filteredOrders.length !== 1 ? "s" : ""}
@@ -366,7 +357,7 @@ export function Dashboard({
                               className="inline-flex items-center gap-0.5 text-[11px] text-amber-700 hover:underline"
                             >
                               <Upload className="w-3 h-3" />
-                              Add label
+                              No label yet
                             </button>
                           )}
                         </div>
@@ -495,17 +486,6 @@ export function Dashboard({
       </main>
 
       {printOrders && <PrintModal orders={printOrders} onClose={() => setPrintOrders(null)} onConfirm={handlePrintConfirm} />}
-
-      {uploadOpen && (
-        <UploadLabelsModal
-          orders={orders}
-          onClose={() => setUploadOpen(false)}
-          onAttach={async (pairs) => {
-            for (const { order, file } of pairs) await attachLabel(order, file);
-            setNotice({ text: `Attached ${pairs.length} label${pairs.length !== 1 ? "s" : ""}.`, ok: true });
-          }}
-        />
-      )}
 
       {buyFor && (
         <BuyLabelsModal
