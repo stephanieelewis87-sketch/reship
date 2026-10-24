@@ -1,5 +1,6 @@
 import type { Platform } from "../../src/lib/types";
 import { CONNECTORS } from "./connectors";
+import { describeLabelResponse } from "./connectors/poshmark";
 import { reship, supabaseSink } from "./reship";
 import { syncAll, type PlatformResult } from "./sync";
 
@@ -35,7 +36,9 @@ async function checkPlatform(platform: Platform): Promise<string> {
     const orders = await connector.listOrdersToShip();
     let labels = 0;
     for (const order of orders) if (await connector.downloadLabel(order).catch(() => null)) labels++;
-    return `Found ${orders.length} order${orders.length === 1 ? "" : "s"} to ship on ${platform}, with ${labels} label${labels === 1 ? "" : "s"} ready.`;
+    const summary = `Found ${orders.length} order${orders.length === 1 ? "" : "s"} to ship on ${platform}, with ${labels} label${labels === 1 ? "" : "s"} ready.`;
+    if (platform !== "Poshmark" || labels === orders.length || !orders[0].labelUrl) return summary;
+    return `${summary}\nDetails for Claude: ${await describeLabelResponse(orders[0].labelUrl)}`;
   } catch (e) {
     return `Couldn't read ${platform}: ${e instanceof Error ? e.message : e}`;
   }

@@ -102,6 +102,24 @@ async function salesPage(uid: string, maxId?: string): Promise<SalesPage> {
   return res.json();
 }
 
+// Describes what a label link answered, without any personal data, for the setup test.
+export async function describeLabelResponse(url: string): Promise<string> {
+  const pattern = (u: string) => {
+    const x = new URL(u);
+    return `${x.hostname}${x.pathname.replace(/[0-9a-f]{16,}/gi, ":id")}?${[...x.searchParams.keys()].join(",")}`;
+  };
+  try {
+    const res = await fetch(url, { credentials: "include" });
+    const type = res.headers.get("content-type") ?? "";
+    let body = "";
+    if (type.includes("json")) body = ` keys=${Object.keys(await res.json()).join(",")}`;
+    else if (type.includes("html")) body = ` title=${(await res.text()).match(/<title>([^<]*)/)?.[1]?.trim() ?? ""}`;
+    return `link=${pattern(url)} status=${res.status} type=${type} redirected=${res.redirected} final=${pattern(res.url)}${body}`;
+  } catch (e) {
+    return `link=${pattern(url)} error=${e instanceof Error ? e.message : e}`;
+  }
+}
+
 export const poshmark: Connector = {
   platform: "Poshmark",
   loginUrl: `${ORIGIN}/login`,
