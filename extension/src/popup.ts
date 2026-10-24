@@ -103,6 +103,8 @@ $("capture").addEventListener("click", async () => {
   if (!tab?.id) return;
   try {
     const [{ result }] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: capturePage });
+    const { labelDownloads = [] } = await chrome.storage.local.get("labelDownloads");
+    Object.assign(result as object, { labelDownloads });
     const host = new URL(tab.url ?? "https://page").hostname.replace(/^www\./, "");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([JSON.stringify(result)], { type: "application/json" }));

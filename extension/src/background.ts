@@ -41,3 +41,23 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
   }
   return false;
 });
+
+// Setup helper: when the seller clicks a marketplace's own label Download button, note where the
+// file came from (address pattern only: long ids and query values are blanked) so the connector
+// can fetch labels the same way. Downloads from other sites are ignored.
+const MARKETPLACE_HOSTS = /(^|\.)(poshmark\.com|mercari\.com|mercdn\.net)$/;
+chrome.downloads.onCreated.addListener(async (item) => {
+  const urls = [item.url, item.finalUrl, item.referrer].filter(Boolean).map((u) => new URL(u));
+  if (!urls.some((u) => MARKETPLACE_HOSTS.test(u.hostname))) return;
+  const pattern = (u: URL) =>
+    `${u.protocol}//${u.hostname}${u.pathname.replace(/[0-9a-f]{16,}/gi, ":id")}${[...u.searchParams.keys()].map((k, i) => `${i ? "&" : "?"}${k}=…`).join("")}`;
+  const entry = {
+    at: new Date().toISOString(),
+    url: item.url.startsWith("blob:") || item.url.startsWith("data:") ? item.url.slice(0, 5) : pattern(new URL(item.url)),
+    finalUrl: item.finalUrl && !item.finalUrl.startsWith("blob:") ? pattern(new URL(item.finalUrl)) : item.finalUrl?.slice(0, 5),
+    referrer: item.referrer ? pattern(new URL(item.referrer)) : "",
+    mime: item.mime,
+  };
+  const { labelDownloads = [] } = (await chrome.storage.local.get("labelDownloads")) as { labelDownloads?: unknown[] };
+  await chrome.storage.local.set({ labelDownloads: [entry, ...labelDownloads].slice(0, 10) });
+});
