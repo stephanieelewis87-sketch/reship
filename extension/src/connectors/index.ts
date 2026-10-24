@@ -1,5 +1,6 @@
 import type { Platform } from "../../../src/lib/types";
 import { NotReadyError, type Connector } from "./types";
+import { mercari } from "./mercari";
 import { poshmark } from "./poshmark";
 
 // Placeholder until a marketplace's sold-orders page and label download have been mapped
@@ -22,7 +23,7 @@ function pending(platform: Platform, loginUrl: string): Connector {
 
 export const CONNECTORS: Connector[] = [
   poshmark,
-  pending("Mercari", "https://www.mercari.com/login/"),
+  mercari,
   pending("Depop", "https://www.depop.com/login/"),
   pending("Vinted", "https://www.vinted.com/member/signup/select_type"),
   pending("WhatNot", "https://www.whatnot.com/login"),
