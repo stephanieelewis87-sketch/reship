@@ -1,6 +1,6 @@
 # Reship
 
-A shipping dashboard for resellers: see sold orders from Poshmark, Vinted, Depop, Mercari, Whatnot, Etsy and eBay in one place, print labels and packing slips in bulk, and track what has shipped. Built from the Reship design in Figma Make.
+A shipping dashboard for resellers: see sold orders from Poshmark, Vinted, Depop, Mercari, Whatnot, Etsy and eBay in one place, print the labels those marketplaces already generated (with SKUs and packing slips) in one batch, and track what has shipped. Built from the Reship design in Figma Make.
 
 ## Run it
 
@@ -16,7 +16,7 @@ Without any setup, Reship runs in **demo mode**: it starts with sample orders an
 ## Use real accounts and a shared database (Supabase)
 
 1. Create a free project at [supabase.com](https://supabase.com).
-2. In the project's SQL editor, run `supabase/migrations/0001_orders_and_settings.sql`.
+2. In the project's SQL editor, run the files in `supabase/migrations/` in order.
 3. Copy `.env.example` to `.env.local` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from Settings > API.
 4. Restart `npm run dev`. Reship now asks you to sign in, and each account only sees its own orders.
 
@@ -25,14 +25,25 @@ Without any setup, Reship runs in **demo mode**: it starts with sample orders an
 - Order dashboard from the design: status and marketplace filters, search, list and grid views, bundles, inline SKU editing
 - Add and edit orders by hand, including buyer address and package weight
 - Import orders from a marketplace CSV export, with automatic column matching and bundle grouping
-- Print packing slips (4x6, Letter or A4) and mark orders printed
-- Rate estimates for USPS, UPS and FedEx, with package details saved per order
+- Poshmark orders and their prepaid labels come in automatically through the Reship browser extension (see below)
+- Upload an order's label PDF by hand from the order drawer when needed
+- Print all selected labels in one PDF, optionally stamped with the SKUs, with a packing slip after each label (4x6, Letter or A4)
+- Optional "Buy a different label" per order, with rate estimates for USPS, UPS and FedEx
 - Settings saved per account: ship-from address, label format, default carrier
 - Works on phones
 
+## Browser extension (marketplace sync)
+
+Marketplaces don't offer label APIs, so the extension in `extension/` reads sold orders and labels using the seller's own logged-in browser session. It never asks for or stores marketplace passwords, and it shows an at-your-own-risk notice before it turns on.
+
+- `node extension/build.mjs` builds it into `extension/dist` (it reads the same Supabase settings from `.env.local`).
+- In Chrome, open `chrome://extensions`, turn on Developer mode, click Load unpacked and pick `extension/dist`.
+- Sign in with your Reship account, turn on a marketplace and press Sync now. It also syncs every 15 minutes.
+- Poshmark works today. Mercari, Depop, Vinted and Whatnot show as "coming soon". The "Capture this page" and "Test Poshmark" buttons help map and check a marketplace.
+
 ## Coming next
 
-Real label purchase and tracking through EasyPost, then inventory tracking, Etsy and eBay order sync, and returns.
+Paid sign-up ($16.99/month), Mercari and other marketplaces in the extension, inventory tracking, real purchase of alternative labels, and returns.
 
 ## Scripts
 
