@@ -26,6 +26,21 @@ async function runSync(): Promise<SyncState> {
   return state;
 }
 
+// Setup check that saves nothing: finds the orders a connector would import and tries each label.
+async function checkPlatform(platform: Platform): Promise<string> {
+  const connector = CONNECTORS.find((c) => c.platform === platform);
+  if (!connector) return `${platform} isn't supported.`;
+  try {
+    if (!(await connector.isLoggedIn())) return `Log in to ${platform} in this browser first.`;
+    const orders = await connector.listOrdersToShip();
+    let labels = 0;
+    for (const order of orders) if (await connector.downloadLabel(order).catch(() => null)) labels++;
+    return `Found ${orders.length} order${orders.length === 1 ? "" : "s"} to ship on ${platform}, with ${labels} label${labels === 1 ? "" : "s"} ready.`;
+  } catch (e) {
+    return `Couldn't read ${platform}: ${e instanceof Error ? e.message : e}`;
+  }
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create(SYNC_ALARM, { periodInMinutes: SYNC_MINUTES });
 });
@@ -35,6 +50,10 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
+  if (msg?.type === "check-platform") {
+    checkPlatform(msg.platform).then(reply);
+    return true;
+  }
   if (msg?.type === "sync-now") {
     runSync().then(reply);
     return true; // keeps the channel open for the async reply

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Reship",
   "description": "Brings your sold orders and shipping labels from Poshmark, Mercari, Depop, Vinted and Whatnot into Reship.",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "action": {
     "default_popup": "popup.html",
     "default_title": "Reship"
@@ -16,10 +16,12 @@
     "alarms",
     "activeTab",
     "scripting",
-    "downloads"
+    "downloads",
+    "cookies"
   ],
   "host_permissions": [
     "https://poshmark.com/*",
+    "https://labels-poshmark-production.s3.us-west-2.amazonaws.com/*",
     "https://www.mercari.com/*",
     "https://www.depop.com/*",
     "https://webapi.depop.com/*",

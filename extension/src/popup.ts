@@ -116,4 +116,12 @@ $("capture").addEventListener("click", async () => {
   }
 });
 
+$("check-poshmark").addEventListener("click", async () => {
+  const button = $<HTMLButtonElement>("check-poshmark");
+  button.disabled = true;
+  $("check-status").textContent = "Checking Poshmark…";
+  $("check-status").textContent = await chrome.runtime.sendMessage({ type: "check-platform", platform: "Poshmark" });
+  button.disabled = false;
+});
+
 render();

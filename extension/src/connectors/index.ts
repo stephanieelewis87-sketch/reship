@@ -1,5 +1,6 @@
 import type { Platform } from "../../../src/lib/types";
 import { NotReadyError, type Connector } from "./types";
+import { poshmark } from "./poshmark";
 
 // Placeholder until a marketplace's sold-orders page and label download have been mapped
 // against a real seller account. The popup shows these as "coming soon".
@@ -20,7 +21,7 @@ function pending(platform: Platform, loginUrl: string): Connector {
 }
 
 export const CONNECTORS: Connector[] = [
-  pending("Poshmark", "https://poshmark.com/login"),
+  poshmark,
   pending("Mercari", "https://www.mercari.com/login/"),
   pending("Depop", "https://www.depop.com/login/"),
   pending("Vinted", "https://www.vinted.com/member/signup/select_type"),
