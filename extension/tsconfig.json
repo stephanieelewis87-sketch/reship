@@ -1,0 +1,5 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": { "types": ["chrome", "vite/client"], "baseUrl": "..", "paths": { "@/*": ["src/*"] } },
+  "include": ["src", "../src/lib/types.ts"]
+}

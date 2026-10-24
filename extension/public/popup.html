@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Reship</title>
+    <style>
+      :root { --accent: #B5607A; --fg: #1C1017; --muted: #8A7880; --bg: #FAF7F4; --border: rgba(90, 40, 60, 0.12); }
+      * { box-sizing: border-box; }
+      body { margin: 0; width: 320px; font: 13px/1.4 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: var(--fg); background: var(--bg); }
+      header { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--border); background: #fff; }
+      header .logo { width: 22px; height: 22px; border-radius: 6px; background: var(--accent); }
+      header b { font-family: Georgia, serif; font-size: 14px; }
+      main { padding: 12px 14px; }
+      label.field { display: block; margin-bottom: 8px; font-size: 11px; color: var(--muted); }
+      input[type=email], input[type=password] { width: 100%; padding: 6px 8px; margin-top: 2px; border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+      button { border: 0; border-radius: 6px; padding: 7px 12px; font: inherit; font-weight: 600; cursor: pointer; }
+      .primary { background: var(--accent); color: #fff; width: 100%; }
+      .link { background: none; color: var(--accent); padding: 0; font-weight: 500; }
+      .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+      .row:last-child { border-bottom: 0; }
+      .status { font-size: 11px; color: var(--muted); }
+      .status.ok { color: #047857; } .status.warn { color: #b45309; } .status.err { color: #b91c1c; }
+      .notice { font-size: 11px; background: #fff7ed; border: 1px solid #fed7aa; color: #7c2d12; border-radius: 6px; padding: 8px; margin: 10px 0; }
+      .muted { color: var(--muted); font-size: 11px; }
+      .error { color: #b91c1c; font-size: 11px; min-height: 14px; }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <header><span class="logo"></span><b>Reship</b></header>
+    <main>
+      <form id="signin" hidden>
+        <p class="muted">Sign in with your Reship account.</p>
+        <label class="field">Email <input id="email" type="email" required autocomplete="email" /></label>
+        <label class="field">Password <input id="password" type="password" required autocomplete="current-password" /></label>
+        <p class="error" id="signin-error"></p>
+        <button class="primary" type="submit">Sign in</button>
+      </form>
+
+      <section id="connected" hidden>
+        <p class="muted" id="who"></p>
+        <div id="consent" class="notice" hidden>
+          Reship reads your sold orders and labels using the marketplace sessions you are already logged in to in this browser. Marketplaces don't officially support this, and it may break their terms. Use it at your own risk.
+          <div style="margin-top: 8px"><button class="primary" id="accept" type="button">I understand, turn it on</button></div>
+        </div>
+        <div id="platforms"></div>
+        <p class="muted" id="last-run"></p>
+        <button class="primary" id="sync" type="button">Sync now</button>
+        <p style="margin-top: 10px"><button class="link" id="signout" type="button">Sign out</button></p>
+      </section>
+      <section id="capture-box" style="margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border)">
+        <p class="muted">Setting up a marketplace? Open its sold order or label page, then capture it and send the file to Claude.</p>
+        <button class="primary" id="capture" type="button">Capture this page</button>
+        <p class="muted" id="capture-status"></p>
+      </section>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
