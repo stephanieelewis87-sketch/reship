@@ -82,6 +82,24 @@ export function findSkus(html: string): string[] {
   return [...new Set((fromData.length ? fromData : fromText).map((s) => s.trim()).filter(Boolean))];
 }
 
+// Each order's page is read once a day at most, so syncing every 15 minutes doesn't look like a
+// bot to Poshmark. Orders whose page was read recently are skipped until then.
+const SKU_RECHECK_MS = 24 * 60 * 60_000;
+const SKU_CHECKS_KEY = "poshmarkSkuChecks";
+
+async function orderSkusOnceADay(orderId: string): Promise<string[]> {
+  const stored = (await chrome.storage.local.get(SKU_CHECKS_KEY))[SKU_CHECKS_KEY] as Record<string, number> | undefined;
+  const checks = stored ?? {};
+  const now = Date.now();
+  if (now - (checks[orderId] ?? 0) < SKU_RECHECK_MS) return [];
+  const skus = await orderSkus(orderId);
+  for (const [id, at] of Object.entries(checks)) if (now - at > 7 * SKU_RECHECK_MS) delete checks[id];
+  checks[orderId] = now;
+  await chrome.storage.local.set({ [SKU_CHECKS_KEY]: checks });
+  await new Promise((r) => setTimeout(r, 500));
+  return skus;
+}
+
 async function orderSkus(orderId: string): Promise<string[]> {
   try {
     const res = await fetch(`${ORIGIN}/order/sales/${orderId}`, { credentials: "include" });
@@ -120,7 +138,18 @@ async function userId(): Promise<string | null> {
   return findUserId(await res.text());
 }
 
+// A sync lists orders to ship and then shipment updates from the same first page of sales, so
+// that page is reused for a couple of minutes instead of being asked for twice.
+let firstPage: { at: number; uid: string; page: SalesPage } | undefined;
+
 async function salesPage(uid: string, maxId?: string): Promise<SalesPage> {
+  if (!maxId && firstPage && firstPage.uid === uid && Date.now() - firstPage.at < 2 * 60_000) return firstPage.page;
+  const page = await fetchSalesPage(uid, maxId);
+  if (!maxId) firstPage = { at: Date.now(), uid, page };
+  return page;
+}
+
+async function fetchSalesPage(uid: string, maxId?: string): Promise<SalesPage> {
   const request = JSON.stringify({ filters: {}, count: PAGE_SIZE, ...(maxId ? { max_id: maxId } : {}) });
   const res = await fetch(`${ORIGIN}/vm-rest/users/${uid}/orders/sales?request=${encodeURIComponent(request)}`, {
     credentials: "include",
@@ -197,7 +226,7 @@ export const poshmark: Connector = {
       const toShip = (data?.sales_summary ?? []).filter(needsShipping);
       for (const sale of toShip) {
         const order = toImportedOrder(sale);
-        const skus = await orderSkus(sale.id);
+        const skus = await orderSkusOnceADay(sale.id);
         if (skus.length) order.items[0].sku = skus.join(", ");
         orders.push(order);
       }
