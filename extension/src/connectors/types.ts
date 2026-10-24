@@ -1,4 +1,4 @@
-import type { Address, OrderItem, Platform } from "../../../src/lib/types";
+import type { Address, OrderItem, Platform, ShipmentStatus } from "../../../src/lib/types";
 
 // What a connector reads from a marketplace for one sold order.
 export interface ImportedOrder {
@@ -24,6 +24,13 @@ export interface Connector {
   // Sold orders that still need to ship, newest first.
   listOrdersToShip(): Promise<ImportedOrder[]>;
   downloadLabel(order: ImportedOrder): Promise<Blob | null>;
+  // Where recent sales stand after printing (label created, in transit, delivered), for tracking.
+  listShipmentUpdates?(): Promise<ShipmentUpdate[]>;
+}
+
+export interface ShipmentUpdate {
+  orderNumber: string;
+  status: ShipmentStatus;
 }
 
 export class NotReadyError extends Error {

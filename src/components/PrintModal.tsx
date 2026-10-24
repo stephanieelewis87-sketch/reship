@@ -3,18 +3,22 @@ import { AlertCircle, CheckCircle2, FileText, Printer, Tag } from "lucide-react"
 import type { Order, PrintOptions } from "@/lib/types";
 import { BundleBadge, Modal, ModalHeader, PhotoCollage, PlatformBadge, SectionLabel, Toggle, isBundle, primaryButton, secondaryButton } from "./ui";
 
+// The options chosen here become the defaults for one-click printing.
 export function PrintModal({
   orders,
+  defaults,
   onClose,
   onConfirm,
 }: {
   orders: Order[];
+  defaults: PrintOptions;
   onClose: () => void;
   onConfirm: (ids: string[], opts: PrintOptions) => Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set(orders.map((o) => o.id)));
-  const [opts, setOpts] = useState<PrintOptions>({ skuOnLabel: false, packingSlip: true });
+  const [opts, setOpts] = useState<PrintOptions>(defaults);
+  const reprint = orders.length > 0 && orders.every((o) => o.status !== "pending");
 
   const selectedOrders = orders.filter((o) => selected.has(o.id));
   const selectedHasSku = selectedOrders.some((o) => o.items.some((i) => i.sku));
@@ -30,7 +34,7 @@ export function PrintModal({
 
   return (
     <Modal onClose={onClose} label="Print labels">
-      <ModalHeader title="Print Labels" subtitle={`${selected.size} of ${orders.length} selected`} onClose={onClose} />
+      <ModalHeader title={reprint ? "Reprint Labels" : "Print Labels"} subtitle={`${selected.size} of ${orders.length} selected`} onClose={onClose} />
 
       {orders.length === 0 ? (
         <p className="px-6 py-8 text-sm text-muted-foreground text-center">Nothing is waiting to print.</p>
@@ -91,7 +95,7 @@ export function PrintModal({
             <FileText className="w-3.5 h-3.5 text-muted-foreground" />
             <div>
               <p className="text-sm text-foreground leading-none">Print packing slip</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Separate page per order</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Separate page per order. Poshmark labels already include theirs.</p>
             </div>
           </div>
           <Toggle label="Print packing slip" checked={opts.packingSlip} onChange={() => setOpts((o) => ({ ...o, packingSlip: !o.packingSlip }))} />
@@ -120,7 +124,7 @@ export function PrintModal({
           className={`flex-1 ${primaryButton}`}
         >
           <Printer className="w-3.5 h-3.5" />
-          {busy ? "Preparing…" : `Print ${selected.size - withoutLabel} Label${selected.size - withoutLabel !== 1 ? "s" : ""}`}
+          {busy ? "Preparing…" : `${reprint ? "Reprint" : "Print"} ${selected.size - withoutLabel} Label${selected.size - withoutLabel !== 1 ? "s" : ""}`}
           {opts.packingSlip && selected.size > 0 && <span className="text-white/70 text-xs">+ slips</span>}
         </button>
       </div>

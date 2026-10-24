@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
 import { CheckCircle2, Clock, Layers, Package, Tag, Truck, X } from "lucide-react";
 import type { LabelStatus, Order, Platform } from "@/lib/types";
+import { SHIPMENT_LABEL, shipUrgency } from "@/lib/orderStatus";
 
 export const ACCENT = "#B5607A";
 
@@ -132,6 +133,27 @@ export function StatusBadge({ status }: { status: LabelStatus }) {
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
       {label}
     </span>
+  );
+}
+
+// Status plus what matters next: the ship-by warning before shipping, the carrier status after.
+export function OrderStatusCell({ order }: { order: Order }) {
+  const urgency = shipUrgency(order);
+  const shipment = order.shipment && order.shipment.status !== "label_created" ? SHIPMENT_LABEL[order.shipment.status] : null;
+  return (
+    <div className="flex flex-col items-start gap-0.5">
+      {shipment ? (
+        <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${order.shipment?.status === "delivered" ? "text-emerald-700" : order.shipment?.status === "cancelled" ? "text-stone-500" : "text-sky-700"}`}>
+          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${order.shipment?.status === "delivered" ? "bg-emerald-500" : order.shipment?.status === "cancelled" ? "bg-stone-400" : "bg-sky-500"}`} />
+          {shipment}
+        </span>
+      ) : (
+        <StatusBadge status={order.status} />
+      )}
+      {urgency !== "ok" && (
+        <span className={`text-[10px] font-medium ${urgency === "late" ? "text-rose-700" : "text-amber-700"}`}>{urgency === "late" ? "Late to ship" : "Ship today"}</span>
+      )}
+    </div>
   );
 }
 

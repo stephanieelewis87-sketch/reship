@@ -1,4 +1,5 @@
-import type { Connector, ImportedOrder } from "./types";
+import type { ShipmentStatus } from "../../../src/lib/types";
+import type { Connector, ImportedOrder, ShipmentUpdate } from "./types";
 
 // Poshmark's web app loads a seller's sales from /vm-rest/users/<id>/orders/sales. Each sale
 // carries the ship-to address and a shipping_label_download_url, which redirects (with the
@@ -38,6 +39,16 @@ interface SalesPage {
 export function needsShipping(sale: PoshmarkSale): boolean {
   const status = (sale.display_status || sale.state || "").trim().toLowerCase();
   return status === "sold" && !!sale.shipping_label_download_url;
+}
+
+// Poshmark's order status as Reship tracks it, or null for states Reship doesn't follow.
+export function shipmentStatus(sale: PoshmarkSale): ShipmentStatus | null {
+  const status = (sale.display_status || sale.state || "").trim().toLowerCase();
+  if (status === "sold") return "label_created";
+  if (status === "shipped" || status.includes("transit")) return "in_transit";
+  if (status === "delivered" || status.includes("complete")) return "delivered";
+  if (status.includes("cancel")) return "cancelled";
+  return null;
 }
 
 export function toImportedOrder(sale: PoshmarkSale): ImportedOrder {
@@ -195,6 +206,18 @@ export const poshmark: Connector = {
       if (!maxId || toShip.length === 0) break;
     }
     return orders;
+  },
+
+  async listShipmentUpdates() {
+    const uid = await userId();
+    if (!uid) return [];
+    const { data } = await salesPage(uid);
+    const updates: ShipmentUpdate[] = [];
+    for (const sale of data?.sales_summary ?? []) {
+      const status = shipmentStatus(sale);
+      if (status) updates.push({ orderNumber: sale.id, status });
+    }
+    return updates;
   },
 
   async downloadLabel(order) {

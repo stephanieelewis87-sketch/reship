@@ -1,5 +1,8 @@
-import { Package, Settings as SettingsIcon, X } from "lucide-react";
+import { Home, Package, Settings as SettingsIcon, X } from "lucide-react";
 import type { LabelStatus, Order, Platform } from "@/lib/types";
+
+// Home is the dashboard; the others are lists of orders in one status, or all of them.
+export type View = "home" | LabelStatus | "all";
 import { ALL_PLATFORMS } from "@/lib/types";
 import { PlatformIcon, SectionLabel } from "./ui";
 
@@ -18,19 +21,20 @@ export function Sidebar({
   onOpenSettings,
 }: {
   orders: Order[];
-  activeStatus: LabelStatus | "all";
+  activeStatus: View;
   activePlatforms: Set<Platform>;
   displayName: string;
   subtitle: string;
   open: boolean;
   onClose: () => void;
-  onStatus: (s: LabelStatus | "all") => void;
+  onStatus: (s: View) => void;
   onTogglePlatform: (p: Platform) => void;
   onClearFilters: () => void;
   onOpenAccount: () => void;
   onOpenSettings: () => void;
 }) {
-  const counts: Record<LabelStatus | "all", number> = {
+  const counts: Record<View, number | null> = {
+    home: null,
     all: orders.length,
     pending: orders.filter((o) => o.status === "pending").length,
     printed: orders.filter((o) => o.status === "printed").length,
@@ -60,8 +64,8 @@ export function Sidebar({
         </div>
 
         <nav className="px-3 py-4 flex flex-col gap-0.5">
-          <SectionLabel className="px-2 mb-2">Status</SectionLabel>
-          {(["all", "pending", "printed", "shipped"] as const).map((s) => {
+          <SectionLabel className="px-2 mb-2">Orders</SectionLabel>
+          {(["home", "pending", "printed", "shipped", "all"] as const).map((s) => {
             const isActive = activeStatus === s;
             return (
               <button
@@ -71,20 +75,21 @@ export function Sidebar({
                 className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-sm transition-colors ${isActive ? "bg-[#B5607A] text-white" : "text-foreground hover:bg-muted"}`}
               >
                 <div className="flex items-center gap-2">
-                  {s !== "all" && (
+                  {s === "home" && <Home className="w-3.5 h-3.5" />}
+                  {s !== "all" && s !== "home" && (
                     <span
                       className={`w-1.5 h-1.5 rounded-full shrink-0 ${s === "pending" ? "bg-amber-400" : s === "printed" ? "bg-violet-400" : "bg-emerald-400"} ${isActive ? "opacity-80" : ""}`}
                     />
                   )}
-                  <span className="capitalize">{s === "all" ? "All" : s === "pending" ? "To Print" : s}</span>
+                  <span className="capitalize">{s === "home" ? "Home" : s === "all" ? "All orders" : s === "pending" ? "To Print" : s}</span>
                 </div>
-                <span className={`font-mono text-[11px] tabular-nums ${isActive ? "text-white/70" : "text-muted-foreground"}`}>{counts[s]}</span>
+                <span className={`font-mono text-[11px] tabular-nums ${isActive ? "text-white/70" : "text-muted-foreground"}`}>{counts[s] ?? ""}</span>
               </button>
             );
           })}
         </nav>
 
-        {(activePlatforms.size > 0 || activeStatus !== "all") && (
+        {activePlatforms.size > 0 && (
           <div className="px-4 pb-2">
             <button
               type="button"

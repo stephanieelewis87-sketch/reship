@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findSkus, findUserId, needsShipping, toImportedOrder, type PoshmarkSale } from "./poshmark";
+import { findSkus, findUserId, needsShipping, shipmentStatus, toImportedOrder, type PoshmarkSale } from "./poshmark";
 
 const sale: PoshmarkSale = {
   id: "6adcb4081a48840e3f9507ea",
@@ -47,5 +47,15 @@ describe("Poshmark connector", () => {
     expect(findSkus('{"post":{"sku":"N-104-C"},"other":{"sku":"N-104-C"}}')).toEqual(["N-104-C"]);
     expect(findSkus('<div class="order-items__item-info">\n            SKU: N-104-C\n          </div>')).toEqual(["N-104-C"]);
     expect(findSkus("<div>No sku here</div>")).toEqual([]);
+  });
+
+  it("maps Poshmark statuses to shipment tracking", () => {
+    const at = (display_status: string) => shipmentStatus({ ...sale, display_status });
+    expect(at("Sold")).toBe("label_created");
+    expect(at("Shipped")).toBe("in_transit");
+    expect(at("Delivered")).toBe("delivered");
+    expect(at("Order Complete")).toBe("delivered");
+    expect(at("Cancelled")).toBe("cancelled");
+    expect(at("Return Requested")).toBeNull();
   });
 });

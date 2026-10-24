@@ -120,6 +120,8 @@ interface OrderRow {
   parcel: Order["parcel"] | null;
   label: Order["label"] | null;
   source: Order["source"];
+  printed_at?: string | null;
+  shipment?: Order["shipment"] | null;
 }
 
 const toRow = (o: Order, userId: string) => ({
@@ -137,7 +139,12 @@ const toRow = (o: Order, userId: string) => ({
   parcel: o.parcel ?? null,
   label: o.label ?? null,
   source: o.source,
+  printed_at: o.printedAt ?? null,
+  shipment: o.shipment ?? null,
 });
+
+// Columns added by migration 0003; saving still works on a database that doesn't have them yet.
+const NEWER_COLUMNS = ["printed_at", "shipment"] as const;
 
 const fromRow = (r: OrderRow): Order => ({
   id: r.id,
@@ -153,6 +160,8 @@ const fromRow = (r: OrderRow): Order => ({
   parcel: r.parcel ?? undefined,
   label: r.label ?? undefined,
   source: r.source,
+  printedAt: r.printed_at ?? undefined,
+  shipment: r.shipment ?? undefined,
 });
 
 export class SupabaseStore implements Store {
@@ -171,8 +180,13 @@ export class SupabaseStore implements Store {
 
   async saveOrders(orders: Order[]) {
     if (!orders.length) return;
-    const { error } = await this.db.from("orders").upsert(orders.map((o) => toRow(o, this.userId)));
-    if (error) throw error;
+    const rows = orders.map((o) => toRow(o, this.userId));
+    const { error } = await this.db.from("orders").upsert(rows);
+    if (error && NEWER_COLUMNS.some((c) => error.message.includes(c))) {
+      const older = rows.map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => !(NEWER_COLUMNS as readonly string[]).includes(k))));
+      const retry = await this.db.from("orders").upsert(older);
+      if (retry.error) throw retry.error;
+    } else if (error) throw error;
   }
 
   async deleteOrders(ids: string[]) {
