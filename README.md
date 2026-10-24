@@ -25,15 +25,25 @@ Without any setup, Reship runs in **demo mode**: it starts with sample orders an
 - Order dashboard from the design: status and marketplace filters, search, list and grid views, bundles, inline SKU editing
 - Add and edit orders by hand, including buyer address and package weight
 - Import orders from a marketplace CSV export, with automatic column matching and bundle grouping
-- Upload each order's marketplace label PDF, one at a time or in bulk (files named with the order number are matched automatically)
+- Poshmark orders and their prepaid labels come in automatically through the Reship browser extension (see below)
+- Upload an order's label PDF by hand from the order drawer when needed
 - Print all selected labels in one PDF, optionally stamped with the SKUs, with a packing slip after each label (4x6, Letter or A4)
 - Optional "Buy a different label" per order, with rate estimates for USPS, UPS and FedEx
 - Settings saved per account: ship-from address, label format, default carrier
 - Works on phones
 
+## Browser extension (marketplace sync)
+
+Marketplaces don't offer label APIs, so the extension in `extension/` reads sold orders and labels using the seller's own logged-in browser session. It never asks for or stores marketplace passwords, and it shows an at-your-own-risk notice before it turns on.
+
+- `node extension/build.mjs` builds it into `extension/dist` (it reads the same Supabase settings from `.env.local`).
+- In Chrome, open `chrome://extensions`, turn on Developer mode, click Load unpacked and pick `extension/dist`.
+- Sign in with your Reship account, turn on a marketplace and press Sync now. It also syncs every 15 minutes.
+- Poshmark works today. Mercari, Depop, Vinted and Whatnot show as "coming soon". The "Capture this page" and "Test Poshmark" buttons help map and check a marketplace.
+
 ## Coming next
 
-Paid sign-up ($16.99/month), automatic order and label import, inventory tracking, real purchase of alternative labels, and returns.
+Paid sign-up ($16.99/month), Mercari and other marketplaces in the extension, inventory tracking, real purchase of alternative labels, and returns.
 
 ## Scripts
 
