@@ -9,9 +9,9 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 
 const STATUS_TEXT: Record<PlatformResult["status"], [string, string]> = {
   ok: ["Synced", "ok"],
-  "logged-out": ["Log in to this site in this browser", "warn"],
+  "logged-out": ["Log in to this site in this browser (see Setup checklist)", "warn"],
   "not-ready": ["Coming soon", ""],
-  error: ["Couldn't sync", "err"],
+  error: ["Couldn't sync. See Setup checklist", "err"],
 };
 
 async function render() {
