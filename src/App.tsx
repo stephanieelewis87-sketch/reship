@@ -7,9 +7,12 @@ import { Dashboard } from "./components/Dashboard";
 import { AuthScreen } from "./components/AuthScreen";
 
 const demoStore = new LocalStore();
+// reship…/?demo opens the demo with sample orders even where accounts are set up, for showing
+// Reship to people without signing in.
+const demoRequested = new URLSearchParams(window.location.search).has("demo");
 
 export default function App() {
-  if (!supabase) return <ReshipApp store={demoStore} email={null} demoMode onSignOut={() => {}} />;
+  if (!supabase || demoRequested) return <ReshipApp store={demoStore} email={null} demoMode onSignOut={() => {}} />;
   return <SignedInGate />;
 }
 
@@ -48,5 +51,12 @@ function ReshipApp({
   onSignOut: () => void;
 }) {
   const data = useReshipData(store);
-  return <Dashboard data={data} email={email} demoMode={demoMode} onSignOut={onSignOut} />;
+  const resetDemo =
+    store instanceof LocalStore
+      ? () => {
+          store.reset();
+          window.location.reload();
+        }
+      : undefined;
+  return <Dashboard data={data} email={email} demoMode={demoMode} onSignOut={onSignOut} onResetDemo={resetDemo} />;
 }

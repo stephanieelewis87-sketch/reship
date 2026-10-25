@@ -35,7 +35,7 @@ async function labelTx<T>(mode: IDBTransactionMode, run: (s: IDBObjectStore) => 
   });
 }
 
-const ORDERS_KEY = "reship.orders.v1";
+const ORDERS_KEY = "reship.orders.v2";
 const SETTINGS_KEY = "reship.settings.v1";
 
 function readJson<T>(key: string): T | null {
@@ -62,6 +62,16 @@ export class LocalStore implements Store {
   async listOrders() {
     if (!this.memOrders) this.memOrders = readJson<Order[]>(ORDERS_KEY) ?? SAMPLE_ORDERS;
     return this.memOrders;
+  }
+
+  // Puts the demo back to its sample orders, all of them as they started.
+  reset() {
+    this.memOrders = null;
+    try {
+      localStorage.removeItem(ORDERS_KEY);
+    } catch {
+      // Storage unavailable; the in-memory copy is already cleared.
+    }
   }
 
   async saveOrders(orders: Order[]) {
