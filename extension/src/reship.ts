@@ -25,7 +25,7 @@ export function supabaseSink(userId: string): OrderSink {
     const { error } = await reship.storage.from("labels").upload(labelPath(orderId), label, { upsert: true, contentType: "application/pdf" });
     if (error) throw error;
   };
-  const labelInfo = (o: ImportedOrder) => ({ fileName: `${o.platform}-${o.orderNumber}.pdf`, uploadedAt: new Date().toISOString() });
+  const labelInfo = (o: ImportedOrder) => ({ fileName: `${o.platform}-${o.orderNumber}.pdf`, uploadedAt: new Date().toISOString(), qrCode: o.qrCode });
 
   return {
     async knownOrders(platform: Platform) {
@@ -34,7 +34,7 @@ export function supabaseSink(userId: string): OrderSink {
       return new Map(
         (data ?? []).map((r: { order_number: string; label: Order["label"] | null; items: Order["items"] | null; shipment?: Order["shipment"] | null }) => [
           r.order_number,
-          { hasLabel: !!r.label, missingSku: !(r.items ?? []).some((i) => i.sku), shipment: r.shipment?.status },
+          { hasLabel: !!r.label, missingSku: !(r.items ?? []).some((i) => i.sku), missingQr: !!r.label && !r.label.qrCode, shipment: r.shipment?.status },
         ]),
       );
     },
@@ -49,6 +49,19 @@ export function supabaseSink(userId: string): OrderSink {
       if (error) throw error;
       const items = (data.items as Order["items"]).map((item, i) => ({ ...item, sku: item.sku || o.items[i]?.sku }));
       const { error: updateError } = await reship.from("orders").update({ items }).eq("id", data.id);
+      if (updateError) throw updateError;
+    },
+
+    async attachQrCode(o) {
+      const { data, error } = await reship
+        .from("orders")
+        .select("id, label")
+        .eq("platform", o.platform)
+        .eq("order_number", o.orderNumber)
+        .single();
+      if (error) throw error;
+      if (!data.label) return;
+      const { error: updateError } = await reship.from("orders").update({ label: { ...data.label, qrCode: o.qrCode } }).eq("id", data.id);
       if (updateError) throw updateError;
     },
 

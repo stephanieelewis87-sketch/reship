@@ -27,11 +27,15 @@ function memorySink(known: [string, boolean, boolean?][] = []) {
   const attached: string[] = [];
   const skuFilled: string[] = [];
   const shipments: string[] = [];
+  const qrAdded: string[] = [];
   const sink: OrderSink = {
+    attachQrCode: async (order) => {
+      qrAdded.push(order.orderNumber);
+    },
     updateShipment: async (_p, n, status) => {
       shipments.push(`${n}:${status}`);
     },
-    knownOrders: async () => new Map(known.map(([n, hasLabel, missingSku = false]) => [n, { hasLabel, missingSku }])),
+    knownOrders: async () => new Map(known.map(([n, hasLabel, missingSku = false]) => [n, { hasLabel, missingSku, missingQr: hasLabel }])),
     fillSkus: async (order) => {
       skuFilled.push(order.orderNumber);
     },
@@ -42,10 +46,18 @@ function memorySink(known: [string, boolean, boolean?][] = []) {
       attached.push(order.orderNumber);
     },
   };
-  return { sink, saved, attached, skuFilled, shipments };
+  return { sink, saved, attached, skuFilled, shipments, qrAdded };
 }
 
 describe("syncAll", () => {
+  it("adds a drop-off QR code to an order that already has its label", async () => {
+    const { sink, qrAdded, saved } = memorySink([["A1", true], ["A2", true]]);
+    const withQr = { ...order("A1"), qrCode: "data:image/png;base64,AAAA" };
+    await syncAll([fakeConnector({ listOrdersToShip: async () => [withQr, order("A2"), { ...order("A3"), qrCode: "data:image/png;base64,BBBB" }] })], new Set(["Poshmark"]), sink);
+    expect(qrAdded).toEqual(["A1"]);
+    expect(saved.map((s) => s.order.qrCode)).toEqual(["data:image/png;base64,BBBB"]);
+  });
+
   it("imports only new orders and counts the labels it found", async () => {
     const { sink, saved } = memorySink([["A1", true]]);
     const [res] = await syncAll([fakeConnector()], new Set(["Poshmark"]), sink);

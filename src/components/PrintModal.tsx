@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle, CheckCircle2, FileText, Printer, Tag } from "lucide-react";
+import { AlertCircle, CheckCircle2, FileText, Printer, QrCode, Tag } from "lucide-react";
 import type { Order, PrintOptions } from "@/lib/types";
 import { BundleBadge, Modal, ModalHeader, PhotoCollage, PlatformBadge, SectionLabel, Toggle, isBundle, primaryButton, secondaryButton } from "./ui";
 
@@ -23,6 +23,7 @@ export function PrintModal({
   const selectedOrders = orders.filter((o) => selected.has(o.id));
   const selectedHasSku = selectedOrders.some((o) => o.items.some((i) => i.sku));
   const withoutLabel = selectedOrders.filter((o) => !o.label).length;
+  const withQr = selectedOrders.filter((o) => o.label?.qrCode).length;
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -100,6 +101,20 @@ export function PrintModal({
           </div>
           <Toggle label="Print packing slip" checked={opts.packingSlip} onChange={() => setOpts((o) => ({ ...o, packingSlip: !o.packingSlip }))} />
         </div>
+        {withQr > 0 && (
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <QrCode className="w-3.5 h-3.5 text-muted-foreground" />
+              <div>
+                <p className="text-sm text-foreground leading-none">Print QR codes instead of labels</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {withQr} selected order{withQr !== 1 ? "s have" : " has"} a drop-off QR code. The post office prints the label from it.
+                </p>
+              </div>
+            </div>
+            <Toggle label="Print QR codes instead of labels" checked={opts.qrCodes} onChange={() => setOpts((o) => ({ ...o, qrCodes: !o.qrCodes }))} />
+          </div>
+        )}
         {withoutLabel > 0 && (
           <p className="text-[11px] text-amber-800 bg-amber-50 rounded-md px-2.5 py-1.5">
             {withoutLabel} selected order{withoutLabel !== 1 ? "s have" : " has"} no marketplace label yet.
