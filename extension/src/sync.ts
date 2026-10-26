@@ -15,6 +15,8 @@ export interface KnownOrder {
   hasLabel: boolean;
   // No item in Reship has a SKU yet, so one found on the marketplace can be filled in.
   missingSku: boolean;
+  // Has a label but not the drop-off QR code, so one found on the marketplace can be added.
+  missingQr?: boolean;
   shipment?: ShipmentStatus;
 }
 
@@ -26,6 +28,8 @@ export interface OrderSink {
   attachLabel(order: ImportedOrder, label: Blob): Promise<void>;
   // Copies the marketplace's SKUs onto an order already in Reship.
   fillSkus(order: ImportedOrder): Promise<void>;
+  // Adds the drop-off QR code to an order already in Reship.
+  attachQrCode(order: ImportedOrder): Promise<void>;
   // Records where a shipped order is now (in transit, delivered and so on).
   updateShipment(platform: Platform, orderNumber: string, status: ShipmentStatus): Promise<void>;
 }
@@ -49,6 +53,7 @@ export async function syncAll(connectors: Connector[], enabled: Set<Platform>, s
       for (const order of await c.listOrdersToShip()) {
         const existing = known.get(order.orderNumber);
         if (existing?.missingSku && hasSku(order)) await sink.fillSkus(order);
+        if (existing?.missingQr && order.qrCode) await sink.attachQrCode(order);
         if (existing?.hasLabel) continue;
         // A label can be missing because the marketplace hadn't made it yet; later syncs retry.
         const label = await c.downloadLabel(order).catch(() => null);

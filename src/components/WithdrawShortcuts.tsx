@@ -4,6 +4,7 @@ import type { Platform } from "@/lib/types";
 // Each marketplace's own withdraw page. Reship only links there; the seller does the transfer.
 const WITHDRAW_PAGES: Partial<Record<Platform, string>> = {
   Mercari: "https://www.mercari.com/mypage/sales/bank_account/",
+  Poshmark: "https://poshmark.com/account/payout-options",
 };
 
 export function WithdrawShortcuts({ platforms }: { platforms: Platform[] }) {

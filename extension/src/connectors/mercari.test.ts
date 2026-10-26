@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from "vitest";
-import { needsShipping, readInProgressIds, readOrderPage, shipmentStatus, soldDate, toImportedOrder } from "./mercari";
+import { needsShipping, readInProgressIds, readOrderPage, readQrCode, shipmentStatus, soldDate, toImportedOrder } from "./mercari";
 
 // Trimmed copy of the structure of Mercari's order status page (made-up order).
 const ORDER_PAGE = `
@@ -64,8 +64,24 @@ describe("Mercari connector", () => {
     const at = (step: string) => shipmentStatus({ ...readOrderPage()!, step });
     expect(at("Delivery")).toBe("in_transit");
     expect(at("Rating")).toBe("delivered");
+    expect(at("Rate the buyer")).toBe("delivered");
+    expect(at("In transit")).toBe("in_transit");
     expect(at("Complete")).toBe("delivered");
     expect(at("Cancellation requested")).toBeNull();
+  });
+
+  it("opens the QR code dialog, then reads the code", () => {
+    const png = "data:image/png;base64,iVBORw0KGgo=";
+    const button = document.querySelector<HTMLElement>('[data-testid="TimelineActionButton-qr_code_modal"]')!;
+    let opened = 0;
+    button.addEventListener("click", () => {
+      opened++;
+      document.body.insertAdjacentHTML("beforeend", `<div role="dialog" data-testid="OrderStatusQRCodeDialog"><img data-testid="ShippingQRCode" src="${png}"></div>`);
+    });
+    expect(readQrCode()).toBeNull();
+    expect(readQrCode()).toBe(png);
+    expect(opened).toBe(1);
+    expect(toImportedOrder({ ...readOrderPage()!, qrCode: png }).qrCode).toBe(png);
   });
 
   it("reads Mercari sold dates", () => {

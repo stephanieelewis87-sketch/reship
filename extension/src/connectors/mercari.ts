@@ -8,6 +8,7 @@ const ORIGIN = "https://www.mercari.com";
 const IN_PROGRESS_URL = `${ORIGIN}/mypage/listings/in_progress/`;
 const orderStatusUrl = (itemId: string) => `${ORIGIN}/transaction/order_status/${itemId}/`;
 const PAGE_WAIT_MS = 20_000;
+const QR_WAIT_MS = 8_000;
 
 // What the order status page shows, read inside the page by readOrderPage.
 export interface MercariOrderPage {
@@ -16,6 +17,7 @@ export interface MercariOrderPage {
   steps: string[]; // every step name, in order
   labelUrl?: string;
   hasQrCode: boolean;
+  qrCode?: string; // the drop-off QR code as a PNG data URL, read by readQrCode
   buyer: string;
   carrier: string;
   soldOn: string; // "Sold on 10/22/26"
@@ -53,6 +55,17 @@ export function readOrderPage(): MercariOrderPage | null {
   };
 }
 
+// Runs inside an order status page that offers a drop-off QR code. The code only appears in a
+// dialog, so the first call opens it and a later call (the page is polled) reads the image.
+export function readQrCode(): string | null {
+  const img = document.querySelector<HTMLImageElement>('[data-testid="ShippingQRCode"]');
+  const src = img?.getAttribute("src") ?? "";
+  if (src.startsWith("data:image/")) return src;
+  if (!document.querySelector('[data-testid="OrderStatusQRCodeDialog"]'))
+    document.querySelector<HTMLElement>('[data-testid="TimelineActionButton-qr_code_modal"]')?.click();
+  return null;
+}
+
 // Runs inside the in-progress listings page: the item ids of sales still being worked on.
 export function readInProgressIds(): string[] {
   const ids = [...document.querySelectorAll<HTMLAnchorElement>("a[href]")]
@@ -79,7 +92,7 @@ export function shipmentStatus(page: MercariOrderPage): ShipmentStatus | null {
   const step = page.step.toLowerCase();
   if (SEND_STEP.test(step)) return "label_created";
   if (/deliver|in transit|shipped|on (its|the) way/.test(step)) return "in_transit";
-  if (/rating|review|complete|received/.test(step)) return "delivered";
+  if (/^rate|rating|review|complete|received/.test(step)) return "delivered";
   if (/^cancel+ed/.test(step)) return "cancelled";
   return null;
 }
@@ -97,6 +110,7 @@ export function toImportedOrder(page: MercariOrderPage): ImportedOrder {
     }),
     carrier: page.carrier.split("/")[0].trim() || "USPS",
     labelUrl: page.labelUrl ? new URL(page.labelUrl, ORIGIN).href : undefined,
+    qrCode: page.qrCode,
   };
 }
 
@@ -107,8 +121,17 @@ class PageReader {
   private window?: chrome.windows.Window;
 
   async read<T>(url: string, read: () => T | null): Promise<T | null> {
-    const tabId = await this.tab(url);
-    const deadline = Date.now() + PAGE_WAIT_MS;
+    return this.poll(await this.tab(url), read, PAGE_WAIT_MS);
+  }
+
+  // Reads the page that's already open again, without loading anything.
+  async readAgain<T>(read: () => T | null, waitMs: number): Promise<T | null> {
+    const tabId = this.window?.tabs?.[0]?.id;
+    return tabId === undefined ? null : this.poll(tabId, read, waitMs);
+  }
+
+  private async poll<T>(tabId: number, read: () => T | null, waitMs: number): Promise<T | null> {
+    const deadline = Date.now() + waitMs;
     while (Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 1000));
       const [result] = await chrome.scripting
@@ -152,7 +175,10 @@ async function orderPages(): Promise<MercariOrderPage[]> {
     const pages: MercariOrderPage[] = [];
     for (const id of ids) {
       const page = await reader.read(orderStatusUrl(id), readOrderPage);
-      if (page) pages.push({ ...page, itemId: page.itemId || id });
+      if (!page) continue;
+      // Only orders still to send need their QR code; it's read while their page is open.
+      const qrCode = needsShipping(page) && page.hasQrCode ? ((await reader.readAgain(readQrCode, QR_WAIT_MS)) ?? undefined) : undefined;
+      pages.push({ ...page, itemId: page.itemId || id, qrCode });
     }
     cached = { at: Date.now(), pages };
     lastRead = { listed: ids.length, read: pages.length, steps: pages.map((p) => p.step) };

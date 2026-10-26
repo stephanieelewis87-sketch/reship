@@ -72,7 +72,7 @@ export function Dashboard({
   const [drawer, setDrawer] = useState<{ order: Order; isNew: boolean } | null>(null);
   const [notice, setNotice] = useState<{ text: string; ok: boolean } | null>(null);
 
-  const printDefaults: PrintOptions = { skuOnLabel: settings.printSkuOnLabel, packingSlip: settings.printPackingSlip };
+  const printDefaults: PrintOptions = { skuOnLabel: settings.printSkuOnLabel, packingSlip: settings.printPackingSlip, qrCodes: settings.printQrCodes };
 
   const toggleIn = <T,>(set: Set<T>, v: T) => {
     const n = new Set(set);
@@ -122,7 +122,7 @@ export function Dashboard({
     setPrinting(true);
     try {
       const labels = await loadLabels(chosen);
-      const job = await buildPrintJob({ orders: chosen, labels, skuOnLabel: opts.skuOnLabel, packingSlip: opts.packingSlip, settings });
+      const job = await buildPrintJob({ orders: chosen, labels, skuOnLabel: opts.skuOnLabel, packingSlip: opts.packingSlip, qrCodes: opts.qrCodes, settings });
       if (job.pageCount === 0) {
         win?.close();
         setNotice({ text: "None of those orders has a label yet.", ok: false });
@@ -165,6 +165,25 @@ export function Dashboard({
   const today = new Date().toLocaleDateString(undefined, { weekday: "short", month: "long", day: "numeric", year: "numeric" });
   const allToPrint = orders.filter((o) => o.status === "pending");
   const readyToPrint = allToPrint.filter((o) => o.label).length;
+  // Some marketplaces (Mercari) also offer a drop-off QR code, so the seller can skip the printer label.
+  const qrReady = allToPrint.filter((o) => o.label?.qrCode).length;
+  const printNoun = settings.printQrCodes && qrReady === readyToPrint ? "QR code" : "label";
+  const qrToggle = qrReady > 0 && (
+    <div role="group" aria-label="What to print" className="flex rounded-lg border border-border p-0.5 text-xs">
+      {([false, true] as const).map((qr) => (
+        <button
+          key={String(qr)}
+          type="button"
+          aria-pressed={settings.printQrCodes === qr}
+          onClick={() => saveSettings({ ...settings, printQrCodes: qr })}
+          className={`px-2.5 py-1.5 rounded-md ${settings.printQrCodes === qr ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+          title={qr ? `Print the drop-off QR code for the ${qrReady} order${qrReady !== 1 ? "s" : ""} that have one` : "Print shipping labels"}
+        >
+          {qr ? "QR codes" : "Labels"}
+        </button>
+      ))}
+    </div>
+  );
 
   // The one button that matters: print everything waiting, with the saved options.
   const printButton =
@@ -194,7 +213,7 @@ export function Dashboard({
         className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-400 text-amber-950 text-sm font-semibold hover:bg-amber-300 shadow-sm disabled:opacity-50"
       >
         <Printer className="w-4 h-4" />
-        {printing ? "Preparing…" : `Print all ${readyToPrint} label${readyToPrint !== 1 ? "s" : ""}`}
+        {printing ? "Preparing…" : `Print all ${readyToPrint} ${printNoun}${readyToPrint !== 1 ? "s" : ""}`}
       </button>
     ) : (
       <span className="flex items-center gap-1.5 text-sm text-emerald-700">
@@ -284,6 +303,7 @@ export function Dashboard({
                 Choose labels & options
               </button>
             )}
+            {qrToggle}
             {printButton}
           </div>
         </div>
@@ -416,8 +436,8 @@ export function Dashboard({
           defaults={printDefaults}
           onClose={() => setPrintOrders(null)}
           onConfirm={async (ids, opts) => {
-            if (opts.skuOnLabel !== settings.printSkuOnLabel || opts.packingSlip !== settings.printPackingSlip)
-              saveSettings({ ...settings, printSkuOnLabel: opts.skuOnLabel, printPackingSlip: opts.packingSlip });
+            if (opts.skuOnLabel !== settings.printSkuOnLabel || opts.packingSlip !== settings.printPackingSlip || opts.qrCodes !== settings.printQrCodes)
+              saveSettings({ ...settings, printSkuOnLabel: opts.skuOnLabel, printPackingSlip: opts.packingSlip, printQrCodes: opts.qrCodes });
             await print(
               orders.filter((o) => ids.includes(o.id)),
               opts,

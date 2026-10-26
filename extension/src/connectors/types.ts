@@ -12,6 +12,8 @@ export interface ImportedOrder {
   shipTo?: Address;
   // Where the marketplace serves this order's label; fetched with the seller's own session.
   labelUrl?: string;
+  // The marketplace's drop-off QR code (a PNG data URL), when it offers one instead of printing.
+  qrCode?: string;
 }
 
 // One per marketplace. Each runs inside the seller's browser and uses the session they are
