@@ -1,8 +1,8 @@
-import { Home, Package, Settings as SettingsIcon, X } from "lucide-react";
+import { BarChart3, Home, Package, Settings as SettingsIcon, X } from "lucide-react";
 import type { LabelStatus, Order, Platform } from "@/lib/types";
 
-// Home is the dashboard; the others are lists of orders in one status, or all of them.
-export type View = "home" | LabelStatus | "all";
+// Home is the dashboard; the others are lists of orders in one status, or all of them, and analytics.
+export type View = "home" | LabelStatus | "all" | "analytics";
 import { ALL_PLATFORMS } from "@/lib/types";
 import { PlatformIcon, SectionLabel } from "./ui";
 
@@ -33,7 +33,7 @@ export function Sidebar({
   onOpenAccount: () => void;
   onOpenSettings: () => void;
 }) {
-  const counts: Record<View, number | null> = {
+  const counts: Record<Exclude<View, "analytics">, number | null> = {
     home: null,
     all: orders.length,
     pending: orders.filter((o) => o.status === "pending").length,
@@ -87,6 +87,14 @@ export function Sidebar({
               </button>
             );
           })}
+          <SectionLabel className="px-2 mt-4 mb-2">Business</SectionLabel>
+          <button
+            type="button"
+            onClick={() => onStatus("analytics")}
+            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm transition-colors ${activeStatus === "analytics" ? "bg-[#B5607A] text-white" : "text-foreground hover:bg-muted"}`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" /> Analytics
+          </button>
         </nav>
 
         {activePlatforms.size > 0 && (

@@ -16,7 +16,7 @@ Without any setup, Reship runs in **demo mode**: it starts with sample orders an
 ## Use real accounts and a shared database (Supabase)
 
 1. Create a free project at [supabase.com](https://supabase.com).
-2. In the project's SQL editor, run the files in `supabase/migrations/` in order.
+2. In the project's SQL editor, run the files in `supabase/migrations/` in order (0004 adds inventory and profit tracking for Analytics).
 3. Copy `.env.example` to `.env.local` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from Settings > API.
 4. Restart `npm run dev`. Reship now asks you to sign in, and each account only sees its own orders.
 
@@ -31,6 +31,7 @@ Without any setup, Reship runs in **demo mode**: it starts with sample orders an
 - Optional "Buy a different label" per order, with rate estimates for USPS, UPS and FedEx
 - Settings saved per account: ship-from address, label format, default carrier
 - Works on phones
+- **Analytics**: sales, true profit (after marketplace fees, shipping you paid and item cost), margin, days to sell, sell-through and money tied up in inventory, for any period and compared with the one before. Pages for profit (where the money went), marketplaces side by side, brands and categories, inventory health with suggested markdowns for stale listings, sourcing (which thrift stores pay off), a monthly profit goal, "what to do next" tips, and CSV reports for taxes. Click any point or row to see the sales behind it. Fees are estimated from each marketplace's fee schedule when an order doesn't say. The demo has a made-up year of sales so every page has something to show.
 
 ## Browser extension (marketplace sync)
 
@@ -48,7 +49,7 @@ Marketplaces don't offer label APIs, so the extension in `extension/` reads sold
 
 ## Coming next
 
-Paid sign-up ($16.99/month), QR code drop-off sheets, more marketplaces in the extension, inventory tracking, real purchase of alternative labels, and returns.
+Combining with Listy (video to listings) into one app: an inventory page, returns, expenses, Listy's video-to-listing flow, and sale prices and fees pulled in by the extension. Also paid sign-up ($16.99/month), QR code drop-off sheets, more marketplaces in the extension and real purchase of alternative labels.
 
 ## Scripts
 

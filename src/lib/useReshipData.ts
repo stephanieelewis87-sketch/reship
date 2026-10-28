@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { Order, Settings } from "./types";
+import type { InventoryItem, Order, Settings } from "./types";
 import { DEFAULT_SETTINGS } from "./types";
 import type { Store } from "./store";
 
@@ -7,17 +7,19 @@ import type { Store } from "./store";
 export function useReshipData(store: Store) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    Promise.all([store.listOrders(), store.getSettings()])
-      .then(([o, s]) => {
+    Promise.all([store.listOrders(), store.getSettings(), store.listInventory()])
+      .then(([o, s, inv]) => {
         if (cancelled) return;
         setOrders(o);
         setSettings(s);
+        setInventory(inv);
       })
       .catch((e: Error) => !cancelled && setError(e.message))
       .finally(() => !cancelled && setLoading(false));
@@ -105,8 +107,22 @@ export function useReshipData(store: Store) {
     [orders, deleteOrders, store],
   );
 
+  const saveInventory = useCallback(
+    (changed: InventoryItem[]) => {
+      setInventory((prev) => {
+        const byId = new Map(changed.map((i) => [i.id, i]));
+        const fresh = changed.filter((i) => !prev.some((p) => p.id === i.id));
+        return [...fresh, ...prev.map((p) => byId.get(p.id) ?? p)];
+      });
+      store.saveInventory(changed).catch(report);
+    },
+    [store],
+  );
+
   return {
     orders,
+    inventory,
+    saveInventory,
     settings,
     loading,
     error,

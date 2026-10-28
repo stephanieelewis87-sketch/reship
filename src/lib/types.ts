@@ -25,6 +25,10 @@ export interface OrderItem {
   sku?: string;
   photo?: string;
   price?: number;
+  // What the seller paid for the item. Filled from the inventory item with the same SKU when missing.
+  cost?: number;
+  brand?: string;
+  category?: string;
 }
 
 // Where a shipped package is, as reported by the marketplace the order came from.
@@ -52,6 +56,31 @@ export interface Order {
   source: OrderSource;
   printedAt?: string; // ISO time the label was last printed
   shipment?: Shipment;
+  // Marketplace fees for the whole order. When missing, analytics estimates them from the marketplace's fee schedule.
+  fees?: number;
+  // What the seller paid for shipping (0 when the buyer paid for a prepaid label).
+  shippingCost?: number;
+}
+
+export type InventoryStatus = "draft" | "listed" | "sold";
+
+// One thing the seller owns: from sourcing it, through listing, to the sale.
+export interface InventoryItem {
+  id: string;
+  sku: string;
+  title: string;
+  brand?: string;
+  category?: string;
+  size?: string;
+  cost?: number;
+  listPrice?: number;
+  source?: string; // where it was bought, e.g. "Goodwill"
+  purchasedAt?: string; // YYYY-MM-DD
+  listedAt?: string; // YYYY-MM-DD
+  soldAt?: string; // YYYY-MM-DD
+  status: InventoryStatus;
+  platforms: Platform[]; // where it's listed
+  photo?: string;
 }
 
 export interface LabelFile {
@@ -70,6 +99,8 @@ export interface Settings {
   // Defaults for one-click printing.
   printSkuOnLabel: boolean;
   printPackingSlip: boolean;
+  // Analytics goal; 0 means no goal.
+  monthlyProfitGoal: number;
 }
 
 export interface PrintOptions {
@@ -91,6 +122,7 @@ export const DEFAULT_SETTINGS: Settings = {
   displayName: "",
   printSkuOnLabel: true,
   printPackingSlip: true,
+  monthlyProfitGoal: 0,
 };
 
 export const emptyAddress = (): Address => ({ name: "", street1: "", street2: "", city: "", state: "", zip: "", country: "US", phone: "" });

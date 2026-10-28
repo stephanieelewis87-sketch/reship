@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { AlertCircle, AlertTriangle, ArrowRight, CheckCircle2, FileUp, LayoutGrid, List, Menu, Plus, Printer, RotateCcw, Search, Truck, X } from "lucide-react";
 import type { Order, OrderItem, Platform, PrintOptions } from "@/lib/types";
 import { isAddressComplete } from "@/lib/types";
@@ -14,11 +14,12 @@ import { SettingsModal, type SettingsTab } from "./SettingsModal";
 import { OrderList } from "./OrderList";
 import { orderTitle } from "./ui";
 import { WithdrawShortcuts } from "./WithdrawShortcuts";
+import { AnalyticsView } from "./analytics/AnalyticsView";
 
 type Data = ReturnType<typeof useReshipData>;
 
 const RECENT_PRINTED = 5;
-const VIEW_TITLE: Record<View, string> = { home: "Home", pending: "To Print", printed: "Printed", shipped: "Shipped", all: "All orders" };
+const VIEW_TITLE: Record<View, string> = { home: "Home", pending: "To Print", printed: "Printed", shipped: "Shipped", all: "All orders", analytics: "Analytics" };
 const byPrintedAt = (a: Order, b: Order) => (b.printedAt ?? b.date).localeCompare(a.printedAt ?? a.date);
 
 function StatCard({
@@ -56,7 +57,7 @@ export function Dashboard({
   onSignOut: () => void;
   onResetDemo?: () => void;
 }) {
-  const { orders, settings, saveOrders, patchOrders, deleteOrders, saveSettings, attachLabel, removeLabel, loadLabels } = data;
+  const { orders, inventory, saveInventory, settings, saveOrders, patchOrders, deleteOrders, saveSettings, attachLabel, removeLabel, loadLabels } = data;
 
   const [view, setView] = useState<View>("home");
   const [activePlatforms, setActivePlatforms] = useState<Set<Platform>>(new Set());
@@ -103,6 +104,8 @@ export function Dashboard({
   const selectedPending = selected.filter((o) => o.status === "pending");
   const selectedReprint = selected.filter((o) => o.status !== "pending" && o.label);
   const sampleCount = orders.filter((o) => o.source === "sample").length;
+
+  const openOrder = useCallback((order: Order) => setDrawer({ order, isNew: false }), []);
 
   const goTo = (v: View) => {
     setView(v);
@@ -278,17 +281,29 @@ export function Dashboard({
               <p className="text-xs text-muted-foreground mt-0.5">{today}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
+          {view !== "analytics" && <div className="flex items-center gap-3 flex-wrap">
             {(view === "home" || view === "pending") && allToPrint.length > 0 && selected.length === 0 && (
               <button type="button" onClick={() => setPrintOrders(allToPrint)} className="text-xs text-muted-foreground hover:text-foreground hover:underline">
                 Choose labels & options
               </button>
             )}
             {printButton}
-          </div>
+          </div>}
         </div>
 
         <div className="flex-1 overflow-y-auto">
+          {view === "analytics" ? (
+            <AnalyticsView
+              orders={orders}
+              inventory={inventory}
+              settings={settings}
+              platforms={activePlatforms}
+              onOpenOrder={openOrder}
+              saveSettings={saveSettings}
+              saveInventory={saveInventory}
+            />
+          ) : (
+          <>
           {view === "home" && (
             <section className="px-4 md:px-8 pt-5 space-y-3">
               {summary.late.length > 0 && (
@@ -407,6 +422,8 @@ export function Dashboard({
               </p>
             )}
           </div>
+          </>
+          )}
         </div>
       </main>
 
