@@ -637,12 +637,31 @@ function HowItWorks() {
   );
 }
 
-const PLAN_FEATURES = [
-  "Video listing and crosslisting",
-  "One-button payouts",
-  "Batch label printing with SKUs and packing slips",
-  "Inventory, returns and profit analytics",
-  "All supported marketplaces included",
+// Edit plans here: name, monthly price, pitch and what's included. `featured` gets the highlighted card.
+const PLANS: { name: string; price: string; pitch: string; features: string[]; featured?: boolean }[] = [
+  {
+    name: "Ship",
+    price: "$9.99",
+    pitch: "Everything you need to get orders out the door.",
+    features: [
+      "One-click shipping labels with SKUs and packing slips",
+      "One order inbox for sales from every marketplace",
+      "Returns tracking",
+    ],
+  },
+  {
+    name: "Grow",
+    price: "$49",
+    pitch: "List everywhere and keep track of what you own.",
+    features: ["Everything in Ship", "Crosslisting, including Vinted and Mercari", "Inventory tracking", "Basic analytics"],
+  },
+  {
+    name: "Pro",
+    price: "$109",
+    pitch: "Replaces your crosslister, your shipping tool and your spreadsheet.",
+    features: ["Everything in Grow", "Video listing", "AI summaries of buyer feedback", "Full profit analytics", "One-tap withdrawal"],
+    featured: true,
+  },
 ];
 
 function Pricing({ onSignUp }: { onSignUp: () => void }) {
@@ -650,27 +669,41 @@ function Pricing({ onSignUp }: { onSignUp: () => void }) {
     <section id="pricing" className="scroll-mt-16 max-w-6xl mx-auto px-4 sm:px-6 py-20">
       <div className="text-center max-w-2xl mx-auto">
         <Eyebrow>Pricing</Eyebrow>
-        <h2 className="font-display text-3xl sm:text-4xl font-medium mt-4">One plan. Everything included.</h2>
+        <h2 className="font-display text-3xl sm:text-4xl font-medium mt-4">Start with shipping. Grow into everything.</h2>
+        <p className="mt-4 text-muted-foreground">Pick the plan that fits your shop today, and change it any time.</p>
       </div>
-      <div className="mt-10 max-w-md mx-auto bg-card border-2 border-[#B5607A]/40 rounded-3xl p-8 shadow-xl">
-        <p className="font-semibold">Reship</p>
-        <p className="mt-2">
-          <span className="font-display text-5xl">$16.99</span>
-          <span className="text-muted-foreground"> / month</span>
-        </p>
-        <ul className="mt-6 space-y-3">
-          {PLAN_FEATURES.map((f) => (
-            <li key={f} className="flex gap-3 text-sm">
-              <Check className="w-4 h-4 text-[#B5607A] shrink-0 mt-0.5" />
-              {f}
-            </li>
-          ))}
-        </ul>
-        <button onClick={onSignUp} className={`${ctaPrimary} w-full mt-8`}>
-          Get started <ArrowRight className="w-4 h-4" />
-        </button>
-        <p className="mt-3 text-center text-xs text-muted-foreground">Cancel any time.</p>
+      <div className="mt-12 grid md:grid-cols-3 gap-5 items-stretch">
+        {PLANS.map((plan) => (
+          <div
+            key={plan.name}
+            className={`relative flex flex-col rounded-3xl p-7 ${
+              plan.featured ? "bg-foreground text-background shadow-2xl md:-my-3" : "bg-card border border-border"
+            }`}
+          >
+            {plan.featured && (
+              <span className="absolute -top-3 left-7 px-3 py-1 rounded-full bg-[#B5607A] text-white text-xs font-semibold">Everything included</span>
+            )}
+            <p className="font-semibold text-lg">{plan.name}</p>
+            <p className={`mt-1 text-sm ${plan.featured ? "text-background/70" : "text-muted-foreground"}`}>{plan.pitch}</p>
+            <p className="mt-5">
+              <span className="font-display text-5xl">{plan.price}</span>
+              <span className={plan.featured ? "text-background/70" : "text-muted-foreground"}> / month</span>
+            </p>
+            <ul className="mt-6 space-y-3 flex-1">
+              {plan.features.map((f) => (
+                <li key={f} className="flex gap-3 text-sm">
+                  <Check className={`w-4 h-4 shrink-0 mt-0.5 ${plan.featured ? "text-[#E7A9BD]" : "text-[#B5607A]"}`} />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <button onClick={onSignUp} className={`${plan.featured ? ctaPrimary : ctaSecondary} w-full mt-8`}>
+              Choose {plan.name} <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        ))}
       </div>
+      <p className="mt-6 text-center text-xs text-muted-foreground">Cancel any time.</p>
     </section>
   );
 }
