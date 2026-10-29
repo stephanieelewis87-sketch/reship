@@ -132,6 +132,7 @@ interface OrderRow {
   source: Order["source"];
   printed_at?: string | null;
   shipment?: Order["shipment"] | null;
+  own_label?: Order["ownLabel"] | null;
 }
 
 const toRow = (o: Order, userId: string) => ({
@@ -151,10 +152,11 @@ const toRow = (o: Order, userId: string) => ({
   source: o.source,
   printed_at: o.printedAt ?? null,
   shipment: o.shipment ?? null,
+  own_label: o.ownLabel ?? null,
 });
 
-// Columns added by migration 0003; saving still works on a database that doesn't have them yet.
-const NEWER_COLUMNS = ["printed_at", "shipment"] as const;
+// Columns added by migrations 0003 and 0006; saving still works on a database that doesn't have them yet.
+const NEWER_COLUMNS = ["printed_at", "shipment", "own_label"] as const;
 
 const fromRow = (r: OrderRow): Order => ({
   id: r.id,
@@ -172,6 +174,7 @@ const fromRow = (r: OrderRow): Order => ({
   source: r.source,
   printedAt: r.printed_at ?? undefined,
   shipment: r.shipment ?? undefined,
+  ownLabel: r.own_label ?? undefined,
 });
 
 export class SupabaseStore implements Store {

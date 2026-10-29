@@ -28,7 +28,7 @@ Without any setup, Reship runs in **demo mode**: it starts with sample orders an
 - Poshmark orders and their prepaid labels come in automatically through the Reship browser extension (see below)
 - Upload an order's label PDF by hand from the order drawer when needed
 - Print all selected labels in one PDF, optionally stamped with the SKUs, with a packing slip after each label (4x6, Letter or A4)
-- Optional "Buy a different label" per order, with rate estimates for USPS, UPS and FedEx
+- Label helper per order, by marketplace: for Mercari and Depop ("ship on your own") Reship compares the marketplace's label price with its own and, when Reship's is cheaper, buys it and gives you the tracking number to paste into the marketplace. eBay, Etsy and direct sales always use a Reship label. Poshmark, Whatnot and Vinted keep their prepaid label; Reship shows it and never buys a second one
 - Settings saved per account: ship-from address, label format, default carrier
 - Works on phones
 
@@ -45,6 +45,16 @@ Marketplaces don't offer label APIs, so the extension in `extension/` reads sold
   3. Turn off ad or privacy blockers on marketplace sites.
 - Poshmark and Mercari work today. Depop, Vinted and Whatnot show as "coming soon". The "Capture this page" and "Test" buttons help map and check a marketplace.
 - Mercari's pages are drawn in the browser, so the extension reads them in a minimized window it opens and closes during a sync. Mercari's letter-size label is cut out and turned upright when printing on 4x6 labels.
+
+## Buying labels (EasyPost)
+
+Reship buys its own labels through EasyPost at EasyPost's discounted carrier rates, from the edge function in `supabase/functions/labels`.
+
+1. Run `supabase/migrations/0006_own_label.sql`.
+2. Create an EasyPost account and copy an API key (start with the test key, which makes free test labels).
+3. `supabase secrets set EASYPOST_API_KEY=...` and `supabase functions deploy labels`.
+
+Until the function is deployed, the app shows estimated prices and can't buy. In demo mode, buying makes a clearly marked practice label so the flow can be tried. Labels are paid from the EasyPost account, so charging sellers for them (or for the Ship plan) needs to be in place before using a live key.
 
 ## Coming next
 
