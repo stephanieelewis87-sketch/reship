@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Package } from "lucide-react";
+import { ArrowLeft, Package } from "lucide-react";
 import type { Provider } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { Field, inputClass, primaryButton, secondaryButton } from "./ui";
@@ -31,8 +31,19 @@ function useEnabledProviders() {
 }
 
 // recovery: the person arrived from a password reset email and is choosing a new password.
-export function AuthScreen({ recovery = false, onRecovered }: { recovery?: boolean; onRecovered?: () => void }) {
-  const [mode, setMode] = useState<Mode>(recovery ? "reset" : "signin");
+// onBack: shows a link back to the homepage.
+export function AuthScreen({
+  recovery = false,
+  onRecovered,
+  initialMode = "signin",
+  onBack,
+}: {
+  recovery?: boolean;
+  onRecovered?: () => void;
+  initialMode?: "signin" | "signup";
+  onBack?: () => void;
+}) {
+  const [mode, setMode] = useState<Mode>(recovery ? "reset" : initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -79,7 +90,12 @@ export function AuthScreen({ recovery = false, onRecovered }: { recovery?: boole
   const showProviders = providers.length > 0 && (mode === "signin" || mode === "signup");
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 gap-4">
+      {onBack && (
+        <button type="button" onClick={onBack} className="w-full max-w-sm flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to home
+        </button>
+      )}
       <form onSubmit={submit} className="w-full max-w-sm bg-card border border-border rounded-xl shadow-sm p-6 space-y-4">
         <div className="flex items-center gap-2.5 mb-2">
           <div className="w-8 h-8 rounded-lg bg-[#B5607A] flex items-center justify-center">
