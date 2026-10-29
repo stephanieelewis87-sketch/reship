@@ -1,13 +1,12 @@
 import { useMemo, useState } from "react";
 import { AlertCircle, AlertTriangle, ArrowRight, CheckCircle2, FileUp, LayoutGrid, List, Menu, Plus, Printer, RotateCcw, Search, Truck, X } from "lucide-react";
 import type { Order, OrderItem, Platform, PrintOptions } from "@/lib/types";
-import { isAddressComplete } from "@/lib/types";
 import type { useReshipData } from "@/lib/useReshipData";
 import { buildPrintJob } from "@/lib/printJob";
 import { summarize } from "@/lib/orderStatus";
 import { Sidebar, type View } from "./Sidebar";
 import { PrintModal } from "./PrintModal";
-import { BuyLabelsModal } from "./BuyLabelsModal";
+import { ShipLabelModal } from "./ShipLabelModal";
 import { OrderDrawer, blankOrder } from "./OrderDrawer";
 import { ImportCsvModal } from "./ImportCsvModal";
 import { SettingsModal, type SettingsTab } from "./SettingsModal";
@@ -66,7 +65,7 @@ export function Dashboard({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [printOrders, setPrintOrders] = useState<Order[] | null>(null);
   const [printing, setPrinting] = useState(false);
-  const [buyFor, setBuyFor] = useState<Order[] | null>(null);
+  const [labelFor, setLabelFor] = useState<Order | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [drawer, setDrawer] = useState<{ order: Order; isNew: boolean } | null>(null);
@@ -426,19 +425,19 @@ export function Dashboard({
         />
       )}
 
-      {buyFor && (
-        <BuyLabelsModal
-          orders={buyFor}
-          hasShipFrom={isAddressComplete(settings.shipFrom)}
-          onClose={() => setBuyFor(null)}
-          onSaveParcels={(rows) =>
-            saveOrders(
-              rows.map((r) => {
-                const o = orders.find((x) => x.id === r.id)!;
-                return { ...o, parcel: r.parcel, carrier: r.carrier };
-              }),
-            )
-          }
+      {labelFor && (
+        <ShipLabelModal
+          key={labelFor.id}
+          order={labelFor}
+          shipFrom={settings.shipFrom}
+          onClose={() => setLabelFor(null)}
+          onBought={({ order, pdf }) => attachLabel(order, pdf)}
+          onSave={(o) => saveOrders([o])}
+          onViewLabel={viewLabel}
+          onEditOrder={(o) => {
+            setLabelFor(null);
+            setDrawer({ order: orders.find((x) => x.id === o.id) ?? o, isNew: false });
+          }}
         />
       )}
 
@@ -469,7 +468,7 @@ export function Dashboard({
           onViewLabel={viewLabel}
           onBuyLabel={(o) => {
             setDrawer(null);
-            setBuyFor([o]);
+            setLabelFor(o);
           }}
           onDelete={(id) => {
             deleteOrders([id]);

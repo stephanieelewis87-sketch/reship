@@ -52,6 +52,21 @@ export interface Order {
   source: OrderSource;
   printedAt?: string; // ISO time the label was last printed
   shipment?: Shipment;
+  // A label bought through Reship instead of the marketplace's (see labelPolicy.ts).
+  ownLabel?: OwnLabel;
+}
+
+export interface OwnLabel {
+  carrier: string;
+  service: string;
+  price: number;
+  // What the marketplace's own label would have cost, as the seller entered it.
+  marketplacePrice?: number;
+  boughtAt: string;
+  // Demo mode makes a practice label with a made-up tracking number.
+  demo?: boolean;
+  // When the seller confirmed the tracking number was pasted into the marketplace.
+  trackingPostedAt?: string;
 }
 
 export interface LabelFile {

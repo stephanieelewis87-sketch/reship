@@ -3,6 +3,7 @@ import { ExternalLink, FileText, Plus, ShoppingCart, Trash2, Upload, X } from "l
 import type { LabelStatus, Order, OrderItem, PackageType, Platform } from "@/lib/types";
 import { ALL_PLATFORMS, CARRIER_SERVICES, PACKAGE_TYPES, emptyAddress } from "@/lib/types";
 import { newId } from "@/lib/ids";
+import { labelPolicy } from "@/lib/labelPolicy";
 import { AddressFields } from "./AddressFields";
 import { Field, PhotoCollage, SectionLabel, STATUS_CONFIG, inputClass, primaryButton, secondaryButton } from "./ui";
 
@@ -178,7 +179,8 @@ export function OrderDrawer({
               </label>
               {!isNew && (
                 <button type="button" onClick={() => onBuyLabel(order)} className="text-xs text-muted-foreground hover:text-foreground hover:underline flex items-center gap-1">
-                  <ShoppingCart className="w-3 h-3" /> Buy a different label
+                  <ShoppingCart className="w-3 h-3" />{" "}
+                  {order.ownLabel ? "Reship label & tracking" : { compare: "Ship on your own", reship: "Buy a label", marketplace: "Prepaid label help" }[labelPolicy(order)]}
                 </button>
               )}
             </div>
