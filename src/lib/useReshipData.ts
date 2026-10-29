@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import type { InventoryItem, Order, Settings } from "./types";
+import type { Expense, InventoryItem, Order, Settings } from "./types";
+import { applySales } from "./inventory";
 import { DEFAULT_SETTINGS } from "./types";
 import type { Store } from "./store";
 
@@ -8,18 +9,20 @@ export function useReshipData(store: Store) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    Promise.all([store.listOrders(), store.getSettings(), store.listInventory()])
-      .then(([o, s, inv]) => {
+    Promise.all([store.listOrders(), store.getSettings(), store.listInventory(), store.listExpenses()])
+      .then(([o, s, inv, exp]) => {
         if (cancelled) return;
         setOrders(o);
         setSettings(s);
         setInventory(inv);
+        setExpenses(exp);
       })
       .catch((e: Error) => !cancelled && setError(e.message))
       .finally(() => !cancelled && setLoading(false));
@@ -119,14 +122,54 @@ export function useReshipData(store: Store) {
     [store],
   );
 
+  const deleteInventory = useCallback(
+    (ids: string[]) => {
+      setInventory((prev) => prev.filter((i) => !ids.includes(i.id)));
+      store.deleteInventory(ids).catch(report);
+    },
+    [store],
+  );
+
+  const saveExpenses = useCallback(
+    (changed: Expense[]) => {
+      setExpenses((prev) => {
+        const byId = new Map(changed.map((e) => [e.id, e]));
+        const fresh = changed.filter((e) => !prev.some((p) => p.id === e.id));
+        return [...fresh, ...prev.map((p) => byId.get(p.id) ?? p)].sort((a, b) => b.date.localeCompare(a.date));
+      });
+      store.saveExpenses(changed).catch(report);
+    },
+    [store],
+  );
+
+  const deleteExpenses = useCallback(
+    (ids: string[]) => {
+      setExpenses((prev) => prev.filter((e) => !ids.includes(e.id)));
+      store.deleteExpenses(ids).catch(report);
+    },
+    [store],
+  );
+
+  // Sale detection: an order for an item's SKU marks it sold and takes down its other listings.
+  useEffect(() => {
+    if (loading || !inventory.length) return;
+    const changed = applySales(inventory, orders, settings);
+    if (changed.length) saveInventory(changed);
+  }, [loading, orders, inventory, settings, saveInventory]);
+
   return {
     orders,
     inventory,
     saveInventory,
+    deleteInventory,
+    expenses,
+    saveExpenses,
+    deleteExpenses,
     settings,
     loading,
     error,
     clearError: () => setError(null),
+    store,
     saveOrders,
     patchOrders,
     deleteOrders: deleteOrdersAndLabels,

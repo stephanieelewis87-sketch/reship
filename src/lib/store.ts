@@ -1,6 +1,7 @@
-import type { InventoryItem, Order, Settings } from "./types";
+import type { Expense, Feedback, FeedbackStatus, FeedbackSummary, InventoryItem, Order, Settings } from "./types";
 import { DEFAULT_SETTINGS } from "./types";
-import { SAMPLE_HISTORY_ORDERS, SAMPLE_INVENTORY, SAMPLE_ORDERS, sampleLabelPdf } from "./sampleData";
+import { SAMPLE_EXPENSES, SAMPLE_HISTORY_ORDERS, SAMPLE_INVENTORY, SAMPLE_ORDERS, sampleLabelPdf } from "./sampleData";
+import { SAMPLE_FEEDBACK, SAMPLE_SUMMARY } from "./sampleFeedback";
 import { supabase } from "./supabase";
 
 // One interface, two backends: Supabase when it's configured, otherwise this browser's storage (demo mode).
@@ -17,6 +18,16 @@ export interface Store {
   listInventory(): Promise<InventoryItem[]>;
   saveInventory(items: InventoryItem[]): Promise<void>;
   deleteInventory(ids: string[]): Promise<void>;
+  listExpenses(): Promise<Expense[]>;
+  saveExpenses(items: Expense[]): Promise<void>;
+  deleteExpenses(ids: string[]): Promise<void>;
+  // Feedback: everyone sends it; the app owner (an admin) reads all of it and its AI summaries.
+  sendFeedback(f: Omit<Feedback, "id" | "status" | "createdAt">): Promise<void>;
+  listFeedback(): Promise<Feedback[]>;
+  isFeedbackAdmin(): Promise<boolean>;
+  setFeedbackStatus(id: string, status: FeedbackStatus): Promise<void>;
+  listFeedbackSummaries(): Promise<FeedbackSummary[]>;
+  summarizeFeedback(): Promise<string>;
 }
 
 // Small IndexedDB wrapper for label PDFs in demo mode; localStorage is too small for files.
@@ -40,7 +51,42 @@ async function labelTx<T>(mode: IDBTransactionMode, run: (s: IDBObjectStore) => 
 
 // v3 added a year of sold orders behind the samples, for analytics.
 const ORDERS_KEY = "reship.orders.v3";
-const INVENTORY_KEY = "reship.inventory.v1";
+// v2 tracks each marketplace listing separately.
+const INVENTORY_KEY = "reship.inventory.v2";
+const EXPENSES_KEY = "reship.expenses.v1";
+const FEEDBACK_KEY = "reship.feedback.v1";
+
+// Keeps a list of records by id in memory and in this browser's storage.
+class LocalList<T extends { id: string }> {
+  private mem: T[] | null = null;
+  constructor(
+    private key: string,
+    private initial: () => T[],
+  ) {}
+  async list() {
+    if (!this.mem) this.mem = readJson<T[]>(this.key) ?? this.initial();
+    return this.mem;
+  }
+  async save(items: T[]) {
+    const current = await this.list();
+    const byId = new Map(items.map((i) => [i.id, i]));
+    const fresh = items.filter((i) => !current.some((c) => c.id === i.id));
+    this.mem = [...fresh, ...current.map((c) => byId.get(c.id) ?? c)];
+    writeJson(this.key, this.mem);
+  }
+  async remove(ids: string[]) {
+    this.mem = (await this.list()).filter((i) => !ids.includes(i.id));
+    writeJson(this.key, this.mem);
+  }
+  reset() {
+    this.mem = null;
+    try {
+      localStorage.removeItem(this.key);
+    } catch {
+      // Storage unavailable; the in-memory copy is already cleared.
+    }
+  }
+}
 const SETTINGS_KEY = "reship.settings.v1";
 
 function readJson<T>(key: string): T | null {
@@ -63,38 +109,42 @@ function writeJson(key: string, value: unknown) {
 export class LocalStore implements Store {
   private memOrders: Order[] | null = null;
   private memSettings: Settings | null = null;
-  private memInventory: InventoryItem[] | null = null;
+  private inventory = new LocalList<InventoryItem>(INVENTORY_KEY, () => SAMPLE_INVENTORY);
+  private expenses = new LocalList<Expense>(EXPENSES_KEY, () => SAMPLE_EXPENSES);
 
   async listOrders() {
     if (!this.memOrders) this.memOrders = readJson<Order[]>(ORDERS_KEY) ?? [...SAMPLE_ORDERS, ...SAMPLE_HISTORY_ORDERS];
     return this.memOrders;
   }
 
-  async listInventory() {
-    if (!this.memInventory) this.memInventory = readJson<InventoryItem[]>(INVENTORY_KEY) ?? SAMPLE_INVENTORY;
-    return this.memInventory;
-  }
+  listInventory = () => this.inventory.list();
+  saveInventory = (items: InventoryItem[]) => this.inventory.save(items);
+  deleteInventory = (ids: string[]) => this.inventory.remove(ids);
+  listExpenses = () => this.expenses.list();
+  saveExpenses = (items: Expense[]) => this.expenses.save(items);
+  deleteExpenses = (ids: string[]) => this.expenses.remove(ids);
 
-  async saveInventory(items: InventoryItem[]) {
-    const current = await this.listInventory();
-    const byId = new Map(items.map((i) => [i.id, i]));
-    const fresh = items.filter((i) => !current.some((c) => c.id === i.id));
-    this.memInventory = [...fresh, ...current.map((c) => byId.get(c.id) ?? c)];
-    writeJson(INVENTORY_KEY, this.memInventory);
-  }
-
-  async deleteInventory(ids: string[]) {
-    this.memInventory = (await this.listInventory()).filter((i) => !ids.includes(i.id));
-    writeJson(INVENTORY_KEY, this.memInventory);
-  }
+  // In demo mode you're the owner, so both sides of feedback show. Summaries need the backend.
+  private feedback = new LocalList<Feedback>(FEEDBACK_KEY, () => SAMPLE_FEEDBACK);
+  sendFeedback = (f: Omit<Feedback, "id" | "status" | "createdAt">) =>
+    this.feedback.save([{ ...f, id: crypto.randomUUID(), status: "new", createdAt: new Date().toISOString(), mine: true }]);
+  listFeedback = async () => [...(await this.feedback.list())].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  isFeedbackAdmin = async () => true;
+  setFeedbackStatus = async (id: string, status: FeedbackStatus) => {
+    const item = (await this.feedback.list()).find((f) => f.id === id);
+    if (item) await this.feedback.save([{ ...item, status }]);
+  };
+  listFeedbackSummaries = async () => [SAMPLE_SUMMARY];
+  summarizeFeedback = async () => "AI summaries run on your Supabase backend. In demo mode you see an example summary.";
 
   // Puts the demo back to its sample orders, all of them as they started.
   reset() {
     this.memOrders = null;
-    this.memInventory = null;
+    this.inventory.reset();
+    this.expenses.reset();
+    this.feedback.reset();
     try {
       localStorage.removeItem(ORDERS_KEY);
-      localStorage.removeItem(INVENTORY_KEY);
     } catch {
       // Storage unavailable; the in-memory copy is already cleared.
     }
@@ -220,8 +270,9 @@ interface InventoryRow {
   listed_at: string | null;
   sold_at: string | null;
   status: InventoryItem["status"];
-  platforms: InventoryItem["platforms"] | null;
+  listings: InventoryItem["listings"] | null;
   photo: string | null;
+  details: Partial<InventoryItem> | null;
 }
 
 const inventoryToRow = (i: InventoryItem, userId: string) => ({
@@ -239,8 +290,20 @@ const inventoryToRow = (i: InventoryItem, userId: string) => ({
   listed_at: i.listedAt ?? null,
   sold_at: i.soldAt ?? null,
   status: i.status,
-  platforms: i.platforms,
+  listings: i.listings,
   photo: i.photo ?? null,
+  // Fields that don't need their own column for filtering live together here.
+  details: {
+    description: i.description,
+    color: i.color,
+    condition: i.condition,
+    quantity: i.quantity,
+    labels: i.labels,
+    notes: i.notes,
+    photos: i.photos,
+    readyToList: i.readyToList,
+    soldOrders: i.soldOrders,
+  },
 });
 
 const inventoryFromRow = (r: InventoryRow): InventoryItem => ({
@@ -257,8 +320,9 @@ const inventoryFromRow = (r: InventoryRow): InventoryItem => ({
   listedAt: r.listed_at ?? undefined,
   soldAt: r.sold_at ?? undefined,
   status: r.status,
-  platforms: r.platforms ?? [],
+  listings: r.listings ?? [],
   photo: r.photo ?? undefined,
+  ...(r.details ?? {}),
 });
 
 export class SupabaseStore implements Store {
@@ -342,4 +406,86 @@ export class SupabaseStore implements Store {
     const { error } = await this.db.from("inventory_items").delete().in("id", ids);
     if (error) throw error;
   }
+
+  async listExpenses() {
+    const { data, error } = await this.db.from("expenses").select("*").order("expense_date", { ascending: false });
+    if (error) return [];
+    return (data as { id: string; expense_date: string; category: string; amount: number; note: string | null; miles: number | null }[]).map(
+      (r): Expense => ({ id: r.id, date: r.expense_date, category: r.category, amount: Number(r.amount), note: r.note ?? undefined, miles: r.miles ?? undefined }),
+    );
+  }
+
+  async saveExpenses(items: Expense[]) {
+    if (!items.length) return;
+    const { error } = await this.db.from("expenses").upsert(
+      items.map((e) => ({ id: e.id, user_id: this.userId, expense_date: e.date, category: e.category, amount: e.amount, note: e.note ?? null, miles: e.miles ?? null })),
+    );
+    if (error) throw error;
+  }
+
+  async deleteExpenses(ids: string[]) {
+    const { error } = await this.db.from("expenses").delete().in("id", ids);
+    if (error) throw error;
+  }
+
+  async sendFeedback(f: Omit<Feedback, "id" | "status" | "createdAt">) {
+    const { error } = await this.db.from("feedback").insert({ user_id: this.userId, kind: f.kind, area: f.area, message: f.message, rating: f.rating ?? null, page: f.page ?? null });
+    if (error) throw error;
+  }
+
+  // Row-level security returns only your own feedback, or everyone's for an admin.
+  async listFeedback() {
+    const { data, error } = await this.db.from("feedback").select("*").order("created_at", { ascending: false }).limit(500);
+    if (error) return [];
+    return (data as FeedbackRow[]).map(
+      (r): Feedback => ({ id: r.id, kind: r.kind, area: r.area, message: r.message, rating: r.rating ?? undefined, page: r.page ?? undefined, status: r.status, createdAt: r.created_at, mine: r.user_id === this.userId }),
+    );
+  }
+
+  async isFeedbackAdmin() {
+    const { data, error } = await this.db.from("app_admins").select("user_id").eq("user_id", this.userId).maybeSingle();
+    return !error && !!data;
+  }
+
+  async setFeedbackStatus(id: string, status: FeedbackStatus) {
+    const { error } = await this.db.from("feedback").update({ status }).eq("id", id);
+    if (error) throw error;
+  }
+
+  async listFeedbackSummaries() {
+    const { data, error } = await this.db.from("feedback_summaries").select("*").order("created_at", { ascending: false }).limit(50);
+    if (error) return [];
+    return (data as SummaryRow[]).map(
+      (r): FeedbackSummary => ({ id: r.id, periodStart: r.period_start, periodEnd: r.period_end, count: r.feedback_count, summary: r.summary, emailedTo: r.emailed_to ?? undefined, createdAt: r.created_at }),
+    );
+  }
+
+  async summarizeFeedback() {
+    const { data, error } = await this.db.functions.invoke("feedback-digest", { method: "POST" });
+    if (error) throw new Error(`Couldn't run the summary: ${error.message}`);
+    if (data?.skipped) return data.reason as string;
+    return `Summarized ${data.count} messages${data.emailed ? " and emailed you" : ""}.`;
+  }
+}
+
+interface FeedbackRow {
+  id: string;
+  user_id: string | null;
+  kind: Feedback["kind"];
+  area: string;
+  message: string;
+  rating: number | null;
+  page: string | null;
+  status: FeedbackStatus;
+  created_at: string;
+}
+
+interface SummaryRow {
+  id: string;
+  period_start: string;
+  period_end: string;
+  feedback_count: number;
+  summary: FeedbackSummary["summary"];
+  emailed_to: string | null;
+  created_at: string;
 }

@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import Papa from "papaparse";
-import { AlertTriangle, Download, Lightbulb, Sparkles, Target, TrendingUp, X } from "lucide-react";
-import type { InventoryItem, Order, Platform, Settings } from "@/lib/types";
+import { AlertTriangle, Download, Lightbulb, Plus, Sparkles, Trash2, TrendingUp, X } from "lucide-react";
+import type { Expense, InventoryItem, Order, Platform, Settings } from "@/lib/types";
+import { EXPENSE_CATEGORIES } from "@/lib/types";
 import {
   RANGE_PRESETS,
   type DateRange,
@@ -15,7 +16,6 @@ import {
   byWeekday,
   change,
   daysBetween,
-  goalPace,
   insights,
   isoDay,
   linesIn,
@@ -27,20 +27,31 @@ import {
   shortDate,
   soldDates,
 } from "@/lib/analytics";
-import { PlatformIcon, inputClass } from "../ui";
+import { listedOn } from "@/lib/inventory";
+import { PlatformIcon, inputClass, primaryButton } from "../ui";
+import { PageHeader } from "../shell/PageHeader";
+import { PlatformFilter } from "../shell/PlatformFilter";
 import { CHART, ColumnChart, InlineBar, Legend, TrendChart, Waterfall, fmtCompactMoney, fmtMoney, fmtPct } from "./charts";
 import { Card, Kpi, Pills, SalesTable, SortTable } from "./parts";
 
-export type AnalyticsPage = InsightPage | "reports";
-const PAGES: { key: AnalyticsPage; label: string }[] = [
+export type AnalyticsTab = "insights" | "orders" | "expenses" | "pnl";
+const TABS: { key: AnalyticsTab; label: string }[] = [
+  { key: "insights", label: "Insights" },
+  { key: "orders", label: "Orders" },
+  { key: "expenses", label: "Expenses" },
+  { key: "pnl", label: "Profit & Loss" },
+];
+type InsightSub = Exclude<InsightPage, "profit">;
+const INSIGHT_PAGES: { key: InsightSub; label: string }[] = [
   { key: "overview", label: "Overview" },
-  { key: "profit", label: "Profit" },
   { key: "marketplaces", label: "Marketplaces" },
   { key: "brands", label: "Brands & categories" },
   { key: "inventory", label: "Inventory health" },
   { key: "sourcing", label: "Sourcing" },
-  { key: "reports", label: "Reports" },
 ];
+
+// Miles are deducted at the IRS standard rate for business driving.
+export const MILEAGE_RATE = 0.7;
 
 interface Ctx {
   today: string;
@@ -51,32 +62,44 @@ interface Ctx {
   inventory: InventoryItem[];
   activeNow: InventoryItem[];
   sold: Map<string, string>;
+  expenses: Expense[];
+  allExpenses: Expense[];
   settings: Settings;
   onOpenOrder: (o: Order) => void;
-  go: (page: AnalyticsPage, brand?: string) => void;
+  go: (page: InsightPage, brand?: string) => void;
   saveSettings: (s: Settings) => void;
   saveInventory: (items: InventoryItem[]) => void;
+  saveExpenses: (items: Expense[]) => void;
+  deleteExpenses: (ids: string[]) => void;
 }
 
 export function AnalyticsView({
   orders,
   inventory,
+  expenses,
   settings,
-  platforms,
   onOpenOrder,
   saveSettings,
   saveInventory,
+  saveExpenses,
+  deleteExpenses,
+  initialTab,
 }: {
   orders: Order[];
   inventory: InventoryItem[];
+  expenses: Expense[];
   settings: Settings;
-  platforms: Set<Platform>;
   onOpenOrder: (o: Order) => void;
   saveSettings: (s: Settings) => void;
   saveInventory: (items: InventoryItem[]) => void;
+  saveExpenses: (items: Expense[]) => void;
+  deleteExpenses: (ids: string[]) => void;
+  initialTab?: string | null;
 }) {
-  const [page, setPage] = useState<AnalyticsPage>("overview");
+  const [tab, setTab] = useState<AnalyticsTab>(TABS.some((t) => t.key === initialTab) ? (initialTab as AnalyticsTab) : "insights");
+  const [page, setPage] = useState<InsightSub>("overview");
   const [preset, setPreset] = useState<RangePreset>("30d");
+  const [platforms, setPlatforms] = useState<Set<Platform>>(new Set());
   const [brand, setBrand] = useState<string | null>(null);
   const [category, setCategory] = useState<string | null>(null);
   const today = isoDay(new Date());
@@ -84,12 +107,12 @@ export function AnalyticsView({
   const everyLine = useMemo(() => saleLines(orders, inventory), [orders, inventory]);
   const sold = useMemo(() => soldDates(inventory, orders), [inventory, orders]);
 
-  // The sidebar's marketplace filter, and a brand or category picked on a page, narrow every page.
+  // The marketplace filter, and a brand or category picked on a page, narrow every page.
   const ctx: Ctx = useMemo(() => {
     const keepLine = (l: SaleLine) =>
       (platforms.size === 0 || platforms.has(l.platform)) && (!brand || l.brand === brand) && (!category || l.category === category);
     const keepItem = (i: InventoryItem) =>
-      (platforms.size === 0 || i.platforms.some((p) => platforms.has(p))) && (!brand || i.brand === brand) && (!category || i.category === category);
+      (platforms.size === 0 || listedOn(i).some((p) => platforms.has(p))) && (!brand || i.brand === brand) && (!category || i.category === category);
     const allLines = everyLine.filter(keepLine);
     const earliest = allLines.reduce((m, l) => (l.date < m ? l.date : m), today);
     const range = presetRange(preset, today, earliest);
@@ -103,59 +126,91 @@ export function AnalyticsView({
       inventory: inv,
       activeNow: activeOn(inv, sold, today),
       sold,
+      expenses: expenses.filter((e) => e.date >= range.start && e.date <= range.end),
+      allExpenses: expenses,
       settings,
       onOpenOrder,
       go: (p, b) => {
-        setPage(p);
+        if (p === "profit") setTab("pnl");
+        else {
+          setTab("insights");
+          setPage(p);
+        }
         if (b !== undefined) setBrand(b);
       },
       saveSettings,
       saveInventory,
+      saveExpenses,
+      deleteExpenses,
     };
-  }, [everyLine, inventory, sold, platforms, brand, category, preset, today, settings, onOpenOrder, saveSettings, saveInventory]);
+  }, [everyLine, inventory, sold, expenses, platforms, brand, category, preset, today, settings, onOpenOrder, saveSettings, saveInventory, saveExpenses, deleteExpenses]);
 
+  const showRange = !(tab === "insights" && page === "inventory");
   return (
-    <div className="px-4 md:px-8 py-4 space-y-4">
-      <div className="flex items-center gap-2 flex-wrap justify-between">
-        <div className="overflow-x-auto max-w-full">
-          <Pills value={page} options={PAGES} onChange={setPage} />
+    <div>
+      <PageHeader title="Analytics" subtitle="Sales, profit and what to do next, across every marketplace">
+        <PlatformFilter
+          orders={orders}
+          active={platforms}
+          onToggle={(p) => {
+            const next = new Set(platforms);
+            if (next.has(p)) next.delete(p);
+            else next.add(p);
+            setPlatforms(next);
+          }}
+          onClear={() => setPlatforms(new Set())}
+        />
+      </PageHeader>
+      <div className="px-4 md:px-8 border-b border-border flex gap-5 overflow-x-auto">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setTab(t.key)}
+            aria-current={tab === t.key ? "page" : undefined}
+            className={`py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px ${tab === t.key ? "border-[#B5607A] text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="px-4 md:px-8 py-4 space-y-4">
+        <div className="flex items-center gap-2 flex-wrap justify-between">
+          <div className="overflow-x-auto max-w-full">{tab === "insights" && <Pills value={page} options={INSIGHT_PAGES} onChange={setPage} />}</div>
+          {showRange && (
+            <div className="overflow-x-auto max-w-full">
+              <Pills value={preset} options={RANGE_PRESETS} onChange={setPreset} />
+            </div>
+          )}
         </div>
-        {page !== "inventory" && (
-          <div className="overflow-x-auto max-w-full">
-            <Pills value={preset} options={RANGE_PRESETS} onChange={setPreset} />
+        {(brand || category) && (
+          <div className="flex items-center gap-2 flex-wrap text-xs">
+            <span className="text-muted-foreground">Showing only</span>
+            {brand && (
+              <button type="button" onClick={() => setBrand(null)} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-[#B5607A] border border-[#B5607A]/30">
+                Brand: {brand} <X className="w-3 h-3" />
+              </button>
+            )}
+            {category && (
+              <button type="button" onClick={() => setCategory(null)} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-[#B5607A] border border-[#B5607A]/30">
+                Category: {category} <X className="w-3 h-3" />
+              </button>
+            )}
           </div>
         )}
+        {tab === "insights" && page === "overview" && <Overview ctx={ctx} preset={preset} />}
+        {tab === "insights" && page === "marketplaces" && <MarketplacesPage ctx={ctx} />}
+        {tab === "insights" && page === "brands" && <BrandsPage ctx={ctx} brand={brand} category={category} setBrand={setBrand} setCategory={setCategory} />}
+        {tab === "insights" && page === "inventory" && <InventoryPage ctx={ctx} />}
+        {tab === "insights" && page === "sourcing" && <SourcingPage ctx={ctx} />}
+        {tab === "orders" && <OrdersReport ctx={ctx} />}
+        {tab === "expenses" && <ExpensesPage ctx={ctx} />}
+        {tab === "pnl" && <ProfitAndLoss ctx={ctx} />}
       </div>
-      {(brand || category || platforms.size > 0) && (
-        <div className="flex items-center gap-2 flex-wrap text-xs">
-          <span className="text-muted-foreground">Showing only</span>
-          {[...platforms].map((p) => (
-            <span key={p} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted">
-              <PlatformIcon platform={p} /> {p}
-            </span>
-          ))}
-          {brand && (
-            <button type="button" onClick={() => setBrand(null)} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-[#B5607A] border border-[#B5607A]/30">
-              Brand: {brand} <X className="w-3 h-3" />
-            </button>
-          )}
-          {category && (
-            <button type="button" onClick={() => setCategory(null)} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-[#B5607A] border border-[#B5607A]/30">
-              Category: {category} <X className="w-3 h-3" />
-            </button>
-          )}
-        </div>
-      )}
-      {page === "overview" && <Overview ctx={ctx} preset={preset} />}
-      {page === "profit" && <ProfitPage ctx={ctx} />}
-      {page === "marketplaces" && <MarketplacesPage ctx={ctx} />}
-      {page === "brands" && <BrandsPage ctx={ctx} brand={brand} category={category} setBrand={setBrand} setCategory={setCategory} />}
-      {page === "inventory" && <InventoryPage ctx={ctx} />}
-      {page === "sourcing" && <SourcingPage ctx={ctx} />}
-      {page === "reports" && <ReportsPage ctx={ctx} />}
     </div>
   );
 }
+
 
 const rangeText = (r: DateRange) => `${shortDate(r.start)} – ${shortDate(r.end)}`;
 
@@ -220,7 +275,7 @@ function Overview({ ctx, preset }: { ctx: Ctx; preset: RangePreset }) {
         </Card>
 
         <div className="space-y-4">
-          <GoalCard ctx={ctx} />
+
           <Card title="What to do next" subtitle="Worked out from your sales and listings">
             {tips.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nothing stands out yet. Tips show up as you sell more.</p>
@@ -269,71 +324,29 @@ function InsightRow({ tip, onGo }: { tip: Insight; onGo: () => void }) {
     </li>
   );
 }
+// --- Profit & Loss ------------------------------------------------------------------------------
 
-function GoalCard({ ctx }: { ctx: Ctx }) {
-  const goal = ctx.settings.monthlyProfitGoal;
-  const [draft, setDraft] = useState(goal ? String(goal) : "");
-  const [editing, setEditing] = useState(!goal);
-  const save = () => {
-    const n = Math.max(0, Math.round(parseFloat(draft) || 0));
-    ctx.saveSettings({ ...ctx.settings, monthlyProfitGoal: n });
-    setEditing(!n);
-  };
-  if (editing || !goal)
-    return (
-      <Card title="Monthly profit goal" subtitle="See every day whether you're on pace">
-        <form
-          className="flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            save();
-          }}
-        >
-          <input className={inputClass} inputMode="decimal" placeholder="e.g. 1500" value={draft} onChange={(e) => setDraft(e.target.value)} aria-label="Monthly profit goal in dollars" />
-          <button type="submit" className="px-3 py-1.5 rounded-md bg-[#B5607A] text-white text-xs font-medium shrink-0">
-            Set goal
-          </button>
-        </form>
-      </Card>
-    );
-  const pace = goalPace(ctx.allLines, ctx.today, goal);
-  const done = Math.min(1, pace.soFar / goal);
-  const expected = pace.dayOfMonth / pace.daysInMonth;
-  return (
-    <Card
-      title="Monthly profit goal"
-      subtitle={`${fmtMoney(pace.soFar)} of ${fmtMoney(goal)} so far this month`}
-      right={
-        <button type="button" onClick={() => setEditing(true)} className="text-xs text-muted-foreground hover:text-foreground">
-          Change
-        </button>
-      }
-    >
-      <div className="relative h-2.5 rounded-full bg-muted overflow-hidden">
-        <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${done * 100}%`, background: CHART.profit }} />
-      </div>
-      <div className="relative h-3">
-        <div className="absolute top-0 w-px h-3 bg-foreground/40" style={{ left: `${expected * 100}%` }} title="Where you'd be at an even pace" />
-      </div>
-      <p className={`text-xs flex items-center gap-1.5 ${pace.onTrack ? "text-emerald-700" : "text-amber-700"}`}>
-        <Target className="w-3.5 h-3.5" />
-        {pace.onTrack
-          ? `On pace for ${fmtMoney(pace.projected)} this month.`
-          : `On pace for ${fmtMoney(pace.projected)}. ${fmtMoney((goal - pace.soFar) / Math.max(1, pace.daysInMonth - pace.dayOfMonth))} a day from here gets you there.`}
-      </p>
-    </Card>
-  );
-}
+const sumExpenses = (list: Expense[]) => list.reduce((a, e) => a + e.amount, 0);
 
-// --- Profit -------------------------------------------------------------------------------------
-
-function ProfitPage({ ctx }: { ctx: Ctx }) {
+function ProfitAndLoss({ ctx }: { ctx: Ctx }) {
   const { lines, range } = ctx;
   const m = metrics(lines, null);
-  const byMonth = series(lines, range);
+  const spent = sumExpenses(ctx.expenses);
+  const net = m.profit - spent;
+  const byMonth = series(lines, range, "month").map((p) => {
+    const mm = metrics(lines.filter((l) => l.date >= p.start && l.date <= p.end), null);
+    const ex = sumExpenses(ctx.expenses.filter((e) => e.date >= p.start && e.date <= p.end));
+    return { ...p, m: mm, expenses: ex, net: mm.profit - ex };
+  });
   const sortedByProfit = [...lines].sort((a, b) => b.profit - a.profit);
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Kpi label="Gross sales" value={fmtMoney(m.revenue)} hint={`${m.units} items sold`} />
+        <Kpi label="Gross profit" value={fmtMoney(m.profit)} hint="after fees, shipping, cost" />
+        <Kpi label="Expenses" value={fmtMoney(spent)} hint={`${ctx.expenses.length} logged`} />
+        <Kpi label="Net profit" value={fmtMoney(net)} hint={m.revenue > 0 ? `${fmtPct(net / m.revenue)} of sales` : undefined} />
+      </div>
       <div className="grid lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2" title="Where the money went" subtitle={`From gross sales to what you keep, ${rangeText(range)}. Hover a bar for its share.`}>
           <Waterfall
@@ -342,7 +355,8 @@ function ProfitPage({ ctx }: { ctx: Ctx }) {
               { label: "Fees", value: m.fees },
               { label: "Shipping", value: m.shipping },
               { label: "Item cost", value: m.cogs },
-              { label: "Profit", value: m.profit, total: true },
+              { label: "Expenses", value: spent },
+              { label: "Net profit", value: net, total: true },
             ]}
           />
         </Card>
@@ -372,11 +386,24 @@ function ProfitPage({ ctx }: { ctx: Ctx }) {
           )}
         </Card>
       </div>
-      <Card title="Profit over time" subtitle={rangeText(range)}>
-        <TrendChart
-          labels={byMonth.map((p) => p.label)}
-          series={[{ name: "Profit", color: CHART.profit, values: byMonth.map((p) => p.profit), wash: true }]}
+      <Card title="Monthly statement" subtitle="Each month's sales, costs and expenses, ready for taxes">
+        <SortTable
+          rows={byMonth}
+          rowKey={(r) => r.start}
+          initialSort={{ key: "month", desc: true }}
+          columns={[
+            { key: "month", label: "Month", render: (r) => r.start.slice(0, 7), sort: (r) => r.start },
+            { key: "sales", label: "Sales", align: "right", render: (r) => fmtMoney(r.m.revenue), sort: (r) => r.m.revenue },
+            { key: "fees", label: "Fees", align: "right", className: "hidden sm:table-cell", render: (r) => fmtMoney(r.m.fees), sort: (r) => r.m.fees },
+            { key: "ship", label: "Shipping", align: "right", className: "hidden sm:table-cell", render: (r) => fmtMoney(r.m.shipping), sort: (r) => r.m.shipping },
+            { key: "cogs", label: "Item cost", align: "right", className: "hidden md:table-cell", render: (r) => fmtMoney(r.m.cogs), sort: (r) => r.m.cogs },
+            { key: "exp", label: "Expenses", align: "right", render: (r) => fmtMoney(r.expenses), sort: (r) => r.expenses },
+            { key: "net", label: "Net", align: "right", render: (r) => <span className={r.net < 0 ? "text-rose-700" : ""}>{fmtMoney(r.net)}</span>, sort: (r) => r.net },
+          ]}
         />
+      </Card>
+      <Card title="Net profit over time" subtitle={rangeText(range)}>
+        <TrendChart labels={byMonth.map((p) => p.label)} series={[{ name: "Net profit", color: CHART.profit, values: byMonth.map((p) => p.net), wash: true }]} />
       </Card>
       <div className="grid lg:grid-cols-2 gap-4">
         <Card title="Most profitable sales">
@@ -386,14 +413,16 @@ function ProfitPage({ ctx }: { ctx: Ctx }) {
           <SalesTable lines={sortedByProfit.slice(-10).reverse()} onOpenOrder={ctx.onOpenOrder} />
         </Card>
       </div>
+      <Exports ctx={ctx} />
     </div>
   );
 }
 
+
 // --- Marketplaces -------------------------------------------------------------------------------
 
 function MarketplacesPage({ ctx }: { ctx: Ctx }) {
-  const rows = breakdown(ctx.lines, (l) => l.platform, { items: ctx.activeNow, keyOf: (i) => i.platforms }).filter((r) => r.units > 0 || r.active > 0);
+  const rows = breakdown(ctx.lines, (l) => l.platform, { items: ctx.activeNow, keyOf: (i) => listedOn(i) }).filter((r) => r.units > 0 || r.active > 0);
   const maxProfit = Math.max(1, ...rows.map((r) => r.profit));
   const keeps = rows
     .filter((r) => r.revenue > 0)
@@ -719,7 +748,148 @@ function SourcingPage({ ctx }: { ctx: Ctx }) {
   );
 }
 
-// --- Reports ------------------------------------------------------------------------------------
+// --- Orders report ------------------------------------------------------------------------------
+
+function OrdersReport({ ctx }: { ctx: Ctx }) {
+  const { lines, range } = ctx;
+  const where = (l: SaleLine) => l.order.shipTo?.state || "Unknown";
+  const states = breakdown(lines, where).sort((a, b) => b.revenue - a.revenue);
+  const countries = new Set(lines.map((l) => l.order.shipTo?.country).filter(Boolean));
+  const max = Math.max(1, ...states.map((s) => s.revenue));
+  return (
+    <div className="space-y-4">
+      <Card title="Every sale" subtitle={`${lines.length} items sold, ${rangeText(range)}. Click a row to open the order.`}>
+        <SortTable
+          rows={lines}
+          rowKey={(l) => `${l.order.id}-${l.name}`}
+          initialSort={{ key: "date", desc: true }}
+          onRow={(l) => ctx.onOpenOrder(l.order)}
+          limit={25}
+          columns={[
+            { key: "date", label: "Date", render: (l) => shortDate(l.date), sort: (l) => l.date },
+            { key: "item", label: "Item", render: (l) => <span className="flex items-center gap-1.5 min-w-0"><PlatformIcon platform={l.platform} /> <span className="truncate max-w-56">{l.name}</span></span>, sort: (l) => l.name },
+            { key: "buyer", label: "Buyer", className: "hidden md:table-cell", render: (l) => l.order.buyer, sort: (l) => l.order.buyer },
+            { key: "state", label: "Ships to", className: "hidden sm:table-cell", render: (l) => [l.order.shipTo?.state, l.order.shipTo?.country].filter(Boolean).join(", ") || "–", sort: (l) => where(l) },
+            { key: "price", label: "Price", align: "right", render: (l) => fmtMoney(l.price, true), sort: (l) => l.price },
+            { key: "profit", label: "Profit", align: "right", render: (l) => fmtMoney(l.profit, true), sort: (l) => l.profit },
+          ]}
+        />
+      </Card>
+      <Card title="Where buyers are" subtitle={countries.size > 1 ? `Buyers in ${countries.size} countries` : "Sales by the state they ship to"}>
+        <SortTable
+          rows={states}
+          rowKey={(r) => r.key}
+          initialSort={{ key: "sales", desc: true }}
+          limit={10}
+          columns={[
+            { key: "state", label: "State", render: (r) => r.key, sort: (r) => r.key },
+            { key: "bar", label: "", className: "w-1/3 hidden sm:table-cell", render: (r) => <InlineBar value={r.revenue} max={max} color={CHART.revenue} /> },
+            { key: "units", label: "Sold", align: "right", render: (r) => r.units, sort: (r) => r.units },
+            { key: "sales", label: "Sales", align: "right", render: (r) => fmtMoney(r.revenue), sort: (r) => r.revenue },
+          ]}
+        />
+      </Card>
+    </div>
+  );
+}
+
+// --- Expenses -----------------------------------------------------------------------------------
+
+function ExpensesPage({ ctx }: { ctx: Ctx }) {
+  const [date, setDate] = useState(ctx.today);
+  const [category, setCategory] = useState(EXPENSE_CATEGORIES[1]);
+  const [amount, setAmount] = useState("");
+  const [miles, setMiles] = useState("");
+  const [note, setNote] = useState("");
+  const mileage = category === "Mileage";
+  const total = sumExpenses(ctx.expenses);
+  const cats = EXPENSE_CATEGORIES.map((c) => ({ c, v: sumExpenses(ctx.expenses.filter((e) => e.category === c)) })).filter((r) => r.v > 0).sort((a, b) => b.v - a.v);
+  const max = Math.max(1, ...cats.map((c) => c.v));
+  const add = () => {
+    const m = parseFloat(miles) || 0;
+    const value = mileage ? Math.round(m * MILEAGE_RATE * 100) / 100 : parseFloat(amount) || 0;
+    if (value <= 0) return;
+    ctx.saveExpenses([{ id: crypto.randomUUID(), date, category, amount: value, note: note.trim() || undefined, miles: mileage ? m : undefined }]);
+    setAmount("");
+    setMiles("");
+    setNote("");
+  };
+  return (
+    <div className="space-y-4">
+      <div className="grid lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2" title="Add an expense" subtitle="Supplies, subscriptions, mileage and other costs that aren't tied to one item">
+          <form
+            className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-end"
+            onSubmit={(e) => {
+              e.preventDefault();
+              add();
+            }}
+          >
+            <input type="date" aria-label="Date" className={inputClass} value={date} onChange={(e) => setDate(e.target.value)} />
+            <select aria-label="Category" className={inputClass} value={category} onChange={(e) => setCategory(e.target.value)}>
+              {EXPENSE_CATEGORIES.map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+            {mileage ? (
+              <input aria-label="Miles driven" className={inputClass} inputMode="decimal" placeholder="Miles" value={miles} onChange={(e) => setMiles(e.target.value)} />
+            ) : (
+              <input aria-label="Amount in dollars" className={inputClass} inputMode="decimal" placeholder="Amount ($)" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            )}
+            <input aria-label="Note" className={inputClass} placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
+            <button type="submit" className={`${primaryButton} flex items-center justify-center gap-1.5`}>
+              <Plus className="w-3.5 h-3.5" /> Add
+            </button>
+          </form>
+          {mileage && <p className="text-[11px] text-muted-foreground mt-2">Mileage counts at ${MILEAGE_RATE.toFixed(2)} a mile, the IRS standard rate.</p>}
+        </Card>
+        <Card title="By category" subtitle={`${fmtMoney(total)} total, ${rangeText(ctx.range)}`}>
+          {cats.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No expenses in this period.</p>
+          ) : (
+            <ul className="space-y-2.5">
+              {cats.map((r) => (
+                <li key={r.c} className="text-xs">
+                  <div className="flex justify-between mb-1">
+                    <span>{r.c}</span>
+                    <span className="tabular-nums font-medium">{fmtMoney(r.v)}</span>
+                  </div>
+                  <InlineBar value={r.v} max={max} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+      <Card title="Expense log" subtitle={`${ctx.expenses.length} expenses, ${rangeText(ctx.range)}`}>
+        <SortTable
+          rows={ctx.expenses}
+          rowKey={(e) => e.id}
+          initialSort={{ key: "date", desc: true }}
+          limit={25}
+          columns={[
+            { key: "date", label: "Date", render: (e) => shortDate(e.date), sort: (e) => e.date },
+            { key: "cat", label: "Category", render: (e) => e.category, sort: (e) => e.category },
+            { key: "note", label: "Note", className: "hidden sm:table-cell", render: (e) => <span className="text-muted-foreground">{e.miles ? `${e.miles} mi${e.note ? ` · ${e.note}` : ""}` : (e.note ?? "")}</span> },
+            { key: "amount", label: "Amount", align: "right", render: (e) => fmtMoney(e.amount, true), sort: (e) => e.amount },
+            {
+              key: "del",
+              label: "",
+              align: "right",
+              render: (e) => (
+                <button type="button" aria-label={`Delete ${e.category} expense`} onClick={() => ctx.deleteExpenses([e.id])} className="p-1 text-muted-foreground hover:text-rose-700">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              ),
+            },
+          ]}
+        />
+      </Card>
+    </div>
+  );
+}
+
+// --- Exports ------------------------------------------------------------------------------------
 
 function download(name: string, rows: Record<string, unknown>[]) {
   const url = URL.createObjectURL(new Blob([Papa.unparse(rows)], { type: "text/csv" }));
@@ -732,13 +902,13 @@ function download(name: string, rows: Record<string, unknown>[]) {
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-function ReportsPage({ ctx }: { ctx: Ctx }) {
+function Exports({ ctx }: { ctx: Ctx }) {
   const { lines, range } = ctx;
   const tag = `${range.start}_to_${range.end}`;
   const reports = [
     {
       title: "Sales",
-      text: "Every item sold, with price, fees, shipping, cost and profit. Opens in Excel or Google Sheets.",
+      text: "Every item sold, with price, fees, shipping, cost and profit.",
       run: () =>
         download(
           `reship-sales-${tag}.csv`,
@@ -750,6 +920,9 @@ function ReportsPage({ ctx }: { ctx: Ctx }) {
             SKU: l.sku ?? "",
             Brand: l.brand,
             Category: l.category,
+            Buyer: l.order.buyer,
+            State: l.order.shipTo?.state ?? "",
+            Country: l.order.shipTo?.country ?? "",
             "Sale price": r2(l.price),
             Fees: r2(l.fees),
             "Fees estimated": l.feesEstimated ? "yes" : "no",
@@ -762,12 +935,13 @@ function ReportsPage({ ctx }: { ctx: Ctx }) {
     },
     {
       title: "Profit and loss by month",
-      text: "Gross sales, fees, shipping, cost of goods and profit for each month, for taxes.",
+      text: "Gross sales, fees, shipping, cost of goods, expenses and net profit for each month.",
       run: () =>
         download(
           `reship-profit-and-loss-${tag}.csv`,
           series(lines, range, "month").map((p) => {
             const m = metrics(lines.filter((l) => l.date >= p.start && l.date <= p.end), null);
+            const ex = sumExpenses(ctx.expenses.filter((e) => e.date >= p.start && e.date <= p.end));
             return {
               Month: p.start.slice(0, 7),
               "Items sold": m.units,
@@ -775,14 +949,24 @@ function ReportsPage({ ctx }: { ctx: Ctx }) {
               "Marketplace fees": r2(m.fees),
               "Shipping paid": r2(m.shipping),
               "Cost of goods sold": r2(m.cogs),
-              Profit: r2(m.profit),
+              Expenses: r2(ex),
+              "Net profit": r2(m.profit - ex),
             };
           }),
         ),
     },
     {
-      title: "Inventory on hand",
-      text: "Everything listed or in drafts, with cost, price and days listed. Handy for year-end inventory counts.",
+      title: "Expenses",
+      text: "Every logged expense, with mileage, for your records.",
+      run: () =>
+        download(
+          `reship-expenses-${tag}.csv`,
+          ctx.expenses.map((e) => ({ Date: e.date, Category: e.category, Amount: r2(e.amount), Miles: e.miles ?? "", Note: e.note ?? "" })),
+        ),
+    },
+    {
+      title: "Active inventory",
+      text: "Everything listed or in drafts, with cost, price and days listed. Handy for year-end counts.",
       run: () =>
         download(
           `reship-inventory-${ctx.today}.csv`,
@@ -792,30 +976,34 @@ function ReportsPage({ ctx }: { ctx: Ctx }) {
             Brand: i.brand ?? "",
             Category: i.category ?? "",
             Status: i.status,
+            Quantity: i.quantity ?? 1,
             Source: i.source ?? "",
             "Bought on": i.purchasedAt ?? "",
             "Listed on": i.listedAt ?? "",
             "Days listed": i.listedAt ? daysBetween(i.listedAt, ctx.today) : "",
             Cost: i.cost ?? "",
             "List price": i.listPrice ?? "",
-            Marketplaces: i.platforms.join(", "),
+            Marketplaces: listedOn(i).join(", "),
           })),
         ),
     },
   ];
   return (
-    <div className="grid md:grid-cols-3 gap-4">
-      {reports.map((r) => (
-        <Card key={r.title} title={r.title} subtitle={r.title === "Inventory on hand" ? "As of today" : rangeText(range)}>
-          <p className="text-xs text-muted-foreground mb-3">{r.text}</p>
-          <button type="button" onClick={r.run} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-xs font-medium hover:bg-muted">
-            <Download className="w-3.5 h-3.5" /> Download CSV
-          </button>
-        </Card>
-      ))}
-      <p className="md:col-span-3 text-[11px] text-muted-foreground">
-        Includes sales you added by hand or imported, so in-person and offline sales count too. Totals: {fmtCompactMoney(metrics(lines, null).revenue)} in sales across {lines.length} items.
+    <Card title="Download reports" subtitle="CSV files that open in Excel or Google Sheets">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {reports.map((r) => (
+          <div key={r.title} className="rounded-lg border border-border p-3 flex flex-col">
+            <p className="text-sm font-medium text-foreground">{r.title}</p>
+            <p className="text-xs text-muted-foreground mt-1 mb-3 flex-1">{r.text}</p>
+            <button type="button" onClick={r.run} className="self-start flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-xs font-medium hover:bg-muted">
+              <Download className="w-3.5 h-3.5" /> Download CSV
+            </button>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-[11px] text-muted-foreground">
+        Includes sales you added by hand or imported, so in-person sales count too. {fmtCompactMoney(metrics(lines, null).revenue)} in sales across {lines.length} items in this period.
       </p>
-    </div>
+    </Card>
   );
 }

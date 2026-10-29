@@ -1,25 +1,28 @@
-import { useCallback, useMemo, useState } from "react";
-import { AlertCircle, AlertTriangle, ArrowRight, CheckCircle2, FileUp, LayoutGrid, List, Menu, Plus, Printer, RotateCcw, Search, Truck, X } from "lucide-react";
-import type { Order, OrderItem, Platform, PrintOptions } from "@/lib/types";
+import { useMemo, useState } from "react";
+import { AlertCircle, AlertTriangle, ArrowRight, CheckCircle2, FileUp, LayoutGrid, List, Plus, Printer, RotateCcw, Search, Truck, X } from "lucide-react";
+import type { LabelStatus, Order, OrderItem, Platform, PrintOptions } from "@/lib/types";
 import { isAddressComplete } from "@/lib/types";
 import type { useReshipData } from "@/lib/useReshipData";
 import { buildPrintJob } from "@/lib/printJob";
 import { summarize } from "@/lib/orderStatus";
-import { Sidebar, type View } from "./Sidebar";
 import { PrintModal } from "./PrintModal";
 import { BuyLabelsModal } from "./BuyLabelsModal";
 import { OrderDrawer, blankOrder } from "./OrderDrawer";
 import { ImportCsvModal } from "./ImportCsvModal";
-import { SettingsModal, type SettingsTab } from "./SettingsModal";
 import { OrderList } from "./OrderList";
 import { orderTitle } from "./ui";
 import { WithdrawShortcuts } from "./WithdrawShortcuts";
-import { AnalyticsView } from "./analytics/AnalyticsView";
+import { PageHeader } from "./shell/PageHeader";
+import { PlatformFilter } from "./shell/PlatformFilter";
+import { Pills } from "./analytics/parts";
 
 type Data = ReturnType<typeof useReshipData>;
 
 const RECENT_PRINTED = 5;
-const VIEW_TITLE: Record<View, string> = { home: "Home", pending: "To Print", printed: "Printed", shipped: "Shipped", all: "All orders", analytics: "Analytics" };
+// Overview is the shipping dashboard; the others are lists of orders in one status, or all of them.
+type View = "home" | LabelStatus | "all";
+const VIEWS: View[] = ["home", "pending", "printed", "shipped", "all"];
+const VIEW_TITLE: Record<View, string> = { home: "Overview", pending: "To Print", printed: "Printed", shipped: "Shipped", all: "All orders" };
 const byPrintedAt = (a: Order, b: Order) => (b.printedAt ?? b.date).localeCompare(a.printedAt ?? a.date);
 
 function StatCard({
@@ -44,33 +47,23 @@ function StatCard({
   );
 }
 
-export function Dashboard({
-  data,
-  email,
-  demoMode,
-  onSignOut,
-  onResetDemo,
-}: {
-  data: Data;
-  email: string | null;
-  demoMode: boolean;
-  onSignOut: () => void;
-  onResetDemo?: () => void;
-}) {
-  const { orders, inventory, saveInventory, settings, saveOrders, patchOrders, deleteOrders, saveSettings, attachLabel, removeLabel, loadLabels } = data;
+// The Orders section: shipping overview, label printing and every order by status.
+export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: string | null }) {
+  const { orders, settings, saveOrders, patchOrders, deleteOrders, saveSettings, attachLabel, removeLabel, loadLabels } = data;
 
   const [view, setView] = useState<View>("home");
   const [activePlatforms, setActivePlatforms] = useState<Set<Platform>>(new Set());
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [printOrders, setPrintOrders] = useState<Order[] | null>(null);
   const [printing, setPrinting] = useState(false);
   const [buyFor, setBuyFor] = useState<Order[] | null>(null);
   const [importOpen, setImportOpen] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
-  const [drawer, setDrawer] = useState<{ order: Order; isNew: boolean } | null>(null);
+  const [drawer, setDrawer] = useState<{ order: Order; isNew: boolean } | null>(() => {
+    const o = openOrderId ? data.orders.find((x) => x.id === openOrderId) : null;
+    return o ? { order: o, isNew: false } : null;
+  });
   const [notice, setNotice] = useState<{ text: string; ok: boolean } | null>(null);
 
   const printDefaults: PrintOptions = { skuOnLabel: settings.printSkuOnLabel, packingSlip: settings.printPackingSlip };
@@ -103,14 +96,12 @@ export function Dashboard({
   const selected = listed.filter((o) => selectedIds.has(o.id));
   const selectedPending = selected.filter((o) => o.status === "pending");
   const selectedReprint = selected.filter((o) => o.status !== "pending" && o.label);
-  const sampleCount = orders.filter((o) => o.source === "sample").length;
 
-  const openOrder = useCallback((order: Order) => setDrawer({ order, isNew: false }), []);
+  const countOf = (v: View) => (v === "all" ? orders.length : orders.filter((o) => o.status === v).length);
 
   const goTo = (v: View) => {
     setView(v);
     setSelectedIds(new Set());
-    setSidebarOpen(false);
   };
 
   const updateItemSku = (order: Order, itemIndex: number, sku: string) =>
@@ -225,85 +216,42 @@ export function Dashboard({
     );
 
   return (
-    <div className="h-screen bg-background flex overflow-hidden">
-      <Sidebar
-        orders={orders}
-        activeStatus={view}
-        activePlatforms={activePlatforms}
-        displayName={settings.displayName}
-        subtitle={demoMode ? "Demo mode" : (email ?? "")}
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onStatus={goTo}
-        onTogglePlatform={(p) => setActivePlatforms((prev) => toggleIn(prev, p))}
-        onClearFilters={() => setActivePlatforms(new Set())}
-        onOpenAccount={() => setSettingsTab("account")}
-        onOpenSettings={() => setSettingsTab("settings")}
-      />
-
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {demoMode && (
-          <div className="px-4 md:px-8 py-1.5 bg-amber-50 border-b border-amber-200 text-[11px] text-amber-900 flex items-center gap-3">
-            <span className="flex-1">Demo mode: sample orders, saved in this browser only.</span>
-            {onResetDemo && (
-              <button type="button" onClick={onResetDemo} className="underline hover:no-underline">
-                Reset demo
-              </button>
-            )}
-          </div>
-        )}
-        {(notice || data.error) && (
+    <div className="flex flex-col min-w-0">
+        {notice && (
           <div
-            className={`px-4 md:px-8 py-2 border-b text-xs flex items-center gap-2 ${notice?.ok && !data.error ? "bg-emerald-50 border-emerald-200 text-emerald-900" : "bg-rose-50 border-rose-200 text-rose-900"}`}
+            className={`px-4 md:px-8 py-2 border-b text-xs flex items-center gap-2 ${notice.ok ? "bg-emerald-50 border-emerald-200 text-emerald-900" : "bg-rose-50 border-rose-200 text-rose-900"}`}
           >
             <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-            <span className="flex-1">{data.error ? `Couldn't save: ${data.error}` : notice?.text}</span>
-            <button
-              type="button"
-              aria-label="Dismiss"
-              onClick={() => {
-                setNotice(null);
-                data.clearError();
-              }}
-            >
+            <span className="flex-1">{notice.text}</span>
+            <button type="button" aria-label="Dismiss" onClick={() => setNotice(null)}>
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
         )}
 
-        <div className="px-4 md:px-8 py-4 md:py-5 border-b border-border flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-3">
-            <button type="button" onClick={() => setSidebarOpen(true)} aria-label="Open menu" className="md:hidden p-1.5 -ml-1.5 rounded-md hover:bg-muted">
-              <Menu className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="font-display text-lg font-semibold text-foreground">{VIEW_TITLE[view]}</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">{today}</p>
-            </div>
-          </div>
-          {view !== "analytics" && <div className="flex items-center gap-3 flex-wrap">
+        <PageHeader title="Orders" subtitle={today}>
+          <div className="flex items-center gap-3 flex-wrap">
             {(view === "home" || view === "pending") && allToPrint.length > 0 && selected.length === 0 && (
               <button type="button" onClick={() => setPrintOrders(allToPrint)} className="text-xs text-muted-foreground hover:text-foreground hover:underline">
                 Choose labels & options
               </button>
             )}
             {printButton}
-          </div>}
+          </div>
+        </PageHeader>
+
+        <div className="px-4 md:px-8 pt-4 flex items-center gap-2 flex-wrap justify-between">
+          <div className="overflow-x-auto max-w-full">
+            <Pills
+              value={view}
+              onChange={goTo}
+              options={VIEWS.map((v) => ({ key: v, label: `${VIEW_TITLE[v]}${v === "home" ? "" : ` (${countOf(v)})`}` }))}
+            />
+          </div>
+          <PlatformFilter orders={orders} active={activePlatforms} onToggle={(p) => setActivePlatforms((prev) => toggleIn(prev, p))} onClear={() => setActivePlatforms(new Set())} />
         </div>
 
-        <div className="flex-1 overflow-y-auto">
-          {view === "analytics" ? (
-            <AnalyticsView
-              orders={orders}
-              inventory={inventory}
-              settings={settings}
-              platforms={activePlatforms}
-              onOpenOrder={openOrder}
-              saveSettings={saveSettings}
-              saveInventory={saveInventory}
-            />
-          ) : (
-          <>
+        <div>
           {view === "home" && (
             <section className="px-4 md:px-8 pt-5 space-y-3">
               {summary.late.length > 0 && (
@@ -422,10 +370,7 @@ export function Dashboard({
               </p>
             )}
           </div>
-          </>
-          )}
         </div>
-      </main>
 
       {printOrders && (
         <PrintModal
@@ -495,19 +440,6 @@ export function Dashboard({
         />
       )}
 
-      {settingsTab && (
-        <SettingsModal
-          defaultTab={settingsTab}
-          settings={settings}
-          email={email}
-          demoMode={demoMode}
-          sampleCount={sampleCount}
-          onClose={() => setSettingsTab(null)}
-          onSave={saveSettings}
-          onSignOut={onSignOut}
-          onClearSamples={() => deleteOrders(orders.filter((o) => o.source === "sample").map((o) => o.id))}
-        />
-      )}
     </div>
   );
 }

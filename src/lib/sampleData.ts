@@ -1,4 +1,4 @@
-import type { InventoryItem, Order } from "./types";
+import type { Expense, InventoryItem, Order } from "./types";
 import { sampleHistory } from "./sampleHistory";
 
 // Sample orders from the Reship design, loaded on first run in demo mode so the app isn't empty.
@@ -162,6 +162,7 @@ export const SAMPLE_ORDERS: Order[] = RAW.map((o) => {
 const HISTORY = sampleHistory();
 export const SAMPLE_HISTORY_ORDERS: Order[] = HISTORY.orders;
 export const SAMPLE_INVENTORY: InventoryItem[] = HISTORY.inventory;
+export const SAMPLE_EXPENSES: Expense[] = HISTORY.expenses;
 
 // Made-up ship-to addresses for the sample labels.
 const SAMPLE_ADDRESSES = [

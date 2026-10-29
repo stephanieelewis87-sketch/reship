@@ -1,4 +1,4 @@
-import type { InventoryItem, Order, Platform } from "./types";
+import type { Condition, Expense, InventoryItem, Listing, Order, Platform } from "./types";
 import { addDays, daysBetween, estimateFees, isoDay } from "./analytics";
 
 // A made-up year of sourcing, listing and selling for the demo, so the analytics pages have
@@ -91,7 +91,7 @@ const weighted = <T,>(r: () => number, xs: T[], w: (x: T) => number) => {
 };
 const cents = (n: number) => Math.round(n * 100) / 100;
 
-export function sampleHistory(today = isoDay(new Date())): { inventory: InventoryItem[]; orders: Order[] } {
+export function sampleHistory(today = isoDay(new Date())): { inventory: InventoryItem[]; orders: Order[]; expenses: Expense[] } {
   const r = rng(20261028);
   const inventory: InventoryItem[] = [];
   const orders: Order[] = [];
@@ -120,8 +120,14 @@ export function sampleHistory(today = isoDay(new Date())): { inventory: Inventor
       purchasedAt: addDays(listedAt, -Math.floor(r() * 9)),
       listedAt,
       status: "listed",
-      platforms: line.where.slice(0, 1 + Math.floor(r() * line.where.length)),
+      listings: line.where.slice(0, 1 + Math.floor(r() * line.where.length)).map(
+        (platform): Listing => ({ platform, status: "active", listedAt, price: listPrice }),
+      ),
+      condition: pick(r, CONDITION_MIX),
+      quantity: 1,
+      labels: r() < 0.25 ? [pick(r, ["lbl-bin-a", "lbl-bin-a", "lbl-photos"])] : [],
       photo: PHOTOS[line.category],
+      createdAt: `${listedAt}T12:00:00.000Z`,
     };
     // Days until it sells, spread around the line's average; some never do.
     const days = Math.round(-Math.log(1 - r() * 0.98) * line.days);
@@ -133,6 +139,10 @@ export function sampleHistory(today = isoDay(new Date())): { inventory: Inventor
       const age = daysBetween(soldAt, today);
       item.status = "sold";
       item.soldAt = soldAt;
+      // Sold where it sold; taken down everywhere else, except a few recent ones the auto-delist missed.
+      const missed = age < 3 && r() < 0.3;
+      item.listings = item.listings.map((l) => (l.platform === platform ? { ...l, status: "sold" } : { ...l, status: missed ? "active" : "delisted" }));
+      if (!item.listings.some((l) => l.platform === platform)) item.listings.push({ platform, status: "sold", listedAt, price: listPrice });
       orders.push({
         id: `sample-h${n}`,
         platform,
@@ -147,6 +157,13 @@ export function sampleHistory(today = isoDay(new Date())): { inventory: Inventor
         shippingCost: sellerShips ? cents(4.5 + r() * 5) : 0,
         printedAt: `${soldAt}T18:00:00.000Z`,
         shipment: { status: age > 4 ? "delivered" : age < 1 ? "label_created" : "in_transit", updatedAt: `${soldAt}T18:00:00.000Z` },
+      });
+    }
+    // Active listings get relisted now and then.
+    if (item.status === "listed") {
+      item.listings = item.listings.map((l) => {
+        const since = daysBetween(listedAt, today);
+        return since > 14 && r() < 0.6 ? { ...l, relistedAt: addDays(today, -Math.floor(r() * Math.min(since, 90))) } : l;
       });
     }
     // Sellers clear out about half of what hasn't sold in six months (donated or sold in a lot).
@@ -167,10 +184,32 @@ export function sampleHistory(today = isoDay(new Date())): { inventory: Inventor
       source: weighted(r, SOURCES, (s) => s[1])[0],
       purchasedAt: addDays(today, -Math.floor(r() * 10)),
       status: "draft",
-      platforms: [],
+      listings: [],
+      condition: pick(r, CONDITION_MIX),
+      quantity: 1,
+      labels: ["lbl-photos"],
+      readyToList: n < 4,
       photo: PHOTOS[line.category],
+      createdAt: `${addDays(today, -Math.floor(r() * 5))}T12:00:00.000Z`,
     });
   }
   orders.sort((a, b) => b.date.localeCompare(a.date));
-  return { inventory, orders };
+  return { inventory, orders, expenses: sampleExpenses(today, r) };
+}
+
+const CONDITION_MIX: Condition[] = ["New with tags", "Like new", "Good", "Good", "Good", "Fair"];
+
+// A year of everyday reseller expenses: supplies, sourcing mileage and a couple of subscriptions.
+function sampleExpenses(today: string, r: () => number): Expense[] {
+  const out: Expense[] = [];
+  for (let m = 0; m < 12; m++) {
+    const monthStart = addDays(today, -30 * m - 29);
+    out.push({ id: `sample-exp-sub-${m}`, date: monthStart, category: "Software and subscriptions", amount: 16.99, note: "Reship" });
+    out.push({ id: `sample-exp-sup-${m}`, date: addDays(monthStart, 6), category: "Shipping supplies", amount: cents(18 + r() * 30), note: "Poly mailers and tape" });
+    for (let t = 0; t < 3; t++) {
+      const miles = Math.round(12 + r() * 30);
+      out.push({ id: `sample-exp-mi-${m}-${t}`, date: addDays(monthStart, 3 + t * 9), category: "Mileage", amount: cents(miles * 0.7), miles, note: "Thrift run" });
+    }
+  }
+  return out.filter((e) => e.date <= today).sort((a, b) => b.date.localeCompare(a.date));
 }

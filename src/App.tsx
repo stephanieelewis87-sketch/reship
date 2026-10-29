@@ -3,7 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./lib/supabase";
 import { LocalStore, SupabaseStore } from "./lib/store";
 import { useReshipData } from "./lib/useReshipData";
-import { Dashboard } from "./components/Dashboard";
+import { AppShell } from "./components/shell/AppShell";
 import { AuthScreen } from "./components/AuthScreen";
 
 const demoStore = new LocalStore();
@@ -58,5 +58,5 @@ function ReshipApp({
           window.location.reload();
         }
       : undefined;
-  return <Dashboard data={data} email={email} demoMode={demoMode} onSignOut={onSignOut} onResetDemo={resetDemo} />;
+  return <AppShell data={data} email={email} demoMode={demoMode} onSignOut={onSignOut} onResetDemo={resetDemo} />;
 }

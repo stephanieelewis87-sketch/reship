@@ -47,6 +47,24 @@ Marketplaces don't offer label APIs, so the extension in `extension/` reads sold
 - Poshmark and Mercari work today. Depop, Vinted and Whatnot show as "coming soon". The "Capture this page" and "Test" buttons help map and check a marketplace.
 - Mercari's pages are drawn in the browser, so the extension reads them in a minimized window it opens and closes during a sync. Mercari's letter-size label is cut out and turned upright when printing on 4x6 labels.
 
+## Feedback summaries (AI)
+
+Users send feedback from the Feedback tab. The `feedback-digest` Edge Function reads new feedback, asks Claude for a summary (themes, bugs, quick wins, decisions for you), saves it, and emails it to you. You read every summary under Feedback, then AI summaries.
+
+1. Run `supabase/migrations/0006_feedback.sql`, then make yourself the owner:
+   `insert into public.app_admins (user_id) select id from auth.users where email = 'you@example.com';`
+2. Set the function's secrets: `supabase secrets set ANTHROPIC_API_KEY=... RESEND_API_KEY=... OWNER_EMAIL=you@example.com APP_URL=https://your-app` (optional: `FEEDBACK_FROM_EMAIL` once your sending domain is verified in Resend).
+3. Deploy: `supabase functions deploy feedback-digest`.
+4. Schedule it weekly with pg_cron and pg_net (SQL editor):
+   ```sql
+   select cron.schedule('feedback-digest', '0 14 * * 1', $$
+     select net.http_post(
+       url := 'https://<project-ref>.supabase.co/functions/v1/feedback-digest',
+       headers := jsonb_build_object('Authorization', 'Bearer <service-role-key>')
+     ) $$);
+   ```
+   You can also press "Summarize now" in the app at any time.
+
 ## Coming next
 
 Combining with Listy (video to listings) into one app: an inventory page, returns, expenses, Listy's video-to-listing flow, and sale prices and fees pulled in by the extension. Also paid sign-up ($16.99/month), QR code drop-off sheets, more marketplaces in the extension and real purchase of alternative labels.

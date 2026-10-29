@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { InventoryItem, Order } from "./types";
 import { activeOn, aging, breakdown, estimateFees, goalPace, metrics, presetRange, previousRange, saleLines, series, soldDates } from "./analytics";
 import { sampleHistory } from "./sampleHistory";
+import { listedOn } from "./inventory";
 
 const order = (o: Partial<Order>): Order => ({
   id: "o1",
@@ -24,7 +25,7 @@ const inv = (i: Partial<InventoryItem>): InventoryItem => ({
   listPrice: 60,
   listedAt: "2026-10-01",
   status: "listed",
-  platforms: ["Poshmark"],
+  listings: [{ platform: "Poshmark", status: "active", listedAt: "2026-10-01" }],
   ...i,
 });
 
@@ -123,8 +124,8 @@ describe("inventory", () => {
 describe("breakdown and goals", () => {
   it("groups by marketplace with listings counted per group", () => {
     const rows = breakdown(saleLines([order({}), order({ id: "o2", platform: "Mercari" })], [inv({})]), (l) => l.platform, {
-      items: [inv({ id: "i9", platforms: ["Mercari", "eBay"] })],
-      keyOf: (i) => i.platforms,
+      items: [inv({ id: "i9", listings: [{ platform: "Mercari", status: "active" }, { platform: "eBay", status: "active" }] })],
+      keyOf: listedOn,
     });
     expect(rows.map((r) => r.key).sort()).toEqual(["Mercari", "Poshmark", "eBay"]);
     expect(rows.find((r) => r.key === "eBay")!.active).toBe(1);
