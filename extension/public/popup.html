@@ -54,6 +54,16 @@
         <div id="platforms"></div>
         <p class="muted" id="last-run"></p>
         <button class="primary" id="sync" type="button">Sync now</button>
+        <div id="crosslist" style="margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border)">
+          <b>Crosslisting</b>
+          <p class="muted">Items you crosslist in Reship open here as filled-in sell forms. Finish each one on the marketplace's tab.</p>
+          <div id="jobs"></div>
+          <p class="muted" style="margin-top: 8px">When an item sells, take it down on:</p>
+          <label class="row"><span>Mercari (deactivates the listing)</span><input type="checkbox" id="autodelist-Mercari" /></label>
+          <label class="row"><span>Vinted (hides the listing)</span><input type="checkbox" id="autodelist-Vinted" /></label>
+          <button class="primary" id="run-jobs" type="button" style="margin-top: 6px">Check for crosslist tasks</button>
+          <p class="muted" id="jobs-status"></p>
+        </div>
         <p style="margin-top: 10px"><button class="link" id="signout" type="button">Sign out</button></p>
       </section>
       <section id="capture-box" style="margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border)">
@@ -62,6 +72,7 @@
         <p class="muted" id="capture-status"></p>
         <button class="primary" id="check-poshmark" type="button" style="margin-top: 6px">Test Poshmark</button>
         <button class="primary" id="check-mercari" type="button" style="margin-top: 6px">Test Mercari</button>
+        <button class="primary" id="check-vinted" type="button" style="margin-top: 6px">Test Vinted</button>
         <p class="muted" id="check-status" style="white-space: pre-wrap; user-select: text"></p>
       </section>
     </main>

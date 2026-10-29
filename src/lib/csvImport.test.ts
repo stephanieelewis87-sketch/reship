@@ -41,3 +41,10 @@ describe("csv import", () => {
     expect(orders.map((o) => o.orderId)).toEqual(["56"]);
   });
 });
+
+describe("Mercari sales report", () => {
+  it("matches Mercari's own column names", () => {
+    const m = guessMapping(["Item Id", "Sold Date", "Item Title", "Order Status", "Item Price", "Mercari Selling Fee", "Net Seller Proceeds"]);
+    expect(m).toMatchObject({ orderId: "Item Id", date: "Sold Date", itemName: "Item Title", price: "Item Price" });
+  });
+});
