@@ -656,7 +656,7 @@ const PLANS: { name: string; price: string; pitch: string; features: string[]; f
     features: ["Everything in Ship", "Crosslisting, including Vinted and Mercari", "Inventory tracking", "Basic analytics"],
   },
   {
-    name: "Pro",
+    name: "Flow",
     price: "$109",
     pitch: "Replaces your crosslister, your shipping tool and your spreadsheet.",
     features: ["Everything in Grow", "Video listing", "AI summaries of buyer feedback", "Full profit analytics", "One-tap withdrawal"],
