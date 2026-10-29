@@ -28,6 +28,8 @@ export interface OrderSink {
   fillSkus(order: ImportedOrder): Promise<void>;
   // Records where a shipped order is now (in transit, delivered and so on).
   updateShipment(platform: Platform, orderNumber: string, status: ShipmentStatus): Promise<void>;
+  // A new sale came in: mark its listing sold and take the same item down on other marketplaces.
+  recordSale?(order: ImportedOrder): Promise<void>;
 }
 
 const hasSku = (order: ImportedOrder) => order.items.some((i) => i.sku);
@@ -54,6 +56,8 @@ export async function syncAll(connectors: Connector[], enabled: Set<Platform>, s
         const label = await c.downloadLabel(order).catch(() => null);
         if (!existing) {
           await sink.saveOrder(order, label);
+          // Delisting elsewhere is extra; a failure here never fails the import.
+          await sink.recordSale?.(order).catch(() => {});
           result.imported++;
           if (label) result.labels++;
         } else if (label) {

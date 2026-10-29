@@ -4,6 +4,7 @@ import { reship } from "./reship";
 import type { SyncState } from "./background";
 import type { PlatformResult } from "./sync";
 import { capturePage } from "./capture";
+import { jobFromRow, type ListingJob, type ListingJobRow } from "../../src/lib/crosslist";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -64,7 +65,64 @@ async function render() {
     }),
   );
   $("last-run").textContent = syncState?.lastRun ? `Last sync ${new Date(syncState.lastRun).toLocaleString()}` : "";
+  await renderCrosslist();
 }
+
+const JOB_TEXT: Record<ListingJob["status"], string> = {
+  queued: "Waiting",
+  running: "Working on it",
+  needs_you: "Needs you",
+  done: "Done",
+  failed: "Couldn't finish",
+  cancelled: "Stopped",
+};
+
+// Recent crosslist and delist jobs, and the auto-delist choices saved in the seller's Reship settings.
+async function renderCrosslist() {
+  const { data: rows } = await reship.from("listing_jobs").select("*").order("created_at", { ascending: false }).limit(5);
+  const jobs = ((rows ?? []) as ListingJobRow[]).map(jobFromRow);
+  $("jobs").replaceChildren(
+    ...jobs.map((job) => {
+      const row = document.createElement("div");
+      row.className = "row";
+      const what = job.action === "list" ? `List "${job.draft?.title ?? "item"}"` : `Take down ${job.listingId}${job.reason ? ` (${job.reason})` : ""}`;
+      row.innerHTML = `<div><div></div><div class="status"></div></div>`;
+      (row.firstElementChild!.firstElementChild as HTMLElement).textContent = `${job.platform}: ${what}`;
+      const status = row.firstElementChild!.lastElementChild as HTMLElement;
+      status.textContent = `${JOB_TEXT[job.status]}${job.message ? `. ${job.message}` : ""}`;
+      const tone = { done: "ok", needs_you: "warn", failed: "err" }[job.status as string];
+      if (tone) status.classList.add(tone);
+      return row;
+    }),
+  );
+  if (!jobs.length) $("jobs").textContent = "";
+
+  const { data: settingsRow } = await reship.from("settings").select("data").maybeSingle();
+  const settings = (settingsRow?.data ?? {}) as { autoDelist?: Partial<Record<Platform, boolean>> };
+  for (const platform of ["Mercari", "Vinted"] as const) {
+    const box = $<HTMLInputElement>(`autodelist-${platform}`);
+    box.checked = !!settings.autoDelist?.[platform];
+    box.onchange = async () => {
+      const { data: latest } = await reship.from("settings").select("data").maybeSingle();
+      const current = (latest?.data ?? {}) as { autoDelist?: Partial<Record<Platform, boolean>> };
+      const { data: auth } = await reship.auth.getSession();
+      await reship.from("settings").upsert({
+        user_id: auth.session!.user.id,
+        data: { ...current, autoDelist: { ...current.autoDelist, [platform]: box.checked } },
+      });
+    };
+  }
+}
+
+$("run-jobs").addEventListener("click", async () => {
+  const button = $<HTMLButtonElement>("run-jobs");
+  button.disabled = true;
+  $("jobs-status").textContent = "Checking…";
+  const handled: number = await chrome.runtime.sendMessage({ type: "run-jobs" });
+  $("jobs-status").textContent = handled ? `Started ${handled} task${handled === 1 ? "" : "s"}.` : "Nothing new to do.";
+  button.disabled = false;
+  render();
+});
 
 $("signin").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -116,7 +174,7 @@ $("capture").addEventListener("click", async () => {
   }
 });
 
-for (const platform of ["Poshmark", "Mercari"] as const) {
+for (const platform of ["Poshmark", "Mercari", "Vinted"] as const) {
   const button = $<HTMLButtonElement>(`check-${platform.toLowerCase()}`);
   button.addEventListener("click", async () => {
     button.disabled = true;

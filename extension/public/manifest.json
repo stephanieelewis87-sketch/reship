@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Reship",
-  "description": "Brings your sold orders and shipping labels from Poshmark, Mercari, Depop, Vinted and Whatnot into Reship.",
-  "version": "0.5.1",
+  "description": "Brings your sold orders and shipping labels into Reship, and crosslists and delists your items on Mercari and Vinted.",
+  "version": "0.6.0",
   "action": {
     "default_popup": "popup.html",
     "default_title": "Reship"
@@ -26,6 +26,7 @@
     "https://www.depop.com/*",
     "https://webapi.depop.com/*",
     "https://www.vinted.com/*",
+    "https://*.vinted.net/*",
     "https://www.whatnot.com/*",
     "https://*.supabase.co/*"
   ]
