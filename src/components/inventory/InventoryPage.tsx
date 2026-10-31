@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   Clapperboard,
+  Images,
   ChevronRight,
   Clock,
   Copy,
@@ -35,6 +36,7 @@ import { PlatformIcon, inputClass, selectClass } from "../ui";
 import { LabelDots } from "./LabelChips";
 import { ListingForm } from "./ListingForm";
 import { QuickEdit } from "./QuickEdit";
+import { PhotoListing } from "./PhotoListing";
 import { VideoListing } from "./VideoListing";
 
 type Data = ReturnType<typeof useReshipData>;
@@ -108,6 +110,11 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
   const [video, setVideo] = useState(route.params.has("video"));
   useEffect(() => {
     if (route.params.has("video")) setVideo(true);
+  }, [route]);
+  // #/inventory?photos opens List from photos the same way.
+  const [photoUpload, setPhotoUpload] = useState(route.params.has("photos"));
+  useEffect(() => {
+    if (route.params.has("photos")) setPhotoUpload(true);
   }, [route]);
   const [notice, setNotice] = useState<string | null>(null);
   const [view, setViewState] = useState<View>(readView);
@@ -232,7 +239,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
   return (
     <div>
       <PageHeader title="Inventory" subtitle={`${counts.listed} listed · ${counts.draft} drafts · ${counts.sold} sold`}>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Menu
             align="right"
             button={(toggle) => (
@@ -266,9 +273,16 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
           <button
             type="button"
             onClick={() => setVideo(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-400 text-amber-950 text-sm font-bold shadow-md shadow-amber-400/30 ring-2 ring-amber-300 hover:bg-amber-300 hover:shadow-lg transition"
+            className="flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-lg bg-amber-400 text-amber-950 text-sm font-bold shadow-md shadow-amber-400/30 ring-2 ring-amber-300 hover:bg-amber-300 hover:shadow-lg transition"
           >
             <Clapperboard className="w-4 h-4" /> List with a video
+          </button>
+          <button
+            type="button"
+            onClick={() => setPhotoUpload(true)}
+            className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-md border border-[#B5607A] text-[#B5607A] text-sm font-medium hover:bg-rose-50"
+          >
+            <Images className="w-4 h-4" /> List from photos
           </button>
           <button
             type="button"
@@ -563,6 +577,17 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
           onClose={() => setVideo(false)}
           onSaved={(msg) => {
             setVideo(false);
+            setStatus("draft");
+            setNotice(msg);
+          }}
+        />
+      )}
+      {photoUpload && (
+        <PhotoListing
+          data={data}
+          onClose={() => setPhotoUpload(false)}
+          onSaved={(msg) => {
+            setPhotoUpload(false);
             setStatus("draft");
             setNotice(msg);
           }}

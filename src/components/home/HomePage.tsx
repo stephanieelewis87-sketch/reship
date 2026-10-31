@@ -407,6 +407,7 @@ function Goals({ data, today }: { data: Data; today: string }) {
 // --- What's new ---------------------------------------------------------------------------------
 
 const RELEASES = [
+  { date: "Oct 31, 2026", text: "List from photos: upload photos of up to 25 items at once, and AI sorts them into one listing per item, then writes each one with a suggested price." },
   { date: "Oct 30, 2026", text: "List with a video: film up to 25 items, and AI finds each one, keeps snips from the video, makes a clean photo, and writes the listing with a suggested price." },
   { date: "Oct 29, 2026", text: "A new layout: Home, Inventory, Automations, Orders, Analytics and Settings, with goals and a needs-attention list here on Home." },
   { date: "Oct 28, 2026", text: "Analytics: true profit after fees, shipping and item cost, marketplaces side by side, inventory aging with suggested markdowns, and sourcing returns." },

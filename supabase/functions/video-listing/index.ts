@@ -1,6 +1,7 @@
 // AI for "List with a video". The browser reads frames out of the seller's video and calls this
 // function three ways:
 //   detect   – frames in, the distinct items out (which frames show each one, and where)
+//   group    – a batch of photos in (List from photos), one group of photos per item out
 //   describe – a few photos of one item in, a filled-in listing with a suggested price out
 //   photo    – one snip in, a clean product photo out (needs OPENAI_API_KEY)
 // Only signed-in users can call it, with a daily cap per user. See README "List with a video".
@@ -12,10 +13,13 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const MODEL = "claude-opus-5-5";
 const MAX_FRAMES = 72;
 const MAX_ITEMS = 25;
+const MAX_PHOTOS = 100;
 const CONDITIONS = ["New with tags", "New without tags", "Like new", "Good", "Fair"] as const;
-// Per user per day. Each video is one detect; each item is one describe and one photo.
+// Per user per day. Each video is one detect and each photo batch one group; each item is one
+// describe and one photo.
 const LIMITS = {
   detect: Number(Deno.env.get("VIDEO_LISTING_DAILY_VIDEOS") ?? 20),
+  group: Number(Deno.env.get("VIDEO_LISTING_DAILY_PHOTO_BATCHES") ?? 20),
   describe: Number(Deno.env.get("VIDEO_LISTING_DAILY_ITEMS") ?? 600),
   photo: Number(Deno.env.get("VIDEO_LISTING_DAILY_PHOTOS") ?? 300),
 };
@@ -29,6 +33,10 @@ const Detected = z.object({
       box: z.object({ x: z.number(), y: z.number(), w: z.number(), h: z.number() }),
     }),
   ),
+});
+
+const Grouped = z.object({
+  items: z.array(z.object({ label: z.string(), photos: z.array(z.number()), cover: z.number() })),
 });
 
 const Listing = z.object({
@@ -55,8 +63,18 @@ You get numbered frames from that video in time order. Find each distinct physic
 - label is a short plain name a seller would recognise, like "black Lululemon leggings" or "white Nike Air Force 1 sneakers".
 List items in the order they first appear. At most ${MAX_ITEMS}.`;
 
+const GROUP_SYSTEM = `You help resellers list secondhand items for sale. The seller uploaded a batch of photos of up to ${MAX_ITEMS} items at once, usually several photos per item: the front, the back, the brand tag, the size tag, close-ups of details and flaws.
+You get the photos numbered, in the order they were taken. Sort them into one group per distinct physical item for sale.
+- Put every photo of the same item in its group, including close-ups of its tags, labels, soles, hardware, measurements and flaws. Use colors, patterns, fabric, background and the order the photos were taken to match close-ups to their item; sellers usually shoot one item fully before the next.
+- Two items that look alike (two pairs of the same jeans) are separate only if the photos clearly show two different pieces.
+- A set sold together (a matching two-piece, a pair of shoes) is one item.
+- Each photo belongs to at most one item. Leave out a photo only if it shows no item for sale at all.
+- cover is the photo number that makes the best main listing photo: the whole item, clear and well lit, from the front.
+- label is a short plain name a seller would recognise, like "black Lululemon leggings" or "white Nike Air Force 1 sneakers".
+List items in the order they first appear. At most ${MAX_ITEMS}.`;
+
 const DESCRIBE_SYSTEM = `You write marketplace listings for a reseller who sells on Poshmark, Mercari, Depop, eBay, Vinted, Etsy and Whatnot.
-You get photos of one item (cut from the seller's video, so they can be blurry) and write the listing.
+You get photos of one item (the seller's own photos, or snips cut from a video, which can be blurry) and write the listing.
 - Only state what the photos show or what is certain for that product. Read brand, size and material from tags and labels when visible. Leave brand, size or color as an empty string when you can't tell; never guess a size.
 - title: up to 80 characters, in the order Brand, item type, key style details, color, size. No emoji, no all caps, no "L@@K".
 - description: 2 to 5 short lines a buyer can scan: what it is, material and fit if known, measurements only if visible, condition with any flaws. Friendly and plain.
@@ -117,6 +135,20 @@ async function detect(body: { frames: Image[]; times?: number[] }) {
   return json({ items: out.items.slice(0, MAX_ITEMS) });
 }
 
+async function group(body: { photos: Image[] }) {
+  const photos = (body.photos ?? []).slice(0, MAX_PHOTOS);
+  if (!photos.length) return json({ error: "No photos were sent." }, 400);
+  const content: Anthropic.ContentBlockParam[] = [];
+  photos.forEach((p, i) => {
+    content.push({ type: "text", text: `Photo ${i}` });
+    content.push(imageBlock(p));
+  });
+  content.push({ type: "text", text: `${photos.length} photos above. Sort them into one group per item for sale.` });
+  const out = await ask(Grouped, GROUP_SYSTEM, content);
+  if (out instanceof Response) return out;
+  return json({ items: out.items.slice(0, MAX_ITEMS) });
+}
+
 async function describe(body: { images: Image[]; label?: string; instructions?: Record<string, string>; salesNotes?: string[] }) {
   const images = (body.images ?? []).slice(0, 6);
   if (!images.length) return json({ error: "No photos were sent." }, 400);
@@ -127,7 +159,7 @@ async function describe(body: { images: Image[]; label?: string; instructions?: 
   content.push({
     type: "text",
     text: [
-      body.label ? `The seller's video shows this item; it was spotted as "${body.label.slice(0, 120)}".` : "Photos of one item.",
+      body.label ? `Photos of one item, spotted as "${body.label.slice(0, 120)}".` : "Photos of one item.",
       prefs.length ? `<seller_instructions>\n${prefs.join("\n")}\n</seller_instructions>` : "",
       body.salesNotes?.length ? `<seller_sales>\n${body.salesNotes.slice(0, 20).join("\n")}\n</seller_sales>` : "",
       "Write the listing.",
@@ -182,7 +214,8 @@ Deno.serve(async (req) => {
   const { count } = await db.from("ai_usage").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id).eq("kind", action).gte("created_at", since);
   if ((count ?? 0) >= LIMITS[action]) return json({ error: "You've reached today's limit for AI listing. It resets within 24 hours." }, 429);
 
-  const res = action === "detect" ? await detect(body) : action === "describe" ? await describe(body) : await photo(body);
+  const run = { detect, group, describe, photo }[action] as (b: unknown) => Promise<Response>;
+  const res = await run(body);
   if (res.ok) await db.from("ai_usage").insert({ user_id: auth.user.id, kind: action });
   return res;
 });

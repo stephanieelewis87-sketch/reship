@@ -184,7 +184,8 @@ export function salesHints(inventory: InventoryItem[], limit = 12): string[] {
 
 export const asCondition = (s?: string): Condition | undefined => CONDITIONS.find((c) => c.toLowerCase() === s?.trim().toLowerCase());
 
-// A draft the seller reviews before it's saved.
+// A draft the seller reviews before it's saved. From a video, snips are cut from it; from photos,
+// they're the seller's own photos of the item.
 export interface VideoDraft {
   id: string;
   include: boolean;
@@ -200,10 +201,11 @@ export interface VideoDraft {
 }
 
 // Turns a reviewed draft into an inventory item. It's saved as a draft, ready to crosslist.
-export function draftToItem(d: VideoDraft, photos: string[], sku: string, now = new Date()): InventoryItem {
+// madeWith names the tool in the item's notes ("List with a video" or "List from photos").
+export function draftToItem(d: VideoDraft, photos: string[], sku: string, now = new Date(), madeWith = "List with a video"): InventoryItem {
   const l = d.listing;
   const price = parseFloat(d.priceText);
-  const notes = [l.flaws && `Flaws: ${l.flaws}`, l.price?.reasoning && `Price note: ${l.price.reasoning}`, "Made with List with a video."].filter(Boolean).join("\n");
+  const notes = [l.flaws && `Flaws: ${l.flaws}`, l.price?.reasoning && `Price note: ${l.price.reasoning}`, `Made with ${madeWith}.`].filter(Boolean).join("\n");
   return {
     id: crypto.randomUUID(),
     sku,

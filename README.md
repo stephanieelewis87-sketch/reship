@@ -86,6 +86,19 @@ Setup:
 
 In demo mode there's no AI: Reship splits the video into items by scene and makes a draft with snips for each, for the seller to fill in.
 
+## List from photos (AI)
+
+Inventory > **List from photos**: the seller uploads up to 100 photos of up to 25 items at once (front, back, tags, flaws, in any order). Photos are read and shrunk in the browser; then:
+
+1. Claude sorts the photos into one group per item and picks each item's cover (`group` action of the `video-listing` function). Close-ups of tags and flaws are matched to their item.
+2. The seller checks the sorting: select photos, then move them to another item, a new item, or "Not used", and star a different cover. No listing is written until they press **Write listings**.
+3. Each item's listing is written from up to 6 of its photos, the same way as List with a video (title, details, flaws, tags and a suggested price), with an optional clean AI photo (off by default here, since these are real photos).
+4. The seller checks each draft and saves them as inventory drafts.
+
+Setup is the same as List with a video, plus `supabase/migrations/0008_photo_listing.sql` (lets the daily cap count photo batches). Optional cap: `VIDEO_LISTING_DAILY_PHOTO_BATCHES` (20). Redeploy `video-listing`.
+
+In demo mode there's no AI: Reship groups photos by when they were taken (a long pause between shots starts a new item), or by how they look when the photos carry no times.
+
 ## Coming next
 
 Combining with Listy (video to listings) into one app: an inventory page, returns, expenses, Listy's video-to-listing flow, and sale prices and fees pulled in by the extension. Also paid sign-up ($16.99/month), QR code drop-off sheets, more marketplaces in the extension and real purchase of alternative labels.

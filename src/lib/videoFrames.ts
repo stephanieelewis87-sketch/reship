@@ -130,3 +130,26 @@ export function splitDataUrl(url: string): { media_type: string; data: string } 
 export async function dataUrlToBlob(url: string): Promise<Blob> {
   return (await fetch(url)).blob();
 }
+
+// Reads one photo the seller picked: a copy up to maxSide as a JPEG, and a tiny color thumbnail
+// for telling items apart when AI is off. The original file never leaves the device.
+export async function readPhoto(file: File, maxSide = 1600): Promise<{ image: string; sig: number[] }> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImage(url).catch(() => {
+      throw new Error(`${file.name} can't be opened in this browser.`);
+    });
+    const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = Object.assign(document.createElement("canvas"), { width: Math.round(img.naturalWidth * scale), height: Math.round(img.naturalHeight * scale) });
+    c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
+    const small = Object.assign(document.createElement("canvas"), { width: SIG_SIDE, height: SIG_SIDE });
+    const sctx = small.getContext("2d", { willReadFrequently: true })!;
+    sctx.drawImage(c, 0, 0, SIG_SIDE, SIG_SIDE);
+    const px = sctx.getImageData(0, 0, SIG_SIDE, SIG_SIDE).data;
+    const sig: number[] = [];
+    for (let i = 0; i < px.length; i += 4) sig.push(px[i], px[i + 1], px[i + 2]);
+    return { image: c.toDataURL("image/jpeg", 0.85), sig };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
