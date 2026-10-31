@@ -1,4 +1,5 @@
-import type { Order } from "./types";
+import type { Expense, InventoryItem, Order } from "./types";
+import { sampleHistory } from "./sampleHistory";
 
 // Sample orders from the Reship design, loaded on first run in demo mode so the app isn't empty.
 const RAW: Omit<Order, "source">[] = [
@@ -128,10 +129,21 @@ const shiftDate = (date: string) => {
 };
 const DELIVERED_SAMPLES = new Set(["7", "12"]);
 
+// What each sample item sold for and what it cost, for the analytics pages.
+const SAMPLE_MONEY: Record<string, [number, number]> = {
+  "Levi's 501 Jeans W28 L30": [42, 6], "Nike Air Max 90 Sz 10": [78, 14], "Vintage Floral Blouse S": [28, 3],
+  "Juicy Couture Tracksuit Top": [36, 5], "Coach Leather Crossbody Bag": [85, 12], "Zara Trench Coat M": [38, 7],
+  "Pokémon Base Set Charizard": [160, 40], "Free People Flowy Midi Dress": [48, 7], "Ralph Lauren Oxford Shirt L": [24, 4],
+  "Anthropologie Linen Pants S": [40, 6], "Hand-knit Cardigan M/L": [45, 5], "Tommy Hilfiger Windbreaker": [34, 6],
+  "Juicy Couture Velour Hoodie S": [32, 5], "Zara Belted Trench Coat S": [36, 7], "Pokémon Jungle Holo Lot (12 cards)": [55, 12],
+  "Levi's Denim Jacket M": [44, 8], "Silk Floral Scarf": [16, 2], "Leather Belt Brown": [14, 2],
+};
+
 export const SAMPLE_ORDERS: Order[] = RAW.map((o) => {
   const date = shiftDate(o.date);
   return {
     ...o,
+    items: o.items.map((i) => (SAMPLE_MONEY[i.name] ? { ...i, price: SAMPLE_MONEY[i.name][0], cost: SAMPLE_MONEY[i.name][1] } : i)),
     id: `sample-${o.id}`,
     date,
     source: "sample",
@@ -145,6 +157,12 @@ export const SAMPLE_ORDERS: Order[] = RAW.map((o) => {
           : undefined,
   };
 });
+
+// A year of sold orders and inventory behind the sample orders, for the analytics pages.
+const HISTORY = sampleHistory();
+export const SAMPLE_HISTORY_ORDERS: Order[] = HISTORY.orders;
+export const SAMPLE_INVENTORY: InventoryItem[] = HISTORY.inventory;
+export const SAMPLE_EXPENSES: Expense[] = HISTORY.expenses;
 
 // Made-up ship-to addresses for the sample labels.
 const SAMPLE_ADDRESSES = [

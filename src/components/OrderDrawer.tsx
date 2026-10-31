@@ -3,6 +3,7 @@ import { ExternalLink, FileText, Plus, ShoppingCart, Trash2, Upload, X } from "l
 import type { LabelStatus, Order, OrderItem, PackageType, Platform } from "@/lib/types";
 import { ALL_PLATFORMS, CARRIER_SERVICES, PACKAGE_TYPES, emptyAddress } from "@/lib/types";
 import { newId } from "@/lib/ids";
+import { estimateFees, guessBrand, guessCategory } from "@/lib/analytics";
 import { AddressFields } from "./AddressFields";
 import { Field, PhotoCollage, SectionLabel, STATUS_CONFIG, inputClass, primaryButton, secondaryButton } from "./ui";
 
@@ -64,12 +65,20 @@ export function OrderDrawer({
   const setItem = (i: number, patch: Partial<OrderItem>) =>
     setDraft((d) => ({ ...d, items: d.items.map((it, idx) => (idx === i ? { ...it, ...patch } : it)) }));
 
+  const estimatedFees = draft.items.reduce((a, i) => a + estimateFees(draft.platform, i.price ?? 0), 0);
   const valid = draft.orderId.trim() && draft.items.some((i) => i.name.trim());
 
   const save = () => {
     const items = draft.items
       .filter((i) => i.name.trim())
-      .map((i) => ({ ...i, name: i.name.trim(), sku: i.sku?.trim() || undefined, photo: i.photo?.trim() || undefined }));
+      .map((i) => ({
+        ...i,
+        name: i.name.trim(),
+        sku: i.sku?.trim() || undefined,
+        photo: i.photo?.trim() || undefined,
+        brand: i.brand?.trim() || undefined,
+        category: i.category?.trim() || undefined,
+      }));
     const hasAddress = draft.shipTo && Object.values(draft.shipTo).some((v) => v && v !== "US");
     onSave({
       ...draft,
@@ -216,6 +225,23 @@ export function OrderDrawer({
                     />
                   </Field>
                 </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <Field label="Cost ($)">
+                    <input
+                      className={inputClass}
+                      inputMode="decimal"
+                      value={item.cost ?? ""}
+                      placeholder="What you paid"
+                      onChange={(e) => setItem(i, { cost: e.target.value === "" ? undefined : parseFloat(e.target.value) || 0 })}
+                    />
+                  </Field>
+                  <Field label="Brand">
+                    <input className={inputClass} value={item.brand ?? ""} placeholder={guessBrand(item.name)} onChange={(e) => setItem(i, { brand: e.target.value || undefined })} />
+                  </Field>
+                  <Field label="Category">
+                    <input className={inputClass} value={item.category ?? ""} placeholder={guessCategory(item.name)} onChange={(e) => setItem(i, { category: e.target.value || undefined })} />
+                  </Field>
+                </div>
                 <Field label="Photo link">
                   <input className={inputClass} value={item.photo ?? ""} onChange={(e) => setItem(i, { photo: e.target.value })} placeholder="https://… (optional)" />
                 </Field>
@@ -228,6 +254,31 @@ export function OrderDrawer({
             >
               <Plus className="w-3 h-3" /> Add another item (bundle)
             </button>
+          </section>
+
+          <section className="space-y-3">
+            <SectionLabel>Money</SectionLabel>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="Marketplace fees ($)">
+                <input
+                  className={inputClass}
+                  inputMode="decimal"
+                  value={draft.fees ?? ""}
+                  placeholder={`About ${estimatedFees.toFixed(2)}`}
+                  onChange={(e) => set("fees", e.target.value === "" ? undefined : parseFloat(e.target.value) || 0)}
+                />
+              </Field>
+              <Field label="Shipping you paid ($)">
+                <input
+                  className={inputClass}
+                  inputMode="decimal"
+                  value={draft.shippingCost ?? ""}
+                  placeholder="0 if the buyer paid"
+                  onChange={(e) => set("shippingCost", e.target.value === "" ? undefined : parseFloat(e.target.value) || 0)}
+                />
+              </Field>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Left blank, fees are estimated from {draft.platform}'s fee schedule for analytics.</p>
           </section>
 
           <section className="space-y-3">
