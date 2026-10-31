@@ -266,7 +266,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
           <button
             type="button"
             onClick={() => setVideo(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-[#B5607A] text-[#B5607A] text-sm font-medium hover:bg-rose-50"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-400 text-amber-950 text-sm font-bold shadow-md shadow-amber-400/30 ring-2 ring-amber-300 hover:bg-amber-300 hover:shadow-lg transition"
           >
             <Clapperboard className="w-4 h-4" /> List with a video
           </button>
