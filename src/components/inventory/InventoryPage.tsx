@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import {
   CheckCircle2,
   ChevronLeft,
+  Clapperboard,
   ChevronRight,
   Clock,
   Copy,
@@ -26,6 +27,7 @@ import type { useReshipData } from "@/lib/useReshipData";
 import { isoDay } from "@/lib/analytics";
 import { duplicateSkus, isPartiallyDelisted, listedOn, nextSku, priceFor, relistState } from "@/lib/inventory";
 import { newId } from "@/lib/ids";
+import { salesHints } from "@/lib/videoListing";
 import { Pills } from "../analytics/parts";
 import { PageHeader } from "../shell/PageHeader";
 import type { Route } from "../shell/route";
@@ -33,6 +35,7 @@ import { PlatformIcon, inputClass, selectClass } from "../ui";
 import { LabelDots } from "./LabelChips";
 import { ListingForm } from "./ListingForm";
 import { QuickEdit } from "./QuickEdit";
+import { VideoListing } from "./VideoListing";
 
 type Data = ReturnType<typeof useReshipData>;
 type StatusFilter = "all" | "draft" | "listed" | "sold";
@@ -101,6 +104,11 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
     platform?: Platform;
   } | null>(null);
   const [quick, setQuick] = useState<InventoryItem | null>(null);
+  // #/inventory?video opens List with a video straight away (the Home page and homepage link here).
+  const [video, setVideo] = useState(route.params.has("video"));
+  useEffect(() => {
+    if (route.params.has("video")) setVideo(true);
+  }, [route]);
   const [notice, setNotice] = useState<string | null>(null);
   const [view, setViewState] = useState<View>(readView);
   const setView = (v: View) => {
@@ -255,6 +263,13 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
               </>
             )}
           </Menu>
+          <button
+            type="button"
+            onClick={() => setVideo(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-[#B5607A] text-[#B5607A] text-sm font-medium hover:bg-rose-50"
+          >
+            <Clapperboard className="w-4 h-4" /> List with a video
+          </button>
           <button
             type="button"
             onClick={() => setForm({ item: blank(), isNew: true })}
@@ -542,12 +557,25 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
         />
       )}
 
+      {video && (
+        <VideoListing
+          data={data}
+          onClose={() => setVideo(false)}
+          onSaved={(msg) => {
+            setVideo(false);
+            setStatus("draft");
+            setNotice(msg);
+          }}
+        />
+      )}
       {form && (
         <ListingForm
           key={form.item.id + (form.platform ?? "")}
           item={form.item}
           isNew={form.isNew}
           settings={settings}
+          ai={data.store.listingAi}
+          salesNotes={salesHints(inventory)}
           onlyPlatform={form.platform}
           onClose={() => setForm(null)}
           onSave={(i, msg) => {

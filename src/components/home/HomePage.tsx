@@ -91,6 +91,7 @@ function GettingStarted({ data }: { data: Data }) {
     { id: "connect", label: "Connect your marketplaces", done: data.orders.some((o) => o.source === "sync"), href: "#/settings?tab=connections" },
     { id: "ship-from", label: "Add your ship-from address", done: isAddressComplete(settings.shipFrom), href: "#/settings?tab=shipping" },
     { id: "inventory", label: "Add or import your inventory", done: data.inventory.length > 0, href: "#/inventory" },
+    { id: "video", label: "List up to 25 items from one video", done: data.inventory.some((i) => i.notes?.includes("Made with List with a video.")), href: "#/inventory?video" },
     { id: "crosslist", label: "Crosslist an item to a second marketplace", done: data.inventory.some((i) => listedOn(i).length > 1), href: "#/inventory" },
     { id: "automation", label: "Turn on an automation", done: Object.values(settings.automations).some((a) => Object.values(a ?? {}).some((x) => x?.enabled)), href: "#/automations" },
     { id: "goal", label: "Set a goal", done: settings.goals.length > 0, href: "#/home" },
@@ -406,6 +407,7 @@ function Goals({ data, today }: { data: Data; today: string }) {
 // --- What's new ---------------------------------------------------------------------------------
 
 const RELEASES = [
+  { date: "Oct 30, 2026", text: "List with a video: film up to 25 items, and AI finds each one, keeps snips from the video, makes a clean photo, and writes the listing with a suggested price." },
   { date: "Oct 29, 2026", text: "A new layout: Home, Inventory, Automations, Orders, Analytics and Settings, with goals and a needs-attention list here on Home." },
   { date: "Oct 28, 2026", text: "Analytics: true profit after fees, shipping and item cost, marketplaces side by side, inventory aging with suggested markdowns, and sourcing returns." },
   { date: "Oct 26, 2026", text: "Mercari orders and labels sync through the browser extension." },
