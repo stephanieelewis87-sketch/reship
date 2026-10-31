@@ -3,6 +3,9 @@ import { DEFAULT_SETTINGS } from "./types";
 import { SAMPLE_EXPENSES, SAMPLE_HISTORY_ORDERS, SAMPLE_INVENTORY, SAMPLE_ORDERS, sampleLabelPdf } from "./sampleData";
 import { SAMPLE_FEEDBACK, SAMPLE_SUMMARY } from "./sampleFeedback";
 import { supabase } from "./supabase";
+import type { DetectedItem, ListingSuggestion } from "./videoListing";
+import type { PhotoGroup } from "./photoListing";
+import { asCondition } from "./videoListing";
 
 // One interface, two backends: Supabase when it's configured, otherwise this browser's storage (demo mode).
 export interface Store {
@@ -28,6 +31,22 @@ export interface Store {
   setFeedbackStatus(id: string, status: FeedbackStatus): Promise<void>;
   listFeedbackSummaries(): Promise<FeedbackSummary[]>;
   summarizeFeedback(): Promise<string>;
+  // List with a video. listingAi is null when there's no AI backend (demo mode).
+  listingAi: ListingAi | null;
+  // Keeps a listing photo and returns the address to use for it.
+  saveListingPhoto(dataUrl: string): Promise<string>;
+}
+
+// An image for the AI: inline JPEG/PNG data, or a public address.
+export type AiImage = { media_type: string; data: string } | { url: string };
+
+export interface ListingAi {
+  detect(frames: AiImage[], times: number[]): Promise<DetectedItem[]>;
+  // List from photos: sorts a batch of photos into one group per item.
+  group(photos: AiImage[]): Promise<PhotoGroup[]>;
+  describe(images: AiImage[], label: string, instructions: Settings["aiInstructions"], salesNotes: string[]): Promise<ListingSuggestion>;
+  // A clean product photo as a data URL, or null when AI photos aren't set up.
+  photo(image: AiImage, label: string): Promise<string | null>;
 }
 
 // Small IndexedDB wrapper for label PDFs in demo mode; localStorage is too small for files.
@@ -136,6 +155,11 @@ export class LocalStore implements Store {
   };
   listFeedbackSummaries = async () => [SAMPLE_SUMMARY];
   summarizeFeedback = async () => "AI summaries run on your Supabase backend. In demo mode you see an example summary.";
+
+  // No AI in demo mode; List with a video splits the video by scene instead, and List from photos
+  // groups photos by when they were taken. Photos stay in this browser as small data URLs.
+  listingAi = null;
+  saveListingPhoto = async (dataUrl: string) => dataUrl;
 
   // Puts the demo back to its sample orders, all of them as they started.
   reset() {
@@ -458,6 +482,41 @@ export class SupabaseStore implements Store {
     return (data as SummaryRow[]).map(
       (r): FeedbackSummary => ({ id: r.id, periodStart: r.period_start, periodEnd: r.period_end, count: r.feedback_count, summary: r.summary, emailedTo: r.emailed_to ?? undefined, createdAt: r.created_at }),
     );
+  }
+
+  listingAi: ListingAi = {
+    detect: async (frames, times) => (await this.callListingAi<{ items: DetectedItem[] }>({ action: "detect", frames, times })).items,
+    group: async (photos) => (await this.callListingAi<{ items: PhotoGroup[] }>({ action: "group", photos })).items,
+    describe: async (images, label, instructions, salesNotes) => {
+      const { listing } = await this.callListingAi<{ listing: ListingSuggestion & { condition: string } }>({ action: "describe", images, label, instructions, salesNotes });
+      return { ...listing, condition: asCondition(listing.condition) };
+    },
+    photo: async (image, label) => {
+      try {
+        return (await this.callListingAi<{ image: string }>({ action: "photo", image, label })).image;
+      } catch (e) {
+        if ((e as { unavailable?: boolean }).unavailable) return null;
+        throw e;
+      }
+    },
+  };
+
+  private async callListingAi<T>(body: Record<string, unknown>): Promise<T> {
+    const { data, error } = await this.db.functions.invoke("video-listing", { body });
+    if (!error) return data as T;
+    // The function answers errors with { error, unavailable? }; show its words when there are some.
+    const detail = await (error as { context?: Response }).context?.json?.().catch(() => null);
+    throw Object.assign(new Error(detail?.error ?? `The AI service didn't answer (${error.message}).`), { unavailable: !!detail?.unavailable });
+  }
+
+  // Listing photos go in the public "listing-photos" bucket under the user's own folder.
+  async saveListingPhoto(dataUrl: string) {
+    const blob = await (await fetch(dataUrl)).blob();
+    const ext = blob.type === "image/png" ? "png" : "jpg";
+    const path = `${this.userId}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await this.db.storage.from("listing-photos").upload(path, blob, { contentType: blob.type });
+    if (error) throw new Error(`Couldn't save a photo: ${error.message}`);
+    return this.db.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
   }
 
   async summarizeFeedback() {

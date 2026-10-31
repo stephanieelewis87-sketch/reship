@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { Check, ImagePlus, Sparkles, Trash2, X } from "lucide-react";
+import { Check, ImagePlus, Loader2, Sparkles, Trash2, X } from "lucide-react";
 import type { Condition, InventoryItem, Listing, Platform, Settings } from "@/lib/types";
 import { ALL_PLATFORMS, CONDITIONS } from "@/lib/types";
 import { isoDay } from "@/lib/analytics";
 import { priceFor } from "@/lib/inventory";
+import type { ListingAi } from "@/lib/store";
+import type { ListingSuggestion } from "@/lib/videoListing";
+import { splitDataUrl } from "@/lib/videoFrames";
 import { Field, PlatformIcon, SectionLabel, Toggle, inputClass, primaryButton, secondaryButton } from "../ui";
 import { LabelChips } from "./LabelChips";
 
@@ -14,6 +17,8 @@ export function ListingForm({
   item,
   isNew,
   settings,
+  ai,
+  salesNotes = [],
   onlyPlatform,
   onClose,
   onSave,
@@ -22,6 +27,8 @@ export function ListingForm({
   item: InventoryItem;
   isNew: boolean;
   settings: Settings;
+  ai?: ListingAi | null;
+  salesNotes?: string[];
   onlyPlatform?: Platform; // opened from an empty marketplace square
   onClose: () => void;
   onSave: (item: InventoryItem, note?: string) => void;
@@ -40,6 +47,7 @@ export function ListingForm({
     Object.fromEntries(item.listings.map((l) => [l.platform, l.price?.toString() ?? ""])),
   );
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [gen, setGen] = useState<{ busy: boolean; message?: string }>({ busy: false });
   const set = <K extends keyof InventoryItem>(k: K, v: InventoryItem[K]) => setD((x) => ({ ...x, [k]: v }));
   const photos = d.photos ?? (d.photo ? [d.photo] : []);
   const base = num(text.listPrice);
@@ -71,6 +79,31 @@ export function ListingForm({
     };
   };
 
+  // Writes the listing from the photos with AI. Only fills fields that are still empty.
+  const generate = async () => {
+    if (!ai || !photos.length) return;
+    setGen({ busy: true });
+    try {
+      const images = photos.slice(0, 4).map((p) => (p.startsWith("data:") ? splitDataUrl(p) : { url: p }));
+      const l: ListingSuggestion = await ai.describe(images, d.title, settings.aiInstructions, salesNotes);
+      setD((x) => ({
+        ...x,
+        title: x.title.trim() || l.title,
+        description: x.description?.trim() || l.description,
+        brand: x.brand || l.brand || undefined,
+        category: x.category || l.category || undefined,
+        size: x.size || l.size || undefined,
+        color: x.color || l.color || undefined,
+        condition: x.condition ?? l.condition,
+        notes: l.flaws && !x.notes ? `Flaws: ${l.flaws}` : x.notes,
+      }));
+      if (l.price && !text.listPrice.trim()) setText((t) => ({ ...t, listPrice: String(Math.round(l.price!.suggested)) }));
+      setGen({ busy: false, message: l.price ? `Suggested $${Math.round(l.price.suggested)} (usually sells for $${Math.round(l.price.low)}–$${Math.round(l.price.high)}). ${l.price.reasoning}` : "Filled in from your photos." });
+    } catch (e) {
+      setGen({ busy: false, message: (e as Error).message });
+    }
+  };
+
   const valid = d.title.trim() && d.sku.trim();
 
   return (
@@ -92,13 +125,15 @@ export function ListingForm({
               <SectionLabel>Photos</SectionLabel>
               <button
                 type="button"
-                disabled
-                title="Writes the title, description and details from your photos. Arrives with Listy."
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border text-xs text-muted-foreground disabled:opacity-60"
+                disabled={!ai || !photos.length || gen.busy}
+                onClick={() => void generate()}
+                title={!ai ? "AI listing runs with your Reship account; it's off in demo mode." : !photos.length ? "Add a photo first." : "Writes the title, description, details and a suggested price from your photos."}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border text-xs text-[#B5607A] hover:bg-rose-50 disabled:text-muted-foreground disabled:opacity-60 disabled:hover:bg-transparent"
               >
-                <Sparkles className="w-3.5 h-3.5" /> Generate listing (soon)
+                {gen.busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />} Generate listing
               </button>
             </div>
+            {gen.message && <p className="text-[11px] text-muted-foreground">{gen.message}</p>}
             <div className="flex gap-2 flex-wrap">
               {photos.map((p, i) => (
                 <div key={p + i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">

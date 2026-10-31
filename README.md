@@ -65,6 +65,40 @@ Users send feedback from the Feedback tab. The `feedback-digest` Edge Function r
    ```
    You can also press "Summarize now" in the app at any time.
 
+## List with a video (AI)
+
+Inventory > **List with a video**: the seller films up to 25 items (up to 5 minutes), one after another. Reship reads frames out of the video in the browser (the video itself is never uploaded), then:
+
+1. Claude finds each distinct item and marks where it is in its clearest frame.
+2. Reship cuts snips of each item from the video.
+3. Claude writes each listing from its snips: title, description, brand, category, size, color, condition, flaws, tags, and a suggested price with the usual sold range and a one-line reason. It also gets the seller's AI instructions from Settings and the median sold prices of their own most common brands and categories.
+4. Optionally, an image model turns the best snip into a clean studio-style photo (it's told to keep the item exactly as it is, flaws included). The real snips are always kept with it.
+5. The seller checks each draft, edits anything, and saves them as inventory drafts, ready to crosslist.
+
+The same AI also powers **Generate listing** in the item form, from the photos already added.
+
+Setup:
+
+1. Run `supabase/migrations/0007_video_listing.sql` (a public `listing-photos` bucket and an `ai_usage` table for the daily cap).
+2. Set secrets: `supabase secrets set ANTHROPIC_API_KEY=...` and, for clean AI photos, `OPENAI_API_KEY=...` (optional `IMAGE_MODEL`, default `gpt-image-1`). Without the OpenAI key everything else works and drafts use the snips.
+3. Deploy: `supabase functions deploy video-listing`.
+4. Optional daily caps per user: `VIDEO_LISTING_DAILY_VIDEOS` (20), `VIDEO_LISTING_DAILY_ITEMS` (600), `VIDEO_LISTING_DAILY_PHOTOS` (300).
+
+In demo mode there's no AI: Reship splits the video into items by scene and makes a draft with snips for each, for the seller to fill in.
+
+## List from photos (AI)
+
+Inventory > **List from photos**: the seller uploads up to 100 photos of up to 25 items at once (front, back, tags, flaws, in any order). Photos are read and shrunk in the browser; then:
+
+1. Claude sorts the photos into one group per item and picks each item's cover (`group` action of the `video-listing` function). Close-ups of tags and flaws are matched to their item.
+2. The seller checks the sorting: select photos, then move them to another item, a new item, or "Not used", and star a different cover. No listing is written until they press **Write listings**.
+3. Each item's listing is written from up to 6 of its photos, the same way as List with a video (title, details, flaws, tags and a suggested price), with an optional clean AI photo (off by default here, since these are real photos).
+4. The seller checks each draft and saves them as inventory drafts.
+
+Setup is the same as List with a video, plus `supabase/migrations/0008_photo_listing.sql` (lets the daily cap count photo batches). Optional cap: `VIDEO_LISTING_DAILY_PHOTO_BATCHES` (20). Redeploy `video-listing`.
+
+In demo mode there's no AI: Reship groups photos by when they were taken (a long pause between shots starts a new item), or by how they look when the photos carry no times.
+
 ## Coming next
 
 Combining with Listy (video to listings) into one app: an inventory page, returns, expenses, Listy's video-to-listing flow, and sale prices and fees pulled in by the extension. Also paid sign-up ($16.99/month), QR code drop-off sheets, more marketplaces in the extension and real purchase of alternative labels.
