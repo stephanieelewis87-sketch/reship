@@ -9,9 +9,11 @@ import { duplicateSkus, isPartiallyDelisted, listedOn, relistState } from "@/lib
 import { summarize } from "@/lib/orderStatus";
 import { isAddressComplete } from "@/lib/types";
 import { newId } from "@/lib/ids";
+import { usePrintLabels, type PrintNotice } from "@/lib/usePrintLabels";
 import { Card, Pills } from "../analytics/parts";
 import { CHART, fmtMoney } from "../analytics/charts";
 import { PageHeader } from "../shell/PageHeader";
+import { go } from "../shell/route";
 import { WithdrawShortcuts } from "../WithdrawShortcuts";
 import { inputClass, orderTitle, selectClass } from "../ui";
 
@@ -19,13 +21,24 @@ type Data = ReturnType<typeof useReshipData>;
 
 export function HomePage({ data }: { data: Data }) {
   const today = isoDay(new Date());
+  const [notice, setNotice] = useState<PrintNotice | null>(null);
   const greeting = new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening";
   return (
     <div>
       <PageHeader
         title={`${greeting}${data.settings.displayName ? `, ${data.settings.displayName}` : ""}`}
         subtitle={new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-      />
+      >
+        <PrintAllButton data={data} onNotice={setNotice} />
+      </PageHeader>
+      {notice && (
+        <div className={`px-4 md:px-8 py-2 border-b text-xs flex items-center gap-2 ${notice.ok ? "bg-emerald-50 border-emerald-200 text-emerald-900" : "bg-amber-50 border-amber-200 text-amber-900"}`}>
+          <span className="flex-1">{notice.text}</span>
+          <button type="button" aria-label="Dismiss" onClick={() => setNotice(null)}>
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
       <div className="px-4 md:px-8 py-5 space-y-4">
         <GettingStarted data={data} />
         <TodaySummary data={data} today={today} />
@@ -37,6 +50,36 @@ export function HomePage({ data }: { data: Data }) {
         <WithdrawShortcuts platforms={[...new Set(data.orders.map((o) => o.platform))]} />
       </div>
     </div>
+  );
+}
+
+// The day's main job, one click from Home: print every label waiting in To Print.
+function PrintAllButton({ data, onNotice }: { data: Data; onNotice: (n: PrintNotice) => void }) {
+  const { print, printing } = usePrintLabels(data, onNotice);
+  const toPrint = data.orders.filter((o) => o.status === "pending");
+  const withLabel = toPrint.filter((o) => o.label).length;
+  if (toPrint.length === 0)
+    return (
+      <span className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-emerald-50 text-emerald-800 text-sm font-medium">
+        <CheckCircle2 className="w-4 h-4" /> All labels printed
+      </span>
+    );
+  if (withLabel === 0)
+    return (
+      <button type="button" onClick={() => go("orders")} className="flex items-center gap-2 px-5 py-3 rounded-xl bg-amber-400 text-amber-950 text-sm font-semibold shadow-md hover:bg-amber-300">
+        <Printer className="w-5 h-5" /> {toPrint.length} order{toPrint.length !== 1 ? "s need" : " needs"} a label
+      </button>
+    );
+  return (
+    <button
+      type="button"
+      disabled={printing}
+      onClick={() => print(toPrint)}
+      className="flex items-center gap-2.5 px-6 py-3 rounded-xl bg-amber-400 text-amber-950 text-base font-bold shadow-lg shadow-amber-400/30 ring-2 ring-amber-300 hover:bg-amber-300 hover:shadow-xl disabled:opacity-60 transition"
+    >
+      <Printer className="w-5 h-5" />
+      {printing ? "Preparing…" : `Print all ${withLabel} label${withLabel !== 1 ? "s" : ""}`}
+    </button>
   );
 }
 

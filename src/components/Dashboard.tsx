@@ -3,7 +3,7 @@ import { AlertCircle, AlertTriangle, ArrowRight, CheckCircle2, FileUp, LayoutGri
 import type { LabelStatus, Order, OrderItem, Platform, PrintOptions } from "@/lib/types";
 import { isAddressComplete } from "@/lib/types";
 import type { useReshipData } from "@/lib/useReshipData";
-import { buildPrintJob } from "@/lib/printJob";
+import { usePrintLabels } from "@/lib/usePrintLabels";
 import { summarize } from "@/lib/orderStatus";
 import { PrintModal } from "./PrintModal";
 import { BuyLabelsModal } from "./BuyLabelsModal";
@@ -49,7 +49,7 @@ function StatCard({
 
 // The Orders section: shipping overview, label printing and every order by status.
 export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: string | null }) {
-  const { orders, settings, saveOrders, patchOrders, deleteOrders, saveSettings, attachLabel, removeLabel, loadLabels } = data;
+  const { orders, settings, saveOrders, deleteOrders, saveSettings, attachLabel, removeLabel, loadLabels } = data;
 
   const [view, setView] = useState<View>("home");
   const [activePlatforms, setActivePlatforms] = useState<Set<Platform>>(new Set());
@@ -57,7 +57,6 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [printOrders, setPrintOrders] = useState<Order[] | null>(null);
-  const [printing, setPrinting] = useState(false);
   const [buyFor, setBuyFor] = useState<Order[] | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [drawer, setDrawer] = useState<{ order: Order; isNew: boolean } | null>(() => {
@@ -107,41 +106,10 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
   const updateItemSku = (order: Order, itemIndex: number, sku: string) =>
     saveOrders([{ ...order, items: order.items.map((item, i): OrderItem => (i === itemIndex ? { ...item, sku: sku || undefined } : item)) }]);
 
-  // Combines the orders' label PDFs (and packing slips) into one file and opens it to print.
-  // First prints move orders from To Print to Printed; reprints leave the status alone.
+  const printer = usePrintLabels(data, setNotice);
+  const printing = printer.printing;
   const print = async (chosen: Order[], opts: PrintOptions) => {
-    if (!chosen.length) return;
-    // Open the tab right away, while the click still counts, so pop-up blockers allow it.
-    const win = window.open("", "_blank");
-    setPrinting(true);
-    try {
-      const labels = await loadLabels(chosen);
-      const job = await buildPrintJob({ orders: chosen, labels, skuOnLabel: opts.skuOnLabel, packingSlip: opts.packingSlip, settings });
-      if (job.pageCount === 0) {
-        win?.close();
-        setNotice({ text: "None of those orders has a label yet.", ok: false });
-        return;
-      }
-      const url = URL.createObjectURL(new Blob([job.pdf], { type: "application/pdf" }));
-      if (win) win.location.href = url;
-      else window.location.assign(url);
-      const now = new Date().toISOString();
-      if (job.printedOrderIds.length)
-        patchOrders(job.printedOrderIds, (o) => ({ status: o.status === "pending" ? "printed" : o.status, printedAt: now }));
-      const skipped = job.missingLabelIds.length + job.unreadableLabelIds.length;
-      const verb = chosen.every((o) => o.status !== "pending") ? "Reprinting" : "Opened";
-      setNotice(
-        job.unreadableLabelIds.length
-          ? { text: `${job.unreadableLabelIds.length} label file${job.unreadableLabelIds.length !== 1 ? "s" : ""} couldn't be read. Try uploading ${job.unreadableLabelIds.length !== 1 ? "them" : "it"} again.`, ok: false }
-          : { text: `${verb} ${job.printedOrderIds.length} label${job.printedOrderIds.length !== 1 ? "s" : ""}${skipped ? `; ${skipped} order${skipped !== 1 ? "s" : ""} without a label stayed in To Print` : ""}.`, ok: true },
-      );
-      setSelectedIds(new Set());
-    } catch (e) {
-      win?.close();
-      setNotice({ text: `Couldn't prepare the labels: ${e instanceof Error ? e.message : e}`, ok: false });
-    } finally {
-      setPrinting(false);
-    }
+    if (await printer.print(chosen, opts)) setSelectedIds(new Set());
   };
 
   const viewLabel = async (order: Order) => {
