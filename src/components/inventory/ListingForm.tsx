@@ -13,6 +13,8 @@ import type { ListingSuggestion } from "@/lib/videoListing";
 import { splitDataUrl } from "@/lib/videoFrames";
 import { Field, PlatformIcon, SectionLabel, Toggle, inputClass, primaryButton, secondaryButton } from "../ui";
 import { LabelChips } from "./LabelChips";
+import { PLANS, type PlanId, listingRoom, marketplacesInUse } from "@/lib/plans";
+import { PlanTag, upgradeFor } from "../plans/PlanGate";
 
 const num = (s: string) => (s.trim() === "" ? undefined : parseFloat(s) || 0);
 
@@ -22,6 +24,9 @@ export function ListingForm({
   isNew,
   settings,
   ai,
+  aiLocked,
+  plan = "flow",
+  inventory = [],
   salesNotes = [],
   onlyPlatform,
   onClose,
@@ -34,6 +39,9 @@ export function ListingForm({
   isNew: boolean;
   settings: Settings;
   ai?: ListingAi | null;
+  aiLocked?: boolean; // the plan doesn't include AI: the button opens the upgrade page
+  plan?: PlanId;
+  inventory?: InventoryItem[]; // the rest of the inventory, for the plan's limits
   salesNotes?: string[];
   onlyPlatform?: Platform; // opened from an empty marketplace square
   onClose: () => void;
@@ -126,6 +134,16 @@ export function ListingForm({
 
   const valid = d.title.trim() && d.sku.trim();
 
+  // Plan limits. Marketplaces: the ones already in use elsewhere plus the ones picked here, up to
+  // the plan's number. New listings a day: an item counts once, the day it's first listed.
+  const others = inventory.filter((i) => i.id !== item.id);
+  const marketLimit = PLANS[plan].marketplaces;
+  const inUse = new Set([...marketplacesInUse(others), ...chosen, ...item.listings.filter((l) => l.status === "active").map((l) => l.platform)]);
+  const marketFull = marketLimit !== null && inUse.size >= marketLimit;
+  const room = listingRoom(plan, others, isoDay(new Date()));
+  const firstListing = !item.listedAt && !item.listings.some((l) => l.status === "active");
+  const dailyFull = firstListing && room.left <= 0;
+
   return (
     <div className="fixed inset-0 z-50 flex justify-center bg-black/30 backdrop-blur-sm overflow-y-auto" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div role="dialog" aria-modal="true" aria-label={isNew ? "Add item" : "Edit item"} className="bg-card w-full max-w-3xl sm:my-6 sm:rounded-xl border border-border shadow-2xl flex flex-col min-h-full sm:min-h-0">
@@ -145,12 +163,13 @@ export function ListingForm({
               <SectionLabel>Photos</SectionLabel>
               <button
                 type="button"
-                disabled={!ai || !photos.length || gen.busy}
-                onClick={() => void generate()}
-                title={!ai ? "AI listing runs with your SellSync account; it's off in demo mode." : !photos.length ? "Add a photo first." : "Writes the title, description, details and a suggested price from your photos."}
+                disabled={!aiLocked && (!ai || !photos.length || gen.busy)}
+                onClick={() => (aiLocked ? upgradeFor("ai") : void generate())}
+                title={aiLocked ? "AI listing is on the Flow plan." : !ai ? "AI listing runs with your SellSync account; it's off in demo mode." : !photos.length ? "Add a photo first." : "Writes the title, description, details and a suggested price from your photos."}
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border text-xs text-accent hover:bg-rose-50 disabled:text-muted-foreground disabled:opacity-60 disabled:hover:bg-transparent"
               >
                 {gen.busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />} Generate listing
+                {aiLocked && <PlanTag feature="ai" />}
               </button>
             </div>
             {gen.message && <p className="text-[11px] text-muted-foreground">{gen.message}</p>}
@@ -268,11 +287,13 @@ export function ListingForm({
               {ALL_PLATFORMS.map((p) => {
                 const sold = item.listings.find((l) => l.platform === p)?.status === "sold";
                 const on = chosen.has(p);
+                const blocked = !on && marketFull && !inUse.has(p);
                 return (
                   <div key={p} className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${on ? "border-accent bg-rose-50/40" : "border-border"}`}>
                     <button
                       type="button"
-                      disabled={sold}
+                      disabled={sold || blocked}
+                      title={blocked ? `${PLANS[plan].name} lists on up to ${marketLimit} marketplaces. Grow lifts the limit.` : undefined}
                       aria-pressed={on}
                       onClick={() => setChosen((c) => {
                         const n = new Set(c);
@@ -299,6 +320,14 @@ export function ListingForm({
                 );
               })}
             </div>
+            {marketFull && (
+              <p className="text-[11px] text-muted-foreground">
+                {PLANS[plan].name} lists on up to {marketLimit} marketplaces ({[...inUse].join(", ")}).{" "}
+                <button type="button" className="text-accent hover:underline" onClick={() => upgradeFor("crosslisting")}>
+                  Grow lists everywhere.
+                </button>
+              </p>
+            )}
             {item.listings.length > 0 && (
               <div className="space-y-1.5 pt-1">
                 <p className="text-xs font-medium text-foreground">Marketplace listing links</p>
@@ -365,13 +394,22 @@ export function ListingForm({
                 Delete
               </button>
             ))}
+          {dailyFull && (
+            <p className="text-[11px] text-muted-foreground">
+              You've listed {room.cap} new items today, {PLANS[plan].name}'s daily limit. Save it as a draft, or{" "}
+              <button type="button" className="text-accent hover:underline" onClick={() => upgradeFor("crosslisting")}>
+                go unlimited on Grow
+              </button>
+              .
+            </p>
+          )}
           <div className="ml-auto flex gap-2">
             <button type="button" disabled={!valid} onClick={() => onSave(build(false), "Saved.")} className={secondaryButton}>
               {d.status === "draft" || isNew ? "Save draft" : "Save"}
             </button>
             <button
               type="button"
-              disabled={!valid || chosen.size === 0}
+              disabled={!valid || chosen.size === 0 || dailyFull}
               onClick={() => onSave(build(true), `Listed on ${[...chosen].join(", ")}.`)}
               className={primaryButton}
             >

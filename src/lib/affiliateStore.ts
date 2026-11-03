@@ -1,5 +1,5 @@
 import type { Affiliate, AffiliateBalanceRow, AffiliateProgram, Commission, PayoutMethod, Payout, PlanId, Referral } from "./affiliates";
-import { DEFAULT_PROGRAM, balances, commissionsFor } from "./affiliates";
+import { DEFAULT_PROGRAM, PLANS, balances, commissionsFor } from "./affiliates";
 import { supabase } from "./supabase";
 
 // The affiliate program's data, behind the same two backends as the rest of the app.
@@ -51,7 +51,7 @@ export function sampleAffiliateHistory(program: AffiliateProgram, now = Date.now
     { label: "th•••@yahoo.com", plan: "ship", months: 3, joinedDaysAgo: 95 },
     { label: "ka•••@icloud.com", plan: "flow", months: 2, joinedDaysAgo: 64 },
     { label: "de•••@gmail.com", plan: "grow", months: 1, joinedDaysAgo: 20 },
-    { label: "ro•••@outlook.com", plan: "ship", months: 2, canceled: true, joinedDaysAgo: 80 },
+    { label: "ro•••@outlook.com", plan: "sell", months: 2, canceled: true, joinedDaysAgo: 80 },
     { label: "li•••@gmail.com", joinedDaysAgo: 3, months: 0 },
   ];
   const referrals: Referral[] = [];
@@ -60,7 +60,7 @@ export function sampleAffiliateHistory(program: AffiliateProgram, now = Date.now
     const ref: Referral = { id: `ref-${i}`, label: p.label, plan: p.plan, status: "signed_up", totalPaidCents: 0, bonusEarned: false, createdAt: iso(now - p.joinedDaysAgo * DAY) };
     for (let m = 0; m < p.months && p.plan; m++) {
       const paidAt = now - (p.joinedDaysAgo - 1 - m * 30) * DAY;
-      const cents = { ship: 999, grow: 4900, flow: 10900 }[p.plan];
+      const cents = PLANS[p.plan].cents;
       for (const c of commissionsFor(program, ref, { plan: p.plan, cents })) {
         commissions.push({
           id: `com-${i}-${m}-${c.kind}`,

@@ -3,22 +3,22 @@
 -- Safe to run more than once. Needs 0006 (app_admins and is_app_admin).
 
 -- The program's terms, one row. Change them here; the app reads them from this table.
---   bonus_cents             the one-time bonus per referred seller, or its cap (10900 = $109)
+--   bonus_cents             the one-time bonus per referred seller, or its cap (10000 = $100)
 --   bonus_matches_payment   true: the bonus is the payment that earns it (one month of their plan:
---                           Ship $9.99, Grow $49, Flow $109), up to bonus_cents. false: always bonus_cents
+--                           Sell $12, Ship $25, Sync $35, Grow $50, Flow $100), up to bonus_cents. false: always bonus_cents
 --   rate                    share of every subscription payment, for life (0.05 = 5%)
 --   hold_days               days a commission waits before it can be paid, so refunds can be taken back
---   bonus_plans             plans whose payment earns the bonus (ship, grow, flow)
+--   bonus_plans             plans whose payment earns the bonus (sell, ship, sync, grow, flow)
 --   bonus_after_paid_cents  the bonus waits until the referred seller has paid at least this much in total
 --   cookie_days             how long a referral link is remembered in the browser before sign-up
 --   min_payout_cents        smallest balance paid out
 create table if not exists public.affiliate_program (
   id boolean primary key default true check (id),
-  bonus_cents integer not null default 10900 check (bonus_cents >= 0),
+  bonus_cents integer not null default 10000 check (bonus_cents >= 0),
   bonus_matches_payment boolean not null default true,
   rate numeric(5, 4) not null default 0.05 check (rate >= 0 and rate <= 1),
   hold_days integer not null default 30 check (hold_days >= 0),
-  bonus_plans text[] not null default array['ship', 'grow', 'flow'],
+  bonus_plans text[] not null default array['sell', 'ship', 'sync', 'grow', 'flow'],
   bonus_after_paid_cents integer not null default 0 check (bonus_after_paid_cents >= 0),
   cookie_days integer not null default 60 check (cookie_days > 0),
   min_payout_cents integer not null default 2500 check (min_payout_cents >= 0)
@@ -76,7 +76,7 @@ create table if not exists public.referrals (
   referred_user_id uuid not null unique references auth.users (id) on delete cascade,
   -- What the affiliate sees instead of the email, such as "st•••@gmail.com".
   referred_label text not null default 'A seller',
-  plan text check (plan in ('ship', 'grow', 'flow')),
+  plan text check (plan in ('sell', 'ship', 'sync', 'grow', 'flow')),
   status text not null default 'signed_up' check (status in ('signed_up', 'paying', 'canceled')),
   total_paid_cents integer not null default 0,
   bonus_earned boolean not null default false,

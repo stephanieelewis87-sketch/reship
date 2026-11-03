@@ -54,13 +54,13 @@ export function HowItWorks({ program }: { program: AffiliateProgram }) {
 
 // "If I refer this many sellers, what do I make in a year?"
 export function EarningsCalculator({ program }: { program: AffiliateProgram }) {
-  const [counts, setCounts] = useState<Record<PlanId, number>>({ ship: 5, grow: 3, flow: 1 });
+  const [counts, setCounts] = useState<Record<PlanId, number>>({ sell: 5, ship: 4, sync: 3, grow: 2, flow: 1 });
   const year = projectEarnings(program, counts, 12);
   return (
     <div className="bg-card border border-border rounded-xl p-4 md:p-5">
       <h2 className="font-display text-sm font-semibold text-foreground">What could you earn?</h2>
       <p className="text-xs text-muted-foreground mt-0.5">Sellers you refer, by plan, and what you'd make in their first year.</p>
-      <div className="grid sm:grid-cols-3 gap-4 mt-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-4">
         {PLAN_IDS.map((p) => (
           <label key={p} className="block">
             <span className="flex justify-between text-xs">

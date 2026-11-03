@@ -1,5 +1,6 @@
 import type { InventoryItem, Listing, Order, Platform, Settings } from "./types";
 import { daysBetween, isoDay } from "./analytics";
+import { hasFeature, planOf } from "./plans";
 
 // Marketplaces where the item is up for sale right now.
 export const listedOn = (item: InventoryItem): Platform[] => item.listings.filter((l) => l.status === "active").map((l) => l.platform);
@@ -39,8 +40,8 @@ export function applySales(inventory: InventoryItem[], orders: Order[], settings
       if (item.status === "sold" || item.soldOrders?.includes(order.id)) continue;
       const qty = item.quantity ?? 1;
       const soldOrders = [...(item.soldOrders ?? []), order.id];
-      // With more than one on hand, a sale only lowers the count.
-      if (qty > 1 && settings.autoAdjustQuantity) {
+      // With more than one on hand, a sale only lowers the count (on Sync and up).
+      if (qty > 1 && settings.autoAdjustQuantity && hasFeature(planOf(settings.plan), "quantitySync")) {
         changed.set(item.id, { ...item, quantity: qty - 1, soldOrders });
         continue;
       }

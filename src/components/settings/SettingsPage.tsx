@@ -8,6 +8,9 @@ import { Field, PlatformIcon, Toggle, inputClass, primaryButton, secondaryButton
 import { PageHeader } from "../shell/PageHeader";
 import { go } from "../shell/route";
 import { cleanPrefix, nextSku } from "@/lib/sku";
+import { hasFeature, isPlanId, type Feature } from "@/lib/plans";
+import { LockedCard, PlanTag, currentPlan, upgradeFor } from "../plans/PlanGate";
+import { PlanPicker } from "../plans/PlanPicker";
 
 type Data = ReturnType<typeof useReshipData>;
 
@@ -55,17 +58,27 @@ export function SettingsPage({
   demoMode,
   onSignOut,
   tab: initialTab,
+  need,
 }: {
   data: Data;
   email: string | null;
   demoMode: boolean;
   onSignOut: () => void;
   tab?: string | null;
+  need?: string | null; // a feature someone tried to use, to point out the plan that has it
 }) {
   const tab: SettingsTab = TABS.some((t) => t.key === initialTab) ? (initialTab as SettingsTab) : "connections";
   const [draft, setDraft] = useState<Settings>(data.settings);
   const dirty = JSON.stringify(draft) !== JSON.stringify(data.settings);
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => setDraft((d) => ({ ...d, [k]: v }));
+  const plan = currentPlan(data.settings);
+  const can = (f: Feature) => hasFeature(plan, f);
+  // Switching plans saves right away; there's no billing yet, so it's just a choice.
+  const choosePlan = (next: string) => {
+    if (!isPlanId(next)) return;
+    void data.saveSettings({ ...data.settings, plan: next });
+    setDraft((d) => ({ ...d, plan: next }));
+  };
 
   return (
     <div>
@@ -117,14 +130,26 @@ export function SettingsPage({
           {tab === "sale" && (
             <Section title="Sale detection" text="When an item sells on one marketplace, SellSync marks it sold and can take it down everywhere else.">
               <Row title="Adjust quantity on sale" text="For items with more than one in stock, take one off the count instead of marking the item sold.">
-                <Toggle label="Adjust quantity on sale" checked={draft.autoAdjustQuantity} onChange={() => set("autoAdjustQuantity", !draft.autoAdjustQuantity)} />
+                {can("quantitySync") ? (
+                  <Toggle label="Adjust quantity on sale" checked={draft.autoAdjustQuantity} onChange={() => set("autoAdjustQuantity", !draft.autoAdjustQuantity)} />
+                ) : (
+                  <button type="button" onClick={() => upgradeFor("quantitySync")}>
+                    <PlanTag feature="quantitySync" />
+                  </button>
+                )}
               </Row>
-              <p className="text-xs font-medium text-foreground pt-2">Delist from these marketplaces when an item sells elsewhere</p>
-              {ALL_PLATFORMS.map((p) => (
-                <Row key={p} title={<PlatformName p={p} />}>
-                  <Toggle label={`Auto-delist on ${p}`} checked={!!draft.autoDelist[p]} onChange={() => set("autoDelist", { ...draft.autoDelist, [p]: !draft.autoDelist[p] })} />
-                </Row>
-              ))}
+              <p className="text-xs font-medium text-foreground pt-2 flex items-center gap-2">
+                Delist from these marketplaces when an item sells elsewhere {!can("delisting") && <PlanTag feature="delisting" />}
+              </p>
+              {can("delisting") ? (
+                ALL_PLATFORMS.map((p) => (
+                  <Row key={p} title={<PlatformName p={p} />}>
+                    <Toggle label={`Auto-delist on ${p}`} checked={!!draft.autoDelist[p]} onChange={() => set("autoDelist", { ...draft.autoDelist, [p]: !draft.autoDelist[p] })} />
+                  </Row>
+                ))
+              ) : (
+                <LockedCard feature="delisting" text="Take an item down everywhere else the moment it sells, so nobody buys it twice." compact />
+              )}
               <Note>Delisting runs through the browser extension. Until it does, items that sold show as "partially delisted" on Home and in Inventory so you can take them down yourself.</Note>
             </Section>
           )}
@@ -322,7 +347,8 @@ export function SettingsPage({
               </Section>
             </>
           )}
-          {tab === "ai" && (
+          {tab === "ai" && !can("ai") && <LockedCard feature="ai" text="Listings written from your photos or a video, in your own style, plus summaries of buyer feedback." />}
+          {tab === "ai" && can("ai") && (
             <Section title="AI generation" text="Tell the listing assistant how you like things written. It follows these every time it drafts a listing from your photos.">
               {(
                 [
@@ -339,11 +365,9 @@ export function SettingsPage({
             </Section>
           )}
           {tab === "subscription" && (
-            <Section title="Subscription">
-              <div className="rounded-xl border border-border p-4">
-                <p className="font-display text-base font-semibold text-foreground">Early access</p>
-                <p className="text-xs text-muted-foreground mt-1">Every feature is free while SellSync is in early access. Plans and pricing come later, and you'll hear about them before anything changes.</p>
-              </div>
+            <Section title="Subscription" text="Each plan includes everything in the plans before it.">
+              <PlanPicker current={plan} need={need} onChoose={choosePlan} />
+              <Note>SellSync is in early access, so there's no charge yet and you can switch plans freely. You'll hear from us before billing starts.</Note>
             </Section>
           )}
           {tab === "account" && <Account data={data} draft={draft} set={set} email={email} demoMode={demoMode} onSignOut={onSignOut} />}

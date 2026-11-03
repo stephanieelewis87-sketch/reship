@@ -36,7 +36,7 @@ import { salesHints } from "@/lib/videoListing";
 import { Pills } from "../analytics/parts";
 import { PageHeader } from "../shell/PageHeader";
 import { go, type Route } from "../shell/route";
-import { EmptyState, Menu, MenuItem, PlatformIcon, inputClass, selectClass } from "../ui";
+import { EmptyState, Menu, MenuItem, Modal, PlatformIcon, inputClass, selectClass } from "../ui";
 import { LabelDots } from "./LabelChips";
 import { ListingForm } from "./ListingForm";
 import { QuickEdit } from "./QuickEdit";
@@ -44,6 +44,8 @@ import { PhotoListing } from "./PhotoListing";
 import { VideoListing } from "./VideoListing";
 import { ScanModal, SkuLabelsModal } from "./SkuTools";
 import { GuardianPage } from "./GuardianPage";
+import { LockedCard, LockedSection, PlanTag, currentPlan, upgradeFor } from "../plans/PlanGate";
+import { type Feature, hasFeature } from "@/lib/plans";
 import { checkInventory } from "@/lib/guardian";
 
 type Data = ReturnType<typeof useReshipData>;
@@ -86,6 +88,10 @@ function AddOption({ icon: Icon, title, hint, onClick }: { icon: typeof Plus; ti
 export function InventoryPage({ data, route }: { data: Data; route: Route }) {
   const { inventory, settings, saveInventory, deleteInventory } = data;
   const today = isoDay(new Date());
+  const plan = currentPlan(settings);
+  const can = (f: Feature) => hasFeature(plan, f);
+  // Runs `go` when the plan has the feature, and opens the upgrade page when it doesn't.
+  const gated = (f: Feature, go: () => void) => () => (can(f) ? go() : upgradeFor(f));
   const [status, setStatus] = useState<StatusFilter>((route.params.get("status") as StatusFilter) || "all");
   const [issue, setIssue] = useState<Issue>((route.params.get("issue") as Issue) || "");
   const [search, setSearch] = useState("");
@@ -170,8 +176,9 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
         listings: item.listings.map((l) => (l.platform === platform ? { ...l, ...patch } : l)),
       },
     ]);
-  const delistAll = (items: InventoryItem[]) =>
-    saveInventory(
+  const delistAll = (items: InventoryItem[]) => {
+    if (!can("delisting")) return upgradeFor("delisting");
+    return saveInventory(
       items.map((i) => ({
         ...i,
         status: i.status === "sold" ? "sold" : "draft",
@@ -179,6 +186,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
         listings: i.listings.map((l) => (l.status === "active" ? { ...l, status: "delisted" as const } : l)),
       })),
     );
+  };
   const copyItem = (item: InventoryItem) =>
     setForm({
       item: {
@@ -243,7 +251,10 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
       item={form.item}
       isNew={form.isNew}
       settings={settings}
-      ai={data.store.listingAi}
+      ai={can("ai") ? data.store.listingAi : null}
+      aiLocked={!can("ai")}
+      plan={plan}
+      inventory={inventory}
       store={data.store}
       salesNotes={salesHints(inventory)}
       onlyPlatform={form.platform}
@@ -282,6 +293,8 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
       <EmptyState icon={Search} title="No items match" text="Try a different search, or clear the filters." action={{ label: "Clear filters", onClick: clearFilters }} />
     );
 
+  if (route.params.has("guardian") && !can("backups"))
+    return <LockedSection feature="backups" title="Inventory Guardian" text="Daily backups of your inventory, one-click restore, listing checks and a history of every change." />;
   if (route.params.has("guardian"))
     return (
       <>
@@ -297,11 +310,12 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => go("inventory", { guardian: "" })}
+            onClick={gated("backups", () => go("inventory", { guardian: "" }))}
             title="Inventory Guardian: backups, recovery, listing checks and change history"
             className="relative flex items-center gap-1.5 px-3 py-2 rounded-md border border-border text-sm hover:bg-muted"
           >
             <ShieldCheck className="w-4 h-4" /> <span className="hidden sm:inline">Guardian</span>
+            {!can("backups") && <PlanTag feature="backups" className="hidden sm:inline-flex" />}
             {guardianAlerts > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-rose-600 text-white text-[10px] leading-4 text-center">{guardianAlerts}</span>}
           </button>
           <Menu
@@ -336,12 +350,13 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
           </Menu>
           <button
             type="button"
-            onClick={() => setVideo(true)}
+            onClick={gated("videoListing", () => setVideo(true))}
             className="flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-lg bg-amber-400 text-amber-950 text-sm font-bold shadow-md shadow-amber-400/30 ring-2 ring-amber-300 hover:bg-amber-300 hover:shadow-lg transition"
           >
             <Clapperboard className="w-4 h-4" />
             <span className="hidden sm:inline">List with a video</span>
             <span className="sm:hidden">Video</span>
+            {!can("videoListing") && <PlanTag feature="videoListing" />}
           </button>
           <Menu
             align="right"
@@ -358,8 +373,8 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
             {(close) => (
               <div className="min-w-56">
                 <AddOption icon={Plus} title="One item" hint="Fill in the details yourself" onClick={() => (close(), setForm({ item: blank(), isNew: true }))} />
-                <AddOption icon={Images} title="From photos" hint="Up to 25 items, one listing each" onClick={() => (close(), setPhotoUpload(true))} />
-                <AddOption icon={Clapperboard} title="From a video" hint="Film your pile, get drafts" onClick={() => (close(), setVideo(true))} />
+                <AddOption icon={Images} title="From photos" hint={can("ai") ? "Up to 25 items, one listing each" : "AI listing, on Flow"} onClick={() => (close(), gated("ai", () => setPhotoUpload(true))())} />
+                <AddOption icon={Clapperboard} title="From a video" hint={can("videoListing") ? "Film your pile, get drafts" : "Video listing, on Flow"} onClick={() => (close(), gated("videoListing", () => setVideo(true))())} />
                 <AddOption icon={ScanLine} title="Scan a barcode" hint="Find or add an item by its SKU" onClick={() => (close(), setScan(true))} />
               </div>
             )}
@@ -645,7 +660,9 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
             setSelected(new Set());
             if (msg) setNotice(msg);
           }}
+          canCrosslist={can("crosslisting")}
           onDelist={() => {
+            if (!can("delisting")) return upgradeFor("delisting");
             delistAll(selectedRows);
             setSelected(new Set());
           }}
@@ -653,7 +670,14 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
         />
       )}
 
-      {video && (
+      {(video && !can("videoListing")) || (photoUpload && !can("ai")) ? (
+        <Modal onClose={() => (setVideo(false), setPhotoUpload(false))} label="Upgrade">
+          <div className="p-5">
+            <LockedCard feature={video ? "videoListing" : "ai"} text={video ? "Film your pile for a few seconds and get a draft listing for every item." : "Upload photos of up to 25 items and AI writes one listing for each."} compact />
+          </div>
+        </Modal>
+      ) : null}
+      {video && can("videoListing") && (
         <VideoListing
           data={data}
           onClose={() => setVideo(false)}
@@ -664,7 +688,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
           }}
         />
       )}
-      {photoUpload && (
+      {photoUpload && can("ai") && (
         <PhotoListing
           data={data}
           onClose={() => setPhotoUpload(false)}
@@ -969,7 +993,21 @@ function BoardCard({
 }
 
 // Actions for the checked rows on this page.
-function BulkBar({ data, items, onDone, onDelist, onLabels }: { data: Data; items: InventoryItem[]; onDone: (msg?: string) => void; onDelist: () => void; onLabels: () => void }) {
+function BulkBar({
+  data,
+  items,
+  canCrosslist,
+  onDone,
+  onDelist,
+  onLabels,
+}: {
+  data: Data;
+  items: InventoryItem[];
+  canCrosslist: boolean;
+  onDone: (msg?: string) => void;
+  onDelist: () => void;
+  onLabels: () => void;
+}) {
   const { settings, saveInventory, deleteInventory } = data;
   const [mode, setMode] = useState<"" | "crosslist" | "label" | "edit">("");
   const [platforms, setPlatforms] = useState<Set<Platform>>(new Set());
@@ -1031,8 +1069,12 @@ function BulkBar({ data, items, onDone, onDelist, onLabels }: { data: Data; item
     <div className="fixed bottom-16 md:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-3xl bg-foreground text-background rounded-xl shadow-2xl p-3 text-sm">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="font-medium mr-2">{items.length} selected on this page</span>
-        <button type="button" onClick={() => setMode(mode === "crosslist" ? "" : "crosslist")} className="px-2.5 py-1 rounded-md bg-background/10 hover:bg-background/20">
-          Crosslist
+        <button
+          type="button"
+          onClick={() => (canCrosslist ? setMode(mode === "crosslist" ? "" : "crosslist") : upgradeFor("crosslisting"))}
+          className="px-2.5 py-1 rounded-md bg-background/10 hover:bg-background/20 flex items-center gap-1"
+        >
+          Crosslist {!canCrosslist && <PlanTag feature="crosslisting" />}
         </button>
         <button type="button" onClick={() => setMode(mode === "label" ? "" : "label")} className="px-2.5 py-1 rounded-md bg-background/10 hover:bg-background/20 flex items-center gap-1">
           <Tag className="w-3.5 h-3.5" /> Labels

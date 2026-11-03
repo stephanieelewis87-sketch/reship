@@ -8,7 +8,6 @@ import {
   ChevronDown,
   Landmark,
   Menu,
-  Package,
   Printer,
   RefreshCw,
   Repeat2,
@@ -20,6 +19,8 @@ import {
 } from "lucide-react";
 import type { Platform } from "@/lib/types";
 import { PlatformIcon } from "../ui";
+import { Logo as BrandLogo } from "../brand/Logo";
+import { PLANS as PLAN_INFO, PLAN_IDS, priceLabel } from "@/lib/plans";
 
 const MARKETPLACES: Platform[] = ["Poshmark", "Mercari", "eBay", "Depop", "Vinted", "Etsy", "WhatNot"];
 
@@ -54,11 +55,8 @@ const ctaSecondary =
 
 function Logo() {
   return (
-    <a href="#top" className="flex items-center gap-2.5">
-      <span className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-        <Package className="w-4 h-4 text-white" />
-      </span>
-      <span className="font-display font-semibold text-lg">Reship</span>
+    <a href="#top" className="flex items-center gap-2.5" aria-label="SellSync">
+      <BrandLogo />
     </a>
   );
 }
@@ -141,7 +139,7 @@ function Hero({ onSignUp, demoHref }: { onSignUp: () => void; demoHref: string }
             <span className="text-accent">Ship in one print.</span>
           </h1>
           <p className="mt-6 text-lg text-muted-foreground max-w-md">
-            Reship turns a quick clip of your item into a ready-to-post listing, pulls your payouts from every marketplace together, and prints
+            SellSync turns a quick clip of your item into a ready-to-post listing, pulls your payouts from every marketplace together, and prints
             every label you owe in a single batch.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3">
@@ -214,7 +212,7 @@ const PILLARS: { icon: ComponentType<{ className?: string }>; title: string; bod
   {
     icon: Video,
     title: "Video listing",
-    body: "Film your item for a few seconds. Reship writes the title, brand, size, condition and price, and picks the best photos.",
+    body: "Film your item for a few seconds. SellSync writes the title, brand, size, condition and price, and picks the best photos.",
     href: "#video",
   },
   {
@@ -323,7 +321,7 @@ function FeatureVideo() {
       id="video"
       eyebrow="Video listing"
       title="Film it once. The listing writes itself."
-      body="Hold your phone up, turn the item around, and say anything worth knowing. Reship turns the clip into a complete listing you can post everywhere."
+      body="Hold your phone up, turn the item around, and say anything worth knowing. SellSync turns the clip into a complete listing you can post everywhere."
       points={[
         "Title, brand, size, color and condition filled in from the video",
         "Sharp photos pulled straight from the clip, no photo shoot",
@@ -441,7 +439,7 @@ function FeaturePayouts() {
       id="payouts"
       eyebrow="One-button payouts"
       title="Every marketplace balance. One withdraw button."
-      body="Stop logging in to four apps to move your money. Reship adds up what each marketplace is holding for you and sends it all to your bank in one go."
+      body="Stop logging in to four apps to move your money. SellSync adds up what each marketplace is holding for you and sends it all to your bank in one go."
       points={[
         "One running balance across all your marketplaces",
         "Withdraw everything, or pick which marketplaces to cash out",
@@ -526,7 +524,7 @@ function FeatureLabels() {
       id="labels"
       eyebrow="Easy shipping labels"
       title="Every label you owe, printed in one click."
-      body="Reship collects the labels your marketplaces already generated for each sale, so there is nothing to buy or retype. Select your orders and print them all at once."
+      body="SellSync collects the labels your marketplaces already generated for each sale, so there is nothing to buy or retype. Select your orders and print them all at once."
       points={[
         "One PDF for every marketplace's labels, sized for 4x6, Letter or A4",
         "Your SKU stamped on each label so you grab the right item",
@@ -613,7 +611,7 @@ function MoreTools() {
 }
 
 const STEPS = [
-  { title: "Connect your marketplaces", body: "Add the Reship browser extension and stay logged in where you already sell. We never ask for your passwords." },
+  { title: "Connect your marketplaces", body: "Add the SellSync browser extension and stay logged in where you already sell. We never ask for your passwords." },
   { title: "List and sell", body: "Film new items to create listings, and watch sold orders arrive in one dashboard." },
   { title: "Ship and get paid", body: "Print the day's labels in one batch, then withdraw every balance with one tap." },
 ];
@@ -637,56 +635,39 @@ function HowItWorks() {
   );
 }
 
-// Edit plans here: name, monthly price, pitch and what's included. `featured` gets the highlighted card.
-const PLANS: { name: string; price: string; pitch: string; features: string[]; featured?: boolean }[] = [
-  {
-    name: "Ship",
-    price: "$9.99",
-    pitch: "Everything you need to get orders out the door.",
-    features: [
-      "One-click shipping labels with SKUs and packing slips",
-      "One order inbox for sales from every marketplace",
-      "Returns tracking",
-    ],
-  },
-  {
-    name: "Grow",
-    price: "$49",
-    pitch: "List everywhere and keep track of what you own.",
-    features: ["Everything in Ship", "Crosslisting, including Vinted and Mercari", "Inventory tracking", "Basic analytics"],
-  },
-  {
-    name: "Flow",
-    price: "$109",
-    pitch: "Replaces your crosslister, your shipping tool and your spreadsheet.",
-    features: ["Everything in Grow", "Video listing", "AI summaries of buyer feedback", "Full profit analytics", "One-tap withdrawal"],
-    featured: true,
-  },
-];
+// The plans come from src/lib/plans.ts, the same list the app and the affiliate program use.
+const PLANS = PLAN_IDS.map((id, i) => ({
+  id,
+  name: PLAN_INFO[id].name,
+  price: priceLabel(id),
+  pitch: PLAN_INFO[id].pitch,
+  features: [...(i > 0 ? [`Everything in ${PLAN_INFO[PLAN_IDS[i - 1]].name}`] : []), ...PLAN_INFO[id].adds],
+  featured: id === "flow",
+}));
 
 function Pricing({ onSignUp }: { onSignUp: () => void }) {
   return (
     <section id="pricing" className="scroll-mt-16 max-w-6xl mx-auto px-4 sm:px-6 py-20">
       <div className="text-center max-w-2xl mx-auto">
         <Eyebrow>Pricing</Eyebrow>
-        <h2 className="font-display text-3xl sm:text-4xl font-medium mt-4">Start with shipping. Grow into everything.</h2>
+        <h2 className="font-display text-3xl sm:text-4xl font-medium mt-4">Start selling. Grow into everything.</h2>
         <p className="mt-4 text-muted-foreground">Pick the plan that fits your shop today, and change it any time.</p>
       </div>
-      <div className="mt-12 grid md:grid-cols-3 gap-5 items-stretch">
+      <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-5 gap-4 items-stretch">
         {PLANS.map((plan) => (
           <div
-            key={plan.name}
-            className={`relative flex flex-col rounded-3xl p-7 ${
-              plan.featured ? "bg-foreground text-background shadow-2xl md:-my-3" : "bg-card border border-border"
+            key={plan.id}
+            className={`relative flex flex-col rounded-3xl p-6 ${
+              plan.featured ? "bg-foreground text-background shadow-2xl lg:-my-3" : "bg-card border border-border"
             }`}
           >
             {plan.featured && (
-              <span className="absolute -top-3 left-7 px-3 py-1 rounded-full bg-accent text-accent-foreground text-xs font-semibold">Everything included</span>
+              <span className="absolute -top-3 left-6 px-3 py-1 rounded-full bg-accent text-accent-foreground text-xs font-semibold">Everything included</span>
             )}
             <p className="font-semibold text-lg">{plan.name}</p>
             <p className={`mt-1 text-sm ${plan.featured ? "text-background/70" : "text-muted-foreground"}`}>{plan.pitch}</p>
             <p className="mt-5">
-              <span className="font-display text-5xl">{plan.price}</span>
+              <span className="font-display text-4xl">{plan.price}</span>
               <span className={plan.featured ? "text-background/70" : "text-muted-foreground"}> / month</span>
             </p>
             <ul className="mt-6 space-y-3 flex-1">
@@ -710,24 +691,24 @@ function Pricing({ onSignUp }: { onSignUp: () => void }) {
 
 const FAQS = [
   {
-    q: "Do I have to give Reship my marketplace passwords?",
-    a: "No. The Reship browser extension works through the marketplace accounts you're already logged in to in Chrome, so your passwords stay with you.",
+    q: "Do I have to give SellSync my marketplace passwords?",
+    a: "No. The SellSync browser extension works through the marketplace accounts you're already logged in to in Chrome, so your passwords stay with you.",
   },
   {
     q: "Which marketplaces work?",
     a: "Poshmark and Mercari orders and labels sync automatically today. You can bring in orders from Depop, Vinted, Whatnot, Etsy and eBay with a CSV export, and automatic sync for them is on the way.",
   },
   {
-    q: "Do I have to buy labels through Reship?",
-    a: "No. Reship prints the prepaid labels your marketplaces already made for each sale. If you want a different carrier, you can compare rates for USPS, UPS and FedEx.",
+    q: "Do I have to buy labels through SellSync?",
+    a: "No. SellSync prints the prepaid labels your marketplaces already made for each sale. If you want a different carrier, you can compare rates for USPS, UPS and FedEx.",
   },
   {
     q: "What label sizes can I print?",
-    a: "4x6 thermal labels, US Letter and A4. Reship crops and rotates marketplace labels to fit, and can add a packing slip after each one.",
+    a: "4x6 thermal labels, US Letter and A4. SellSync crops and rotates marketplace labels to fit, and can add a packing slip after each one.",
   },
   {
     q: "Does it work on my phone?",
-    a: "Yes. Reship works in your phone's browser, which is also the easiest way to film items for video listings.",
+    a: "Yes. SellSync works in your phone's browser, which is also the easiest way to film items for video listings.",
   },
 ];
 
@@ -787,7 +768,7 @@ function Footer({ onSignIn }: { onSignIn: () => void }) {
             Sign in
           </button>
         </nav>
-        <p>© {new Date().getFullYear()} Reship</p>
+        <p>© {new Date().getFullYear()} SellSync</p>
       </div>
     </footer>
   );
