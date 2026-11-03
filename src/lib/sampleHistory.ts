@@ -194,7 +194,35 @@ export function sampleHistory(today = isoDay(new Date())): { inventory: Inventor
     });
   }
   orders.sort((a, b) => b.date.localeCompare(a.date));
+  sampleListingStats(inventory, today);
   return { inventory, orders, expenses: sampleExpenses(today, r) };
+}
+
+// Views and watchers on live listings, as marketplaces would report them: more the longer an item
+// has been up, with a reading from a week ago so the change shows. Uses its own random numbers so
+// the rest of the demo stays the same. Poshmark doesn't report views, so it only gets likes.
+function sampleListingStats(inventory: InventoryItem[], today: string) {
+  const s = rng(20261103);
+  const weekAgo = addDays(today, -7);
+  for (const item of inventory) {
+    if (item.status !== "listed") continue;
+    item.listings = item.listings.map((l) => {
+      if (l.status !== "active" || s() < 0.25) return l;
+      const days = Math.max(1, daysBetween(l.listedAt ?? today, today));
+      const pull = 0.4 + s() * 2.2; // some items just get more looks
+      const views = l.platform === "Poshmark" ? undefined : Math.round(Math.sqrt(days) * 9 * pull);
+      const watchers = Math.round(Math.sqrt(days) * 0.7 * pull * s());
+      const lastViews = views == null ? undefined : Math.max(0, Math.round(views * (0.7 + s() * 0.25)));
+      const lastWatchers = Math.max(0, watchers - Math.round(s() * 3));
+      return {
+        ...l,
+        views,
+        watchers,
+        statsAt: today,
+        statsHistory: days > 7 ? [{ date: weekAgo, views: lastViews, watchers: lastWatchers }] : undefined,
+      };
+    });
+  }
 }
 
 const CONDITION_MIX: Condition[] = ["New with tags", "Like new", "Good", "Good", "Good", "Fair"];

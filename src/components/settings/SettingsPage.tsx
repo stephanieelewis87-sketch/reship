@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { ChevronDown, MapPin, Plus, Puzzle, Trash2 } from "lucide-react";
 import type { LabelFormat, PackageType, Platform, Settings } from "@/lib/types";
 import { PLATFORM_INFO } from "@/lib/platforms";
+import { STATS_SOURCE } from "@/lib/listingStats";
 import { ALL_PLATFORMS, CARRIER_SERVICES, PACKAGE_TYPES, emptyAddress } from "@/lib/types";
 import type { useReshipData } from "@/lib/useReshipData";
 import { AddressFields } from "../AddressFields";
@@ -388,7 +389,7 @@ function Connections() {
         <Puzzle className="w-4 h-4 shrink-0" />
         <p>The extension isn't connected yet. Until it is, use Add orders on the Orders page to add them by hand or from a CSV file, and add inventory by hand.</p>
       </div>
-      <p className="text-xs text-muted-foreground">Each marketplace allows different things. Here is how orders, labels and listings work on each one.</p>
+      <p className="text-xs text-muted-foreground">Each marketplace allows different things. Here is how orders, labels, listings, and views and watchers work on each one.</p>
       {ALL_PLATFORMS.map((p) => {
         const info = PLATFORM_INFO[p];
         return (
@@ -409,6 +410,8 @@ function Connections() {
               <dd className="text-foreground">{info.label}</dd>
               <dt className="text-muted-foreground">Listings</dt>
               <dd className="text-foreground">{info.listing}</dd>
+              <dt className="text-muted-foreground">Views</dt>
+              <dd className="text-foreground">{STATS_SOURCE[p]}</dd>
               {info.note && <dd className="col-span-2 text-muted-foreground pt-1">{info.note}</dd>}
             </dl>
           </details>
