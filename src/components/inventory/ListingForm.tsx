@@ -13,6 +13,8 @@ import type { ListingSuggestion } from "@/lib/videoListing";
 import { splitDataUrl } from "@/lib/videoFrames";
 import { Field, PlatformIcon, SectionLabel, Toggle, inputClass, primaryButton, secondaryButton } from "../ui";
 import { LabelChips } from "./LabelChips";
+import { MinPriceNote } from "./MinPriceNote";
+import { atLeastMinimum, underMinimum } from "@/lib/minPrice";
 import { PLANS, type PlanId, listingRoom, marketplacesInUse, nextPlanFor } from "@/lib/plans";
 import { PlanTag, upgradeFor, upgradeTo } from "../plans/PlanGate";
 
@@ -72,6 +74,10 @@ export function ListingForm({
   const set = <K extends keyof InventoryItem>(k: K, v: InventoryItem[K]) => setD((x) => ({ ...x, [k]: v }));
   const photos = d.photos ?? (d.photo ? [d.photo] : []);
   const base = num(text.listPrice);
+  // Each chosen marketplace's price: the one typed in, or the base price after the pricing rule.
+  const finalPrice = (p: Platform) => num(prices[p] ?? "") ?? priceFor(base, p, settings);
+  const baseTooLow = underMinimum(base);
+  const lowMarkets = [...chosen].filter((p) => underMinimum(finalPrice(p)));
 
   const build = (publish: boolean): InventoryItem => {
     const today = isoDay(new Date());
@@ -80,7 +86,7 @@ export function ListingForm({
       chosen.forEach((p) => {
         const prev = item.listings.find((l) => l.platform === p);
         if (prev?.status === "sold") return;
-        listings.push({ ...prev, platform: p, status: "active", listedAt: prev?.status === "active" ? prev.listedAt : today, price: num(prices[p] ?? "") ?? priceFor(base, p, settings) });
+        listings.push({ ...prev, platform: p, status: "active", listedAt: prev?.status === "active" ? prev.listedAt : today, price: finalPrice(p) });
       });
     // Listing links or IDs typed in for each marketplace.
     for (const [p, text] of Object.entries(refs) as [Platform, string][]) {
@@ -125,7 +131,7 @@ export function ListingForm({
         condition: x.condition ?? l.condition,
         notes: l.flaws && !x.notes ? `Flaws: ${l.flaws}` : x.notes,
       }));
-      if (l.price && !text.listPrice.trim()) setText((t) => ({ ...t, listPrice: String(Math.round(l.price!.suggested)) }));
+      if (l.price && !text.listPrice.trim()) setText((t) => ({ ...t, listPrice: String(atLeastMinimum(Math.round(l.price!.suggested))) }));
       setGen({ busy: false, message: l.price ? `Suggested $${Math.round(l.price.suggested)} (usually sells for $${Math.round(l.price.low)}–$${Math.round(l.price.high)}). ${l.price.reasoning}` : "Filled in from your photos." });
     } catch (e) {
       setGen({ busy: false, message: (e as Error).message });
@@ -237,7 +243,13 @@ export function ListingForm({
                 </select>
               </Field>
               <Field label="Price ($)">
-                <input className={inputClass} inputMode="decimal" value={text.listPrice} onChange={(e) => setText({ ...text, listPrice: e.target.value })} />
+                <input
+                  className={`${inputClass} ${baseTooLow ? "ring-2 ring-amber-400" : ""}`}
+                  inputMode="decimal"
+                  aria-invalid={baseTooLow}
+                  value={text.listPrice}
+                  onChange={(e) => setText({ ...text, listPrice: e.target.value })}
+                />
               </Field>
               <Field label="Cost ($)">
                 <input className={inputClass} inputMode="decimal" value={text.cost} onChange={(e) => setText({ ...text, cost: e.target.value })} placeholder="What you paid" />
@@ -311,7 +323,7 @@ export function ListingForm({
                       {!sold && existing.has(p) && item.listings.find((l) => l.platform === p)?.status === "active" && <span className="text-[11px] text-muted-foreground">listed</span>}
                     </button>
                     <input
-                      className={`${inputClass} w-20 text-right`}
+                      className={`${inputClass} w-20 text-right ${on && underMinimum(finalPrice(p)) ? "ring-2 ring-amber-400" : ""}`}
                       inputMode="decimal"
                       aria-label={`${p} price`}
                       placeholder={priceFor(base, p, settings)?.toString() ?? "$"}
@@ -322,6 +334,7 @@ export function ListingForm({
                 );
               })}
             </div>
+            {!baseTooLow && lowMarkets.length > 0 && <MinPriceNote detail={`The price on ${lowMarkets.join(", ")} is under the minimum after your pricing rule.`} />}
             {marketFull && (
               <p className="text-[12px] text-muted-foreground">
                 {PLANS[plan].name} lists on up to {marketLimit} marketplaces ({[...inUse].join(", ")}).{" "}
@@ -398,6 +411,7 @@ export function ListingForm({
                 Delete
               </button>
             ))}
+          {baseTooLow && <MinPriceNote className="flex-1" />}
           {dailyFull && (
             <p className="text-[12px] text-muted-foreground">
               You've listed {room.cap} new items today, {PLANS[plan].name}'s daily limit. Save it as a draft
@@ -413,12 +427,12 @@ export function ListingForm({
             </p>
           )}
           <div className="ml-auto flex gap-2">
-            <button type="button" disabled={!valid} onClick={() => onSave(build(false), "Saved.")} className={secondaryButton}>
+            <button type="button" disabled={!valid || baseTooLow} onClick={() => onSave(build(false), "Saved.")} className={secondaryButton}>
               {d.status === "draft" || isNew ? "Save draft" : "Save"}
             </button>
             <button
               type="button"
-              disabled={!valid || chosen.size === 0 || dailyFull}
+              disabled={!valid || chosen.size === 0 || dailyFull || baseTooLow || lowMarkets.length > 0}
               onClick={() => onSave(build(true), `Listed on ${[...chosen].join(", ")}.`)}
               className={primaryButton}
             >

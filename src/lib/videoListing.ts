@@ -1,5 +1,6 @@
 import type { Condition, InventoryItem } from "./types";
 import { CONDITIONS } from "./types";
+import { underMinimum } from "./minPrice";
 
 // "List with a video": the seller films up to 25 items, SellSync finds each one, keeps snips from
 // the video, and fills in a draft listing with a suggested price. This file holds the parts that
@@ -204,7 +205,9 @@ export interface VideoDraft {
 // madeWith names the tool in the item's notes ("List with a video" or "List from photos").
 export function draftToItem(d: VideoDraft, photos: string[], sku: string, now = new Date(), madeWith = "List with a video"): InventoryItem {
   const l = d.listing;
-  const price = parseFloat(d.priceText);
+  const typed = parseFloat(d.priceText);
+  // A price under SellSync's minimum isn't kept; the seller sets a new one before listing.
+  const price = underMinimum(typed) ? NaN : typed;
   const notes = [l.flaws && `Flaws: ${l.flaws}`, l.price?.reasoning && `Price note: ${l.price.reasoning}`, `Made with ${madeWith}.`].filter(Boolean).join("\n");
   return {
     id: crypto.randomUUID(),

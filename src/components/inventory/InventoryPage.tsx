@@ -51,6 +51,7 @@ import { LockedCard, LockedSection, PlanTag, currentPlan, upgradeFor } from "../
 import { type Feature, crosslistTargets, hasFeature, yourMarketplaces } from "@/lib/plans";
 import { BrandMark } from "../brand/Logo";
 import { checkInventory } from "@/lib/guardian";
+import { minPriceLabel, minPriceMessage, underMinimum } from "@/lib/minPrice";
 
 type Data = ReturnType<typeof useReshipData>;
 type StatusFilter = "all" | "draft" | "listed" | "sold";
@@ -217,10 +218,12 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
   const mine = useMemo(() => yourMarketplaces(plan, inventory, ALL_PLATFORMS, settings.primaryMarketplace), [plan, inventory, settings.primaryMarketplace]);
   const crosslistAll = (item: InventoryItem) => {
     if (!can("crosslisting")) return upgradeFor("crosslisting");
-    const targets = crosslistTargets(item, mine);
-    if (!targets.length) return;
+    const all = crosslistTargets(item, mine);
+    const targets = pricedOk(item, all, settings);
+    if (!targets.length) return all.length ? setNotice(`${item.title || "This item"} is priced under ${minPriceLabel}. ${minPriceMessage}`) : undefined;
     saveInventory([crosslistItem(item, targets, today, settings)]);
-    setNotice(`Crosslisted ${item.title || "this item"} to ${targets.join(", ")}.`);
+    const skipped = all.filter((p) => !targets.includes(p));
+    setNotice(`Crosslisted ${item.title || "this item"} to ${targets.join(", ")}.${skipped.length ? ` Skipped ${skipped.join(", ")}: the price there is under ${minPriceLabel}.` : ""}`);
   };
   const copyItem = (item: InventoryItem) =>
     setForm({
@@ -668,7 +671,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                       </div>
                     </td>
                     <td className="px-3 py-2 text-center border-x border-border/60">
-                      <CrosslistAllButton item={item} targets={crosslistTargets(item, mine)} locked={!can("crosslisting")} onClick={() => crosslistAll(item)} />
+                      <CrosslistAllButton item={item} targets={pricedOk(item, crosslistTargets(item, mine), settings)} tooLow={underMinimum(item.listPrice)} locked={!can("crosslisting")} onClick={() => crosslistAll(item)} />
                     </td>
                     {ALL_PLATFORMS.map((p) => {
                       const l = item.listings.find((x) => x.platform === p);
@@ -1093,12 +1096,14 @@ function BoardCard({
 }
 
 // The S button in the Crosslist to all column. Dimmed when there's nowhere left to list the item.
-function CrosslistAllButton({ item, targets, locked, onClick }: { item: InventoryItem; targets: Platform[]; locked: boolean; onClick: () => void }) {
+function CrosslistAllButton({ item, targets, tooLow, locked, onClick }: { item: InventoryItem; targets: Platform[]; tooLow: boolean; locked: boolean; onClick: () => void }) {
   if (item.status === "sold") return <span className="inline-block w-10 h-10" />;
   const done = targets.length === 0;
   const title = locked
     ? "Crosslisting comes with the Sync plan"
-    : done
+    : tooLow
+      ? `Priced under ${minPriceLabel}. ${minPriceMessage}`
+      : done
       ? "Already live on all your marketplaces"
       : `Crosslist to ${targets.join(", ")}`;
   return (
@@ -1118,10 +1123,16 @@ function CrosslistAllButton({ item, targets, locked, onClick }: { item: Inventor
   );
 }
 
+// The marketplaces where the item's price, after the seller's pricing rule, meets SellSync's minimum.
+// An item with no price yet isn't held back here; the listing form asks for one.
+function pricedOk(i: InventoryItem, platforms: Platform[], settings: Data["settings"]): Platform[] {
+  return platforms.filter((p) => !underMinimum(priceFor(i.listPrice, p, settings)));
+}
+
 // Puts an item up on each of `platforms`: a new listing where it has none, a relist where it was delisted.
 function crosslistItem(i: InventoryItem, platforms: Platform[], today: string, settings: Data["settings"]): InventoryItem {
   const listings = [...i.listings];
-  platforms.forEach((p) => {
+  pricedOk(i, platforms, settings).forEach((p) => {
     const at = listings.findIndex((l) => l.platform === p);
     const next: Listing = {
       platform: p,
@@ -1173,12 +1184,14 @@ function BulkBar({
   }>({ condition: "", quantity: "", cost: "", location: "" });
   const today = isoDay(new Date());
   const crosslist = () => {
-    saveInventory(
-      items
-        .filter((i) => i.status !== "sold")
-        .map((i) => crosslistItem(i, [...platforms], today, settings)),
+    const open = items.filter((i) => i.status !== "sold");
+    const ok = open.filter((i) => pricedOk(i, [...platforms], settings).length > 0);
+    const held = open.length - ok.length;
+    saveInventory(ok.map((i) => crosslistItem(i, [...platforms], today, settings)));
+    onDone(
+      `Crosslisted ${ok.length} item${ok.length !== 1 ? "s" : ""} to ${[...platforms].join(", ")}.` +
+        (held ? ` ${held} priced under ${minPriceLabel} ${held === 1 ? "was" : "were"} left out. ${minPriceMessage}` : ""),
     );
-    onDone(`Crosslisted ${items.length} item${items.length !== 1 ? "s" : ""} to ${[...platforms].join(", ")}.`);
   };
   const applyEdit = () => {
     saveInventory(

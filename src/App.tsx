@@ -8,6 +8,7 @@ import { AuthScreen } from "./components/AuthScreen";
 import { AffiliateProgramPage } from "./components/affiliates/AffiliateProgramPage";
 import { captureReferral, clearReferral, pendingReferral } from "./lib/referralCapture";
 import { HomePage } from "./components/landing/HomePage";
+import { MissionPage } from "./components/mission/MissionPage";
 
 const demoStore = new LocalStore();
 // sellsync…/?demo opens the demo with sample orders even where accounts are set up, for showing
@@ -15,6 +16,8 @@ const demoStore = new LocalStore();
 const demoRequested = new URLSearchParams(window.location.search).has("demo");
 // sellsync…/?affiliates is the public page about the affiliate program, for sharing.
 const programPageRequested = new URLSearchParams(window.location.search).has("affiliates");
+// sellsync…/?mission is the public page with SellSync's mission and philosophy.
+const missionRequested = new URLSearchParams(window.location.search).has("mission");
 // sellsync…/?welcome shows the public homepage even when signed in or running without accounts.
 const welcomeRequested = new URLSearchParams(window.location.search).has("welcome");
 
@@ -27,6 +30,7 @@ type AuthMode = "signin" | "signup";
 export default function App() {
   const [authMode, setAuthMode] = useState<AuthMode | null>(null);
   if (programPageRequested) return <AffiliateProgramPage />;
+  if (missionRequested) return <MissionPage />;
   if (welcomeRequested && !authMode) {
     // Without accounts set up, the homepage's sign-in buttons open the demo instead.
     const enter = supabase ? setAuthMode : () => window.location.assign("/?demo");

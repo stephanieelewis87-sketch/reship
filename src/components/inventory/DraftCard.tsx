@@ -3,6 +3,8 @@ import { CONDITIONS } from "@/lib/types";
 import type { Condition } from "@/lib/types";
 import type { ListingSuggestion, VideoDraft } from "@/lib/videoListing";
 import { Field, inputClass } from "../ui";
+import { MinPriceNote } from "./MinPriceNote";
+import { underMinimum } from "@/lib/minPrice";
 
 // One draft listing to check before saving: its photos (tap to pick the cover) and the fields the
 // AI filled in. Used by List with a video and List from photos.
@@ -28,6 +30,7 @@ export function DraftCard({
   const l = d.listing;
   const photos = [...(d.aiPhoto ? [d.aiPhoto] : []), ...d.snips];
   const writing = d.state === "waiting" || d.state === "writing";
+  const tooLow = d.priceText.trim() !== "" && underMinimum(parseFloat(d.priceText));
   return (
     <div className={`rounded-xl border p-3 sm:p-4 flex flex-col md:flex-row gap-4 ${d.include ? "border-border" : "border-dashed border-border opacity-60"}`}>
       <div className="md:w-64 shrink-0 space-y-2">
@@ -117,9 +120,17 @@ export function DraftCard({
             <input className={inputClass} value={l.color ?? ""} disabled={writing} onChange={(e) => patchListing({ color: e.target.value })} />
           </Field>
           <Field label="Price ($)">
-            <input className={inputClass} inputMode="decimal" value={d.priceText} disabled={writing} onChange={(e) => patch({ priceText: e.target.value })} />
+            <input
+              className={`${inputClass} ${tooLow ? "ring-2 ring-amber-400" : ""}`}
+              inputMode="decimal"
+              aria-invalid={tooLow}
+              value={d.priceText}
+              disabled={writing}
+              onChange={(e) => patch({ priceText: e.target.value })}
+            />
           </Field>
         </div>
+        {tooLow && <MinPriceNote detail={d.include ? "Raise the price or leave this item out to save." : undefined} />}
         {l.price && (
           <div className="text-xs rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 px-3 py-2">
             <span className="font-medium">

@@ -21,6 +21,7 @@ import type { Platform } from "@/lib/types";
 import { PlatformIcon } from "../ui";
 import { Logo as BrandLogo } from "../brand/Logo";
 import { PLANS as PLAN_INFO, PLAN_IDS, priceLabel } from "@/lib/plans";
+import { MISSION_HREF, minPriceLabel } from "@/lib/minPrice";
 
 const MARKETPLACES: Platform[] = ["Poshmark", "Mercari", "eBay", "Depop", "Vinted", "Etsy", "WhatNot"];
 
@@ -66,6 +67,7 @@ const NAV_LINKS = [
   { href: "#how", label: "How it works" },
   { href: "#pricing", label: "Pricing" },
   { href: "#faq", label: "FAQ" },
+  { href: MISSION_HREF, label: "Mission" },
 ];
 
 function NavBar({ onSignIn, onSignUp }: { onSignIn: () => void; onSignUp: () => void }) {
@@ -705,6 +707,10 @@ const FAQS = [
   {
     q: "What label sizes can I print?",
     a: "4x6 thermal labels, US Letter and A4. SellSync crops and rotates marketplace labels to fit, and can add a packing slip after each one.",
+  },
+  {
+    q: `Why is there a ${minPriceLabel} minimum price?`,
+    a: `A seller's labor is not free. Very low-priced items leave nothing for the work behind them, clog the shipping channels and the marketplaces, and undervalue quality brands. Every item listed through SellSync is priced at ${minPriceLabel} or more. Smaller items sell well bundled together. Read more on our Mission page.`,
   },
   {
     q: "Does it work on my phone?",
