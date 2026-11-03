@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Info, Puzzle } from "lucide-react";
 import type { AutomationKind, AutomationSetting, Automations, Platform } from "@/lib/types";
+import { AUTOMATION_KINDS, automationOn } from "@/lib/types";
 import { relistState } from "@/lib/inventory";
 import type { useReshipData } from "@/lib/useReshipData";
 import { PlatformIcon, Toggle, inputClass, primaryButton } from "../ui";
@@ -9,15 +10,13 @@ import { PageHeader } from "../shell/PageHeader";
 type Data = ReturnType<typeof useReshipData>;
 
 const KINDS: { kind: AutomationKind; label: string; text: string }[] = [
-  { kind: "shares", label: "Shares", text: "Share your closet so listings stay near the top of search." },
   { kind: "relists", label: "Relists", text: "Delist and relist older items so they show up as new." },
   { kind: "offers", label: "Offers", text: "Send offers to people who liked or watched an item." },
-  { kind: "follows", label: "Follows", text: "Follow new people so they see your closet." },
 ];
 
 // What each marketplace lets sellers automate.
 const SUPPORTED: Partial<Record<Platform, AutomationKind[]>> = {
-  Poshmark: ["shares", "relists", "offers", "follows"],
+  Poshmark: ["relists", "offers"],
   Mercari: ["relists", "offers"],
   Depop: ["relists", "offers"],
   eBay: ["offers"],
@@ -26,10 +25,8 @@ const SUPPORTED: Partial<Record<Platform, AutomationKind[]>> = {
 };
 
 const DEFAULTS: Record<AutomationKind, AutomationSetting> = {
-  shares: { enabled: false, perDay: 3 },
   relists: { enabled: false, perDay: 20, minAgeDays: 60 },
   offers: { enabled: false, perDay: 50, discountPct: 10, followUps: 0 },
-  follows: { enabled: false, perDay: 200 },
 };
 
 export function AutomationsPage({ data }: { data: Data }) {
@@ -44,7 +41,7 @@ export function AutomationsPage({ data }: { data: Data }) {
     setSaved(false);
   };
   const stale = data.inventory.filter((i) => i.listings.some((l) => l.platform === platform && l.status === "active" && relistState(l) === "stale")).length;
-  const anyOn = Object.values(draft).some((p) => Object.values(p ?? {}).some((s) => s?.enabled));
+  const anyOn = automationOn(draft);
 
   return (
     <div>
@@ -72,7 +69,7 @@ export function AutomationsPage({ data }: { data: Data }) {
         </p>
         <div className="flex gap-1.5 overflow-x-auto max-w-full">
           {platforms.map((p) => {
-            const on = Object.values(draft[p] ?? {}).filter((s) => s?.enabled).length;
+            const on = AUTOMATION_KINDS.filter((k) => draft[p]?.[k]?.enabled).length;
             return (
               <button
                 key={p}
@@ -103,7 +100,7 @@ export function AutomationsPage({ data }: { data: Data }) {
                 {!s.enabled && <p className="text-[11px] text-muted-foreground">{summaryOf(k, s)}. Turn it on to change these.</p>}
                 {s.enabled && (
                 <div className="grid grid-cols-2 gap-2">
-                  <NumberField label={k === "shares" ? "Closet shares a day" : "Most a day"} value={s.perDay} onChange={(v) => set(k, { perDay: v })} />
+                  <NumberField label="Most a day" value={s.perDay} onChange={(v) => set(k, { perDay: v })} />
                   {k === "relists" && <NumberField label="Listed at least (days)" value={s.minAgeDays ?? 60} onChange={(v) => set(k, { minAgeDays: v })} />}
                   {k === "offers" && <NumberField label="Discount (%)" value={s.discountPct ?? 10} onChange={(v) => set(k, { discountPct: Math.min(80, v) })} />}
                   {k === "offers" && <NumberField label="Follow-up offers" value={s.followUps ?? 0} onChange={(v) => set(k, { followUps: Math.min(3, v) })} />}
@@ -139,10 +136,8 @@ export function AutomationsPage({ data }: { data: Data }) {
 
 // What an automation would do, in one line, while it's off.
 function summaryOf(k: AutomationKind, s: AutomationSetting) {
-  if (k === "shares") return `Up to ${s.perDay} closet shares a day`;
   if (k === "relists") return `Up to ${s.perDay} a day, for items listed ${s.minAgeDays ?? 60}+ days`;
-  if (k === "offers") return `Up to ${s.perDay} a day at ${s.discountPct ?? 10}% off`;
-  return `Up to ${s.perDay} a day`;
+  return `Up to ${s.perDay} a day at ${s.discountPct ?? 10}% off`;
 }
 
 function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {

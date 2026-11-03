@@ -43,8 +43,8 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
 ];
 const NAV = NAV_GROUPS.flatMap((g) => g.items);
 
-// The phone's bottom bar keeps the four most used sections; the rest sit under More.
-const PHONE_TABS: Section[] = ["home", "inventory", "orders", "analytics"];
+// The phone's bottom bar keeps the most used sections and Affiliates; the rest sit under More.
+const PHONE_TABS: Section[] = ["home", "inventory", "orders", "analytics", "affiliates"];
 const MORE: NavItem[] = [
   ...NAV.filter((n) => !PHONE_TABS.includes(n.section)),
   { section: "settings", label: "Settings", icon: SettingsIcon },
@@ -162,22 +162,24 @@ export function AppShell({
 }
 
 function SideLink({ item, active, badge, quiet }: { item: NavItem; active: boolean; badge?: number; quiet?: boolean }) {
+  const earn = item.section === "affiliates";
   const { section, label, icon: Icon } = item;
   return (
     <a
       href={`#/${section}`}
       aria-current={active ? "page" : undefined}
       className={`flex items-center justify-between px-2.5 py-2 rounded-md text-sm transition-colors ${
-        active ? "bg-accent text-accent-foreground" : quiet ? "text-muted-foreground hover:bg-muted hover:text-foreground" : "text-foreground hover:bg-muted"
+        active ? "bg-accent/15 text-accent font-medium" : quiet ? "text-muted-foreground hover:bg-muted hover:text-foreground" : "text-foreground hover:bg-muted"
       }`}
     >
       <span className="flex items-center gap-2.5">
         <Icon className="w-4 h-4" /> {label}
       </span>
+      {earn && !active && <span className="px-1.5 py-0.5 rounded-full bg-accent/15 text-accent text-[10px] font-medium">Earn</span>}
       {!!badge && (
         <span
           className={`min-w-5 h-5 px-1.5 rounded-full font-mono text-[11px] tabular-nums flex items-center justify-center ${
-            active ? "bg-accent-foreground/15 text-accent-foreground" : "bg-accent/15 text-accent"
+            "bg-accent/15 text-accent"
           }`}
         >
           {badge}
@@ -217,7 +219,7 @@ function PhoneNav({ route, badge }: { route: Section; badge: Partial<Record<Sect
           </div>
         </div>
       )}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-card border-t border-border grid grid-cols-5">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-card border-t border-border grid grid-cols-6">
         {NAV.filter((n) => PHONE_TABS.includes(n.section)).map(({ section, label, icon: Icon }) => {
           const active = route === section;
           return (
@@ -229,7 +231,7 @@ function PhoneNav({ route, badge }: { route: Section; badge: Partial<Record<Sect
             >
               <Icon className="w-5 h-5" />
               {label}
-              {!!badge[section] && <span className="absolute top-1 right-[26%] w-1.5 h-1.5 rounded-full bg-accent" />}
+              {!!badge[section] && <span className="absolute top-1 right-[22%] w-1.5 h-1.5 rounded-full bg-accent" />}
             </a>
           );
         })}

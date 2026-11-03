@@ -138,7 +138,8 @@ export interface LabelDef {
   description?: string;
 }
 
-export type AutomationKind = "shares" | "relists" | "offers" | "follows";
+// Poshmark no longer rewards closet shares or follows, so SellSync automates only relists and offers.
+export type AutomationKind = "relists" | "offers";
 export interface AutomationSetting {
   enabled: boolean;
   perDay: number; // daily cap
@@ -146,6 +147,7 @@ export interface AutomationSetting {
   followUps?: number; // offers: extra offers with deeper discounts
   minAgeDays?: number; // relists: only items listed at least this long
 }
+export const AUTOMATION_KINDS: AutomationKind[] = ["relists", "offers"];
 export type Automations = Partial<Record<Platform, Partial<Record<AutomationKind, AutomationSetting>>>>;
 
 export interface ShippingPreset {
@@ -306,4 +308,11 @@ export interface FeedbackSummary {
   emailedTo?: string;
   createdAt: string;
   sample?: boolean;
+}
+
+// Whether an automation is on anywhere (or just this kind). Settings saved before shares and follows
+// were dropped can still hold them, so only the kinds SellSync runs count.
+export function automationOn(automations: Automations, kind?: AutomationKind): boolean {
+  const kinds = kind ? [kind] : AUTOMATION_KINDS;
+  return Object.values(automations).some((p) => kinds.some((k) => p?.[k]?.enabled));
 }

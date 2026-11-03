@@ -9,7 +9,7 @@ import { Sparkline, fmtMoney } from "./charts";
 
 export function Card({ title, subtitle, right, children, className = "" }: { title?: string; subtitle?: string; right?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <section className={`bg-card border border-border rounded-xl p-4 md:p-5 min-w-0 ${className}`}>
+    <section className={`bg-card border border-border rounded-2xl p-4 md:p-5 min-w-0 ${className}`}>
       {(title || right) && (
         <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
           <div className="min-w-0">
