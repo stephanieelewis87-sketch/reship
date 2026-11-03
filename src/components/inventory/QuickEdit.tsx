@@ -59,7 +59,10 @@ export function QuickEdit({
           </div>
           <div className="grid grid-cols-2 gap-2">
             <Field label="SKU">
-              <input className={`${inputClass} font-mono`} value={d.sku} onChange={(e) => setD({ ...d, sku: e.target.value })} />
+              <input className={`${inputClass} font-mono bg-muted`} value={d.sku} readOnly title="SKUs stay the same for good. Change one in the full editor." />
+            </Field>
+            <Field label="Location">
+              <input className={inputClass} value={d.location ?? ""} onChange={(e) => setD({ ...d, location: e.target.value || undefined })} placeholder="Bin 4" />
             </Field>
             <Field label="Condition">
               <select className={inputClass} value={d.condition ?? ""} onChange={(e) => setD({ ...d, condition: (e.target.value || undefined) as Condition | undefined })}>

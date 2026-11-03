@@ -73,6 +73,8 @@ export interface Listing {
   relistedAt?: string; // YYYY-MM-DD, last time it was relisted
   price?: number;
   url?: string;
+  // The marketplace's own ID for this listing, so Reship can tell it apart from look-alikes.
+  listingId?: string;
 }
 
 export type Condition = "New with tags" | "New without tags" | "Like new" | "Good" | "Fair";
@@ -100,6 +102,7 @@ export interface InventoryItem {
   listings: Listing[];
   labels?: string[]; // label ids from settings
   notes?: string; // private, never posted
+  location?: string; // where it's stored, e.g. "Bin 4" or "Shelf B2"
   photo?: string;
   photos?: string[];
   readyToList?: boolean;
@@ -181,6 +184,44 @@ export interface Settings {
   aiInstructions: { title: string; description: string; condition: string; sku: string };
   dismissedAttention: string[];
   gettingStartedDone: string[];
+  // Automatic SKUs: prefix and digits, plus the highest number ever handed out for each prefix,
+  // so a SKU is never reused, even after its item is deleted.
+  skuFormat: SkuFormat;
+  guardian: GuardianSettings;
+}
+
+export interface SkuFormat {
+  prefix: string;
+  digits: number;
+  counters: Record<string, number>;
+}
+
+export interface GuardianSettings {
+  // Pause a change that would delete, delist or overwrite this many items or more, until the owner says yes.
+  protect: boolean;
+  threshold: number;
+  // Keep a dated copy of the inventory every day.
+  dailyBackup: boolean;
+}
+
+// A dated copy of every inventory record.
+export interface InventoryBackup {
+  id: string;
+  createdAt: string;
+  reason: string;
+  itemCount: number;
+  items?: InventoryItem[]; // left out of listings; loaded when restoring
+}
+
+// One change to one item, for its history.
+export interface ItemChange {
+  id: string;
+  itemId: string;
+  sku: string;
+  at: string;
+  source: string; // "You", "Sale detected", "Restore", "Bulk edit"…
+  kind: "created" | "edited" | "deleted";
+  changes: { field: string; from: string; to: string }[];
 }
 
 export interface PrintOptions {
@@ -221,6 +262,8 @@ export const DEFAULT_SETTINGS: Settings = {
   aiInstructions: { title: "", description: "", condition: "", sku: "" },
   dismissedAttention: [],
   gettingStartedDone: [],
+  skuFormat: { prefix: "RS", digits: 4, counters: { RS: 1000 } },
+  guardian: { protect: true, threshold: 10, dailyBackup: true },
 };
 
 export const emptyAddress = (): Address => ({ name: "", street1: "", street2: "", city: "", state: "", zip: "", country: "US", phone: "" });
