@@ -25,7 +25,7 @@ const TABS: { key: SettingsTab; label: string }[] = [
   { key: "account", label: "Account" },
 ];
 
-const LABEL_COLORS = ["#d03b3b", "#eda100", "#2a78d6", "#1f9d6b", "#7a4fd0", "#B5607A", "#5d6b7a"];
+const LABEL_COLORS = ["#d03b3b", "#eda100", "#2a78d6", "#1f9d6b", "#7a4fd0", "#D99B7A", "#5d6b7a"];
 
 export function SettingsPage({
   data,
@@ -75,7 +75,7 @@ export function SettingsPage({
         <div className="flex-1 min-w-0 px-4 md:px-8 py-5 max-w-2xl space-y-6">
           {tab === "connections" && <Connections />}
           {tab === "sale" && (
-            <Section title="Sale detection" text="When an item sells on one marketplace, Reship marks it sold and can take it down everywhere else.">
+            <Section title="Sale detection" text="When an item sells on one marketplace, SellSync marks it sold and can take it down everywhere else.">
               <Row title="Adjust quantity on sale" text="For items with more than one in stock, take one off the count instead of marking the item sold.">
                 <Toggle label="Adjust quantity on sale" checked={draft.autoAdjustQuantity} onChange={() => set("autoAdjustQuantity", !draft.autoAdjustQuantity)} />
               </Row>
@@ -164,7 +164,7 @@ export function SettingsPage({
               ))}
               <button
                 type="button"
-                className="text-sm text-[#B5607A] hover:underline flex items-center gap-1.5"
+                className="text-sm text-accent hover:underline flex items-center gap-1.5"
                 onClick={() => set("labels", [...draft.labels, { id: `lbl-${crypto.randomUUID().slice(0, 8)}`, name: "New label", color: LABEL_COLORS[draft.labels.length % LABEL_COLORS.length] }])}
               >
                 <Plus className="w-3.5 h-3.5" /> Add label
@@ -213,7 +213,7 @@ export function SettingsPage({
                 {draft.shipFrom ? (
                   <AddressFields value={draft.shipFrom} onChange={(a) => set("shipFrom", a)} />
                 ) : (
-                  <button type="button" onClick={() => set("shipFrom", emptyAddress())} className="text-sm text-[#B5607A] hover:underline flex items-center gap-1.5">
+                  <button type="button" onClick={() => set("shipFrom", emptyAddress())} className="text-sm text-accent hover:underline flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5" /> Add your ship-from address
                   </button>
                 )}
@@ -238,7 +238,7 @@ export function SettingsPage({
                 })}
                 <button
                   type="button"
-                  className="text-sm text-[#B5607A] hover:underline flex items-center gap-1.5"
+                  className="text-sm text-accent hover:underline flex items-center gap-1.5"
                   onClick={() => set("shippingPresets", [...draft.shippingPresets, { id: `sp-${crypto.randomUUID().slice(0, 8)}`, name: "New preset", packageType: "Soft Pack", weightLbs: 1 }])}
                 >
                   <Plus className="w-3.5 h-3.5" /> Add preset
@@ -302,7 +302,7 @@ export function SettingsPage({
             <Section title="Subscription">
               <div className="rounded-xl border border-border p-4">
                 <p className="font-display text-base font-semibold text-foreground">Early access</p>
-                <p className="text-xs text-muted-foreground mt-1">Every feature is free while Reship is in early access. Plans and pricing come later, and you'll hear about them before anything changes.</p>
+                <p className="text-xs text-muted-foreground mt-1">Every feature is free while SellSync is in early access. Plans and pricing come later, and you'll hear about them before anything changes.</p>
               </div>
             </Section>
           )}
@@ -315,7 +315,7 @@ export function SettingsPage({
 
 function Connections() {
   return (
-    <Section title="Connections" text="Reship works with your marketplace accounts through its browser extension, using the sign-ins you already have.">
+    <Section title="Connections" text="SellSync works with your marketplace accounts through its browser extension, using the sign-ins you already have.">
       <div className="rounded-lg border border-amber-200 bg-amber-50 text-amber-900 text-xs px-3 py-2.5 flex gap-2">
         <Puzzle className="w-4 h-4 shrink-0" />
         <p>The extension isn't connected yet. Until it is, add orders with Import CSV or Add order on the Orders page, and add inventory by hand.</p>
@@ -367,7 +367,7 @@ function Account({
       <Section title="Danger zone">
         <div className="rounded-xl border border-rose-200 p-4 space-y-3">
           {samples.length > 0 && (
-            <Row title={`Remove ${samples.length} sample order${samples.length !== 1 ? "s" : ""}`} text="Clears the examples Reship started you with.">
+            <Row title={`Remove ${samples.length} sample order${samples.length !== 1 ? "s" : ""}`} text="Clears the examples SellSync started you with.">
               <button type="button" className={secondaryButton} onClick={() => data.deleteOrders(samples.map((o) => o.id))}>
                 Remove
               </button>
@@ -383,7 +383,7 @@ function Account({
                   data.deleteInventory(data.inventory.map((i) => i.id));
                   setConfirm("");
                 }}
-                className="px-3 py-1.5 rounded-md bg-rose-700 text-white text-xs font-medium disabled:opacity-40"
+                className="px-3 py-1.5 rounded-md bg-destructive text-destructive-foreground text-xs font-medium disabled:opacity-40"
               >
                 Delete
               </button>

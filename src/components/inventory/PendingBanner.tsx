@@ -21,7 +21,7 @@ export function PendingBanner({ data }: { data: Data }) {
         });
   const verb = p.kind === "delete" ? "delete" : "change";
   return (
-    <div className="px-4 md:px-8 py-3 border-b bg-amber-50 border-amber-300 text-amber-950 text-sm">
+    <div className="px-4 md:px-8 py-3 border-b bg-amber-50 border-amber-300 text-amber-900 text-sm">
       <div className="flex items-start gap-2 flex-wrap">
         <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
         <p className="flex-1 min-w-[200px]">
@@ -34,7 +34,7 @@ export function PendingBanner({ data }: { data: Data }) {
           <button type="button" onClick={data.discardPending} className="px-2.5 py-1 rounded-md border border-amber-400 text-xs hover:bg-amber-100">
             Don't do it
           </button>
-          <button type="button" onClick={() => void data.applyPending()} className="px-2.5 py-1 rounded-md bg-amber-600 text-white text-xs font-medium hover:bg-amber-700">
+          <button type="button" onClick={() => void data.applyPending()} className="px-2.5 py-1 rounded-md bg-accent text-accent-foreground text-xs font-medium hover:opacity-90">
             Back up and apply
           </button>
         </div>

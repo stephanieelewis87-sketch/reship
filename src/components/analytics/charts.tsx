@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
-// Small hand-drawn SVG charts in Reship's style: thin marks, hairline grid, a tooltip on hover.
+// Small hand-drawn SVG charts in SellSync's style: thin marks, hairline grid, a tooltip on hover.
 // Each one is one measure in dollars or counts on one axis.
 
 export const CHART = {
-  revenue: "#2a78d6",
-  profit: "#B5607A",
-  grid: "#EEE8E3",
-  axis: "#D9D0CA",
-  muted: "#8A7880",
-  ink: "#1C1017",
-  loss: "#d03b3b",
+  revenue: "#5598e7",
+  profit: "#D99B7A",
+  grid: "#2A2321",
+  axis: "#3D3330",
+  muted: "#A8968C",
+  ink: "#F3E7DF",
+  loss: "#E5605A",
 };
 
 export const fmtMoney = (n: number, cents = false) =>
@@ -275,7 +275,7 @@ export function Waterfall({ steps, height = 220 }: { steps: { label: string; val
           const cx = pad.l + band * i + band / 2;
           const top = y(Math.max(b.from, b.to));
           const bh = Math.max(2, Math.abs(y(b.from) - y(b.to)));
-          const fill = b.total ? (b.to < 0 ? CHART.loss : i === 0 ? CHART.revenue : CHART.profit) : "#C8BAC0";
+          const fill = b.total ? (b.to < 0 ? CHART.loss : i === 0 ? CHART.revenue : CHART.profit) : CHART.axis;
           return (
             <g key={b.label} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
               {i > 0 && <line x1={cx - band + bw / 2} x2={cx - bw / 2} y1={y(b.from)} y2={y(b.from)} stroke={CHART.axis} />}

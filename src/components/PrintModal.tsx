@@ -125,7 +125,7 @@ export function PrintModal({
         >
           <Printer className="w-3.5 h-3.5" />
           {busy ? "Preparing…" : `${reprint ? "Reprint" : "Print"} ${selected.size - withoutLabel} Label${selected.size - withoutLabel !== 1 ? "s" : ""}`}
-          {opts.packingSlip && selected.size > 0 && <span className="text-white/70 text-xs">+ slips</span>}
+          {opts.packingSlip && selected.size > 0 && <span className="opacity-70 text-xs">+ slips</span>}
         </button>
       </div>
     </Modal>

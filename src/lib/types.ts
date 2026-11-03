@@ -36,7 +36,7 @@ export type ShipmentStatus = "label_created" | "in_transit" | "delivered" | "can
 
 export interface Shipment {
   status: ShipmentStatus;
-  updatedAt: string; // ISO time Reship last saw this status
+  updatedAt: string; // ISO time SellSync last saw this status
 }
 
 export interface Order {
