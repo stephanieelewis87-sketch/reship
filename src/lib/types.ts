@@ -1,3 +1,4 @@
+import type { CoverEdit } from "./coverPhoto";
 import { DEFAULT_PLAN, type PlanId } from "./plans";
 import type { MessagingSettings } from "./messaging";
 import type { SavedResearch } from "./comps";
@@ -135,6 +136,7 @@ export interface InventoryItem {
   location?: string; // where it's stored, e.g. "Bin 4" or "Shelf B2"
   photo?: string;
   photos?: string[];
+  coverEdit?: CoverEdit; // brand tag and sale banner added to the first photo
   readyToList?: boolean;
   soldOrders?: string[]; // orders already counted against this item
   createdAt?: string;

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ImagePlus, Loader2, Lock, ScanLine, Sparkles, Trash2, X } from "lucide-react";
+import { Check, ImagePlus, Loader2, Lock, ScanLine, Sparkles, Tag, Trash2, Upload, X } from "lucide-react";
 import type { Condition, InventoryItem, Listing, Platform, Settings } from "@/lib/types";
 import { ALL_PLATFORMS, CONDITIONS } from "@/lib/types";
 import { isoDay } from "@/lib/analytics";
@@ -10,7 +10,8 @@ import { parseListingRef } from "@/lib/guardian";
 import { HistoryList } from "./GuardianPage";
 import { Barcode } from "./SkuTools";
 import type { ListingSuggestion } from "@/lib/videoListing";
-import { splitDataUrl } from "@/lib/videoFrames";
+import { shrinkImage, splitDataUrl } from "@/lib/videoFrames";
+import { CoverPhotoEditor } from "./CoverPhotoEditor";
 import { Field, PlatformIcon, SectionLabel, Toggle, inputClass, primaryButton, secondaryButton } from "../ui";
 import { LabelChips } from "./LabelChips";
 import { MinPriceNote } from "./MinPriceNote";
@@ -73,6 +74,32 @@ export function ListingForm({
   const [gen, setGen] = useState<{ busy: boolean; message?: string }>({ busy: false });
   const set = <K extends keyof InventoryItem>(k: K, v: InventoryItem[K]) => setD((x) => ({ ...x, [k]: v }));
   const photos = d.photos ?? (d.photo ? [d.photo] : []);
+  // The brand tag and banner on the cover, while the first photo is still that finished cover.
+  const coverEdit = d.coverEdit && d.coverEdit.applied === photos[0] ? d.coverEdit : undefined;
+  const [coverOpen, setCoverOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const savePhoto = (dataUrl: string) => (store ? store.saveListingPhoto(dataUrl) : Promise.resolve(dataUrl));
+  const upload = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setUploading(true);
+    try {
+      const added = await Promise.all(
+        [...files].filter((f) => f.type.startsWith("image/")).map(async (f) => {
+          const local = URL.createObjectURL(f);
+          try {
+            return await savePhoto(await shrinkImage(local, 1600));
+          } finally {
+            URL.revokeObjectURL(local);
+          }
+        }),
+      );
+      setD((x) => ({ ...x, photos: [...(x.photos ?? (x.photo ? [x.photo] : [])), ...added] }));
+    } catch (e) {
+      setGen({ busy: false, message: (e as Error).message });
+    } finally {
+      setUploading(false);
+    }
+  };
   const base = num(text.listPrice);
   // Each chosen marketplace's price: the one typed in, or the base price after the pricing rule.
   const finalPrice = (p: Platform) => num(prices[p] ?? "") ?? priceFor(base, p, settings);
@@ -105,6 +132,7 @@ export function ListingForm({
       quantity: Math.max(1, Math.round(num(text.quantity) ?? 1)),
       photos,
       photo: photos[0],
+      coverEdit,
       listings,
       status: d.status === "sold" ? "sold" : active ? "listed" : "draft",
       listedAt: d.listedAt ?? (active ? today : undefined),
@@ -118,7 +146,7 @@ export function ListingForm({
     if (!ai || !photos.length) return;
     setGen({ busy: true });
     try {
-      const images = photos.slice(0, 4).map((p) => (p.startsWith("data:") ? splitDataUrl(p) : { url: p }));
+      const images = (coverEdit ? [coverEdit.original, ...photos.slice(1)] : photos).slice(0, 4).map((p) => (p.startsWith("data:") ? splitDataUrl(p) : { url: p }));
       const l: ListingSuggestion = await ai.describe(images, d.title, settings.aiInstructions, salesNotes);
       setD((x) => ({
         ...x,
@@ -167,8 +195,17 @@ export function ListingForm({
 
         <div className="p-5 space-y-6">
           <section className="space-y-2">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <SectionLabel>Photos</SectionLabel>
+              <button
+                type="button"
+                disabled={!photos.length}
+                onClick={() => setCoverOpen(true)}
+                title={photos.length ? "Add a brand tag and a sale banner like BOGO or 50% OFF to your cover photo." : "Add a photo first."}
+                className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border text-xs text-accent hover:bg-rose-50 disabled:text-muted-foreground disabled:opacity-60 disabled:hover:bg-transparent"
+              >
+                <Tag className="w-3.5 h-3.5" /> {coverEdit ? "Edit brand tag & banner" : "Brand tag & banner"}
+              </button>
               <button
                 type="button"
                 disabled={!aiLocked && (!ai || !photos.length || gen.busy)}
@@ -185,7 +222,11 @@ export function ListingForm({
               {photos.map((p, i) => (
                 <div key={p + i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
                   <img src={p} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                  {i === 0 && <span className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px] text-center">Cover</span>}
+                  {i === 0 && (
+                    <button type="button" onClick={() => setCoverOpen(true)} className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px] text-center hover:bg-black/70" title="Customize cover photo">
+                      Cover{coverEdit ? " ✓" : ""}
+                    </button>
+                  )}
                   <button
                     type="button"
                     aria-label="Remove photo"
@@ -210,7 +251,29 @@ export function ListingForm({
                 </div>
                 <input className={`${inputClass} w-56`} placeholder="Paste a photo link and press Enter" value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)} aria-label="Photo link" />
               </form>
+              <label className={`${secondaryButton} self-center cursor-pointer`}>
+                {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />} Upload
+                <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => (void upload(e.target.files), (e.target.value = ""))} />
+              </label>
             </div>
+            <button
+              type="button"
+              onClick={() => photos.length && setCoverOpen(true)}
+              aria-disabled={!photos.length}
+              className={`w-full flex items-center gap-3 rounded-lg border border-dashed px-3 py-2.5 text-left ${photos.length ? "border-accent/50 bg-accent/5 hover:bg-accent/10" : "border-border cursor-default"}`}
+            >
+              <span className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
+                <Tag className="w-4 h-4 text-accent" />
+              </span>
+              <span className="text-sm">
+                <span className="font-medium text-foreground">{coverEdit ? "Edit your cover's brand tag and sale banner" : "Customize your cover photo"}</span>
+                <span className="block text-[12px] text-muted-foreground">
+                  {photos.length
+                    ? "Add a brand tag (100 brands, or type your own) and a sale banner like BOGO, 50% OFF or FREE GIFT WITH PURCHASE."
+                    : "Add a photo first, then put a brand tag and a sale banner like BOGO or 50% OFF on it."}
+                </span>
+              </span>
+            </button>
           </section>
 
           <section className="space-y-3">
@@ -441,6 +504,19 @@ export function ListingForm({
           </div>
         </div>
       </div>
+      {coverOpen && photos[0] && (
+        <CoverPhotoEditor
+          photo={photos[0]}
+          edit={coverEdit}
+          brandHint={d.brand}
+          savePhoto={savePhoto}
+          onClose={() => setCoverOpen(false)}
+          onApply={(photo, edit) => {
+            setD((x) => ({ ...x, photos: [photo, ...photos.slice(1)], coverEdit: edit }));
+            setCoverOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

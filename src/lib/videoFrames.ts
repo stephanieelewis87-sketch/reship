@@ -96,7 +96,7 @@ export async function sampleVideo(file: Blob, onProgress?: (done: number) => voi
   }
 }
 
-const loadImage = (src: string) =>
+export const loadImage = (src: string) =>
   new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
