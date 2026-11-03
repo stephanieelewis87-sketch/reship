@@ -62,6 +62,21 @@ export interface Order {
   fees?: number;
   // What the seller paid for shipping (0 when the buyer paid for a prepaid label).
   shippingCost?: number;
+  // A label bought through Reship instead of the marketplace's (see labelPolicy.ts).
+  ownLabel?: OwnLabel;
+}
+
+export interface OwnLabel {
+  carrier: string;
+  service: string;
+  price: number;
+  // What the marketplace's own label would have cost, as the seller entered it.
+  marketplacePrice?: number;
+  boughtAt: string;
+  // Demo mode makes a practice label with a made-up tracking number.
+  demo?: boolean;
+  // When the seller confirmed the tracking number was pasted into the marketplace.
+  trackingPostedAt?: string;
 }
 
 export type InventoryStatus = "draft" | "listed" | "sold";

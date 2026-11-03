@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp, ExternalLink, Printer, RotateCcw, Upload } from "lucide-react";
+import { ChevronDown, ChevronUp, ExternalLink, Printer, RotateCcw, ShoppingCart, Upload } from "lucide-react";
 import type { Order } from "@/lib/types";
 import { trackingUrl } from "@/lib/tracking";
+import { canBuySellSyncLabel, labelPolicy } from "@/lib/labelPolicy";
 import { BundleBadge, OrderStatusCell, PhotoCollage, PlatformBadge, SkuCell, isBundle, orderTitle } from "./ui";
 
-const LIST_COLUMNS = "2rem 3rem minmax(0,1.6fr) 7.5rem minmax(0,1fr) 7.5rem 6.5rem 8rem";
+const LIST_COLUMNS = "2rem 3rem minmax(0,1.6fr) 7.5rem minmax(0,1fr) 7.5rem 6.5rem 11rem";
 
 export interface OrderListProps {
   orders: Order[];
@@ -16,12 +17,32 @@ export interface OrderListProps {
   onSku: (order: Order, itemIndex: number, sku: string) => void;
   // Prints one order: its first print from To Print, or a reprint afterwards.
   onPrint: (order: Order) => void;
+  // Opens the label helper: buy a SellSync label, or compare it with the marketplace's (Mercari, Depop).
+  onBuyLabel: (order: Order) => void;
 }
 
+// A pending order without its label yet, on a marketplace where SellSync can buy one.
+const canBuyNow = (o: Order) => o.status === "pending" && !o.label && !o.ownLabel && canBuySellSyncLabel(o);
+
 // The print, reprint or tracking action for one order.
-function RowAction({ order, onPrint }: { order: Order; onPrint: (o: Order) => void }) {
+function RowAction({ order, onPrint, onBuyLabel }: { order: Order; onPrint: (o: Order) => void; onBuyLabel: (o: Order) => void }) {
+  if (canBuyNow(order))
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onBuyLabel(order);
+        }}
+        className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-accent text-accent-foreground text-[12px] font-medium hover:bg-accent-hover"
+        title={labelPolicy(order) === "compare" ? `Compare ${order.platform}'s label with a SellSync label and buy the cheaper one` : "Buy a shipping label"}
+      >
+        <ShoppingCart className="w-3 h-3" /> Buy label
+      </button>
+    );
   if (order.status === "pending")
     return (
+      <div className="flex items-center gap-1.5">
       <button
         type="button"
         onClick={(e) => {
@@ -32,6 +53,20 @@ function RowAction({ order, onPrint }: { order: Order; onPrint: (o: Order) => vo
       >
         <Printer className="w-3 h-3" /> Print
       </button>
+      {labelPolicy(order) === "compare" && !order.ownLabel && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onBuyLabel(order);
+          }}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-border text-[12px] font-medium text-foreground hover:bg-muted whitespace-nowrap"
+          title={`Compare ${order.platform}'s label with a SellSync label and buy the cheaper one`}
+        >
+          <ShoppingCart className="w-3 h-3" /> Buy label
+        </button>
+      )}
+      </div>
     );
   return (
     <div className="flex items-center gap-2">
@@ -63,7 +98,7 @@ function RowAction({ order, onPrint }: { order: Order; onPrint: (o: Order) => vo
   );
 }
 
-export function OrderList({ orders, viewMode, selectedIds, onToggle, onToggleAll, onOpen, onSku, onPrint }: OrderListProps) {
+export function OrderList({ orders, viewMode, selectedIds, onToggle, onToggleAll, onOpen, onSku, onPrint, onBuyLabel }: OrderListProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const toggleExpanded = (id: string) =>
     setExpandedIds((prev) => {
@@ -128,7 +163,7 @@ export function OrderList({ orders, viewMode, selectedIds, onToggle, onToggleAll
                 )}
                 <div className="flex items-center justify-between pt-3 border-t border-border">
                   <span className="text-xs text-muted-foreground">{order.carrier}</span>
-                  <RowAction order={order} onPrint={onPrint} />
+                  <RowAction order={order} onPrint={onPrint} onBuyLabel={onBuyLabel} />
                 </div>
               </div>
             </div>
@@ -161,7 +196,7 @@ export function OrderList({ orders, viewMode, selectedIds, onToggle, onToggleAll
         const isSelected = selectedIds.has(order.id);
         const bundle = isBundle(order);
         const expanded = expandedIds.has(order.id);
-        const needsLabel = order.status === "pending" && !order.label;
+        const needsLabel = order.status === "pending" && !order.label && !canBuyNow(order);
         return (
           <div key={order.id} className={`border-b border-border last:border-0 ${isSelected ? "bg-rose-50/50" : ""}`}>
             <div
@@ -216,7 +251,7 @@ export function OrderList({ orders, viewMode, selectedIds, onToggle, onToggleAll
                     </button>
                   )}
                   <span className="md:hidden">
-                    <RowAction order={order} onPrint={onPrint} />
+                    <RowAction order={order} onPrint={onPrint} onBuyLabel={onBuyLabel} />
                   </span>
                 </div>
               </div>
@@ -233,7 +268,7 @@ export function OrderList({ orders, viewMode, selectedIds, onToggle, onToggleAll
                 <OrderStatusCell order={order} />
               </div>
               <div className="hidden md:block">
-                <RowAction order={order} onPrint={onPrint} />
+                <RowAction order={order} onPrint={onPrint} onBuyLabel={onBuyLabel} />
               </div>
             </div>
 

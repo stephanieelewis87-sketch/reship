@@ -28,7 +28,7 @@ Without any setup, SellSync runs in **demo mode**: it starts with sample orders 
 - Poshmark orders and their prepaid labels come in automatically through the SellSync browser extension (see below)
 - Upload an order's label PDF by hand from the order drawer when needed
 - Print all selected labels in one PDF, optionally stamped with the SKUs, with a packing slip after each label (4x6, Letter or A4)
-- Optional "Buy a different label" per order, with rate estimates for USPS, UPS and FedEx
+- Label helper per order, by marketplace: on Mercari and Depop orders, **Buy label** compares the marketplace's label price with SellSync's and, when SellSync's is cheaper, buys it and gives you the tracking number to paste into the marketplace. eBay, Etsy and direct sales always use a SellSync label. Poshmark, Whatnot and Vinted keep their prepaid label; SellSync shows it and never buys a second one
 - Settings saved per account: ship-from address, label format, default carrier
 - Works on phones
 - **Analytics**: sales, true profit (after marketplace fees, shipping you paid and item cost), margin, days to sell, sell-through and money tied up in inventory, for any period and compared with the one before. Pages for profit (where the money went), marketplaces side by side, brands and categories, inventory health with suggested markdowns for stale listings, sourcing (which thrift stores pay off), a monthly profit goal, "what to do next" tips, and CSV reports for taxes. Click any point or row to see the sales behind it. Fees are estimated from each marketplace's fee schedule when an order doesn't say. The demo has a made-up year of sales so every page has something to show.
@@ -156,6 +156,15 @@ How referrals are tracked: a visit with `?ref=code` is counted and the code is r
 Setup: run `supabase/migrations/0009_affiliates.sql`. The terms live in the one-row `affiliate_program` table (bonus amount or cap, rate, refund hold, which plans earn the bonus, an optional "after they've paid this much" threshold, link memory, minimum payout); change them there and the app follows. By default the bonus equals the referred seller's first payment (one month of their plan), capped at $95 (one month of Flow), on any plan. Run `0011_plans.sql` too if you ran an older 0009. Set `bonus_matches_payment` to false for a flat `bonus_cents` instead.
 
 When billing is built, its webhook calls these with the service role key: `record_subscription_payment(user_id, plan, amount_cents, invoice_id)` on every paid invoice (safe to repeat), `record_subscription_refund(invoice_id)` on a refund, and `record_subscription_canceled(user_id)` on a cancellation.
+## Buying labels (EasyPost)
+
+SellSync buys its own labels through EasyPost at EasyPost's discounted carrier rates, from the edge function in `supabase/functions/labels`.
+
+1. Run `supabase/migrations/0012_own_label.sql`.
+2. Create an EasyPost account and copy an API key (start with the test key, which makes free test labels).
+3. `supabase secrets set EASYPOST_API_KEY=...` and `supabase functions deploy labels`.
+
+Until the function is deployed, the app shows estimated prices and can't buy. In demo mode, buying makes a clearly marked practice label so the flow can be tried. Labels are paid from the EasyPost account, so charging sellers for them (or for the Ship plan) needs to be in place before using a live key.
 
 ## Coming next
 

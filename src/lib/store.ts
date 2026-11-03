@@ -288,6 +288,7 @@ interface OrderRow {
   shipment?: Order["shipment"] | null;
   fees?: number | null;
   shipping_cost?: number | null;
+  own_label?: Order["ownLabel"] | null;
 }
 
 const toRow = (o: Order, userId: string) => ({
@@ -309,10 +310,11 @@ const toRow = (o: Order, userId: string) => ({
   shipment: o.shipment ?? null,
   fees: o.fees ?? null,
   shipping_cost: o.shippingCost ?? null,
+  own_label: o.ownLabel ?? null,
 });
 
-// Columns added by migrations 0003 and 0004; saving still works on a database that doesn't have them yet.
-const NEWER_COLUMNS = ["printed_at", "shipment", "fees", "shipping_cost"] as const;
+// Columns added by migrations 0003, 0004 and 0012; saving still works on a database that doesn't have them yet.
+const NEWER_COLUMNS = ["printed_at", "shipment", "fees", "shipping_cost", "own_label"] as const;
 
 const fromRow = (r: OrderRow): Order => ({
   id: r.id,
@@ -332,6 +334,7 @@ const fromRow = (r: OrderRow): Order => ({
   shipment: r.shipment ?? undefined,
   fees: r.fees ?? undefined,
   shippingCost: r.shipping_cost ?? undefined,
+  ownLabel: r.own_label ?? undefined,
 });
 
 interface InventoryRow {
