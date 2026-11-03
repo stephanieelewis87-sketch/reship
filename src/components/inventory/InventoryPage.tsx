@@ -45,8 +45,10 @@ import { VideoListing } from "./VideoListing";
 import { ScanModal, SkuLabelsModal } from "./SkuTools";
 import { GuardianPage } from "./GuardianPage";
 import { LockedCard, LockedSection, PlanTag, currentPlan, upgradeFor } from "../plans/PlanGate";
-import { type Feature, hasFeature } from "@/lib/plans";
+import { type Feature, crosslistTargets, hasFeature, yourMarketplaces } from "@/lib/plans";
+import { BrandMark } from "../brand/Logo";
 import { checkInventory } from "@/lib/guardian";
+import { minPriceLabel, minPriceMessage, underMinimum } from "@/lib/minPrice";
 
 type Data = ReturnType<typeof useReshipData>;
 type StatusFilter = "all" | "draft" | "listed" | "sold";
@@ -186,6 +188,17 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
         listings: i.listings.map((l) => (l.status === "active" ? { ...l, status: "delisted" as const } : l)),
       })),
     );
+  };
+  // Crosslist to all: one tap lists the item on every marketplace you use that it isn't live on yet.
+  const mine = useMemo(() => yourMarketplaces(plan, inventory, ALL_PLATFORMS, settings.primaryMarketplace), [plan, inventory, settings.primaryMarketplace]);
+  const crosslistAll = (item: InventoryItem) => {
+    if (!can("crosslisting")) return upgradeFor("crosslisting");
+    const all = crosslistTargets(item, mine);
+    const targets = pricedOk(item, all, settings);
+    if (!targets.length) return all.length ? setNotice(`${item.title || "This item"} is priced under ${minPriceLabel}. ${minPriceMessage}`) : undefined;
+    saveInventory([crosslistItem(item, targets, today, settings)]);
+    const skipped = all.filter((p) => !targets.includes(p));
+    setNotice(`Crosslisted ${item.title || "this item"} to ${targets.join(", ")}.${skipped.length ? ` Skipped ${skipped.join(", ")}: the price there is under ${minPriceLabel}.` : ""}`);
   };
   const copyItem = (item: InventoryItem) =>
     setForm({
@@ -552,6 +565,16 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                     />
                   </th>
                   <th className="text-left px-2 py-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground font-normal min-w-[240px]">Item</th>
+                  <th
+                    className="px-3 py-2 font-normal border-x border-border/60"
+                    title={mine.length ? `Lists the item on ${mine.join(", ")}` : "List an item on a marketplace first, then Crosslist to all copies it to the rest"}
+                  >
+                    <span className="block font-mono text-[11px] uppercase tracking-wider text-muted-foreground leading-tight text-center">
+                      Crosslist
+                      <br />
+                      to all
+                    </span>
+                  </th>
                   {ALL_PLATFORMS.map((p) => (
                     <th key={p} className="px-1.5 py-2 font-normal" title={`${everListed(p)} of these items have been listed on ${p}`}>
                       <span className="flex flex-col items-center gap-0.5">
@@ -566,7 +589,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
               <tbody>
                 {shown.length === 0 && (
                   <tr>
-                    <td colSpan={2 + ALL_PLATFORMS.length}>{emptyInventory}</td>
+                    <td colSpan={3 + ALL_PLATFORMS.length}>{emptyInventory}</td>
                   </tr>
                 )}
                 {shown.map((item) => (
@@ -604,6 +627,9 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                           </div>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-3 py-2 text-center border-x border-border/60">
+                      <CrosslistAllButton item={item} targets={pricedOk(item, crosslistTargets(item, mine), settings)} tooLow={underMinimum(item.listPrice)} locked={!can("crosslisting")} onClick={() => crosslistAll(item)} />
                     </td>
                     {ALL_PLATFORMS.map((p) => {
                       const l = item.listings.find((x) => x.platform === p);
@@ -992,6 +1018,68 @@ function BoardCard({
   );
 }
 
+// The S button in the Crosslist to all column. Dimmed when there's nowhere left to list the item.
+function CrosslistAllButton({ item, targets, tooLow, locked, onClick }: { item: InventoryItem; targets: Platform[]; tooLow: boolean; locked: boolean; onClick: () => void }) {
+  if (item.status === "sold") return <span className="inline-block w-10 h-10" />;
+  const done = targets.length === 0;
+  const title = locked
+    ? "Crosslisting comes with the Sync plan"
+    : tooLow
+      ? `Priced under ${minPriceLabel}. ${minPriceMessage}`
+      : done
+      ? "Already live on all your marketplaces"
+      : `Crosslist to ${targets.join(", ")}`;
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={`Crosslist ${item.title} to all your marketplaces`}
+      disabled={done && !locked}
+      onClick={onClick}
+      className="relative inline-flex rounded-lg ring-1 ring-border transition hover:ring-2 hover:ring-accent hover:scale-105 disabled:opacity-30 disabled:hover:ring-1 disabled:hover:ring-border disabled:hover:scale-100 disabled:cursor-default"
+    >
+      <BrandMark className="w-10 h-10" />
+      {!done && !locked && (
+        <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-accent text-accent-foreground text-[10px] font-bold leading-[18px] tabular-nums">{targets.length}</span>
+      )}
+    </button>
+  );
+}
+
+// The marketplaces where the item's price, after the seller's pricing rule, meets SellSync's minimum.
+// An item with no price yet isn't held back here; the listing form asks for one.
+function pricedOk(i: InventoryItem, platforms: Platform[], settings: Data["settings"]): Platform[] {
+  return platforms.filter((p) => !underMinimum(priceFor(i.listPrice, p, settings)));
+}
+
+// Puts an item up on each of `platforms`: a new listing where it has none, a relist where it was delisted.
+function crosslistItem(i: InventoryItem, platforms: Platform[], today: string, settings: Data["settings"]): InventoryItem {
+  const listings = [...i.listings];
+  pricedOk(i, platforms, settings).forEach((p) => {
+    const at = listings.findIndex((l) => l.platform === p);
+    const next: Listing = {
+      platform: p,
+      status: "active",
+      listedAt: today,
+      price: priceFor(i.listPrice, p, settings),
+    };
+    if (at === -1) listings.push(next);
+    else if (listings[at].status === "delisted")
+      listings[at] = {
+        ...listings[at],
+        status: "active",
+        relistedAt: today,
+      };
+  });
+  return {
+    ...i,
+    listings,
+    status: "listed" as const,
+    listedAt: i.listedAt ?? today,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 // Actions for the checked rows on this page.
 function BulkBar({
   data,
@@ -1019,37 +1107,14 @@ function BulkBar({
   }>({ condition: "", quantity: "", cost: "", location: "" });
   const today = isoDay(new Date());
   const crosslist = () => {
-    saveInventory(
-      items
-        .filter((i) => i.status !== "sold")
-        .map((i) => {
-          const listings = [...i.listings];
-          platforms.forEach((p) => {
-            const at = listings.findIndex((l) => l.platform === p);
-            const next: Listing = {
-              platform: p,
-              status: "active",
-              listedAt: today,
-              price: priceFor(i.listPrice, p, settings),
-            };
-            if (at === -1) listings.push(next);
-            else if (listings[at].status === "delisted")
-              listings[at] = {
-                ...listings[at],
-                status: "active",
-                relistedAt: today,
-              };
-          });
-          return {
-            ...i,
-            listings,
-            status: "listed" as const,
-            listedAt: i.listedAt ?? today,
-            updatedAt: new Date().toISOString(),
-          };
-        }),
+    const open = items.filter((i) => i.status !== "sold");
+    const ok = open.filter((i) => pricedOk(i, [...platforms], settings).length > 0);
+    const held = open.length - ok.length;
+    saveInventory(ok.map((i) => crosslistItem(i, [...platforms], today, settings)));
+    onDone(
+      `Crosslisted ${ok.length} item${ok.length !== 1 ? "s" : ""} to ${[...platforms].join(", ")}.` +
+        (held ? ` ${held} priced under ${minPriceLabel} ${held === 1 ? "was" : "were"} left out. ${minPriceMessage}` : ""),
     );
-    onDone(`Crosslisted ${items.length} item${items.length !== 1 ? "s" : ""} to ${[...platforms].join(", ")}.`);
   };
   const applyEdit = () => {
     saveInventory(

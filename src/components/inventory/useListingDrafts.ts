@@ -5,6 +5,7 @@ import { nextSku } from "@/lib/inventory";
 import { shrinkImage, splitDataUrl } from "@/lib/videoFrames";
 import type { ListingSuggestion, VideoDraft } from "@/lib/videoListing";
 import { draftToItem, eachLimit, orderedPhotos, salesHints } from "@/lib/videoListing";
+import { atLeastMinimum, underMinimum } from "@/lib/minPrice";
 
 type Data = ReturnType<typeof useReshipData>;
 
@@ -31,7 +32,7 @@ export function useListingDrafts(data: Data, madeWith: string, photosPerItem = 4
     try {
       const images = await Promise.all(d.snips.slice(0, photosPerItem).map((s) => shrinkImage(s, AI_IMAGE_SIDE).then(toAi)));
       const listing = await ai.describe(images, d.label, data.settings.aiInstructions, salesHints(data.inventory));
-      patch(d.id, { listing, priceText: listing.price ? String(Math.round(listing.price.suggested)) : "", state: "done" });
+      patch(d.id, { listing, priceText: listing.price ? String(atLeastMinimum(Math.round(listing.price.suggested))) : "", state: "done" });
     } catch (e) {
       patch(d.id, { state: "failed", error: (e as Error).message });
     }
@@ -88,6 +89,8 @@ export function useListingDrafts(data: Data, madeWith: string, photosPerItem = 4
 
   const busy = drafts.some((d) => d.state === "writing" || d.state === "waiting");
   const included = drafts.filter((d) => d.include).length;
+  // Included drafts priced under SellSync's minimum. They have to be repriced or left out to save.
+  const tooLow = drafts.filter((d) => d.include && d.priceText.trim() !== "" && underMinimum(parseFloat(d.priceText))).length;
 
-  return { ai, drafts, setDrafts, patch, patchListing, writeListing, makePhoto, fill, save, photosOff, cancelled, busy, included };
+  return { ai, drafts, setDrafts, patch, patchListing, writeListing, makePhoto, fill, save, photosOff, cancelled, busy, included, tooLow };
 }

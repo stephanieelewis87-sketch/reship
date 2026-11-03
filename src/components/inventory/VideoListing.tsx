@@ -7,6 +7,7 @@ import { MAX_AI_FRAMES, MAX_ITEMS, MAX_VIDEO_SECONDS, cleanDetected, emptyListin
 import { Modal, ModalHeader, Toggle, primaryButton, secondaryButton } from "../ui";
 import { DraftCard } from "./DraftCard";
 import { AI_IMAGE_SIDE, toAi, useListingDrafts } from "./useListingDrafts";
+import { minPriceLabel } from "@/lib/minPrice";
 
 type Data = ReturnType<typeof useReshipData>;
 type Step = { kind: "pick" } | { kind: "working"; label: string; progress?: number } | { kind: "review" } | { kind: "saving"; done: number; total: number };
@@ -14,7 +15,7 @@ type Step = { kind: "pick" } | { kind: "working"; label: string; progress?: numb
 // Film up to 25 items, get a draft listing for each: snips from the video, an optional clean AI
 // photo, and the title, details and price filled in.
 export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: () => void; onSaved: (message: string) => void }) {
-  const { ai, drafts, setDrafts, patch, patchListing, writeListing, makePhoto, fill, save: saveDrafts, photosOff, cancelled, busy, included } = useListingDrafts(data, "List with a video");
+  const { ai, drafts, setDrafts, patch, patchListing, writeListing, makePhoto, fill, save: saveDrafts, photosOff, cancelled, busy, included, tooLow } = useListingDrafts(data, "List with a video");
   const [step, setStep] = useState<Step>({ kind: "pick" });
   const [makePhotos, setMakePhotos] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
@@ -171,7 +172,7 @@ export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: 
           <button type="button" className={secondaryButton} onClick={() => setStep({ kind: "pick" })}>
             Another video
           </button>
-          <button type="button" className={primaryButton} disabled={!included || busy} onClick={() => void save()}>
+          <button type="button" className={primaryButton} disabled={!included || busy || tooLow > 0} title={tooLow ? `${tooLow} draft${tooLow === 1 ? " is" : "s are"} priced under ${minPriceLabel}` : undefined} onClick={() => void save()}>
             <Check className="w-4 h-4" /> Save {included} draft{included === 1 ? "" : "s"}
           </button>
         </div>

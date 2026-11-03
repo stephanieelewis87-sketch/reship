@@ -28,10 +28,10 @@ export function PendingBanner({ data }: { data: Data }) {
           <strong>Inventory Guardian paused a big change.</strong> {p.source} would {verb} {p.count} items at once. Nothing has changed yet.
         </p>
         <div className="flex gap-2">
-          <button type="button" onClick={() => setReview(!review)} className="px-2.5 py-1 rounded-md border border-amber-400 text-xs hover:bg-amber-100">
+          <button type="button" onClick={() => setReview(!review)} className="px-2.5 py-1 rounded-md border ring-2 ring-amber-400 text-xs hover:bg-amber-100">
             {review ? "Hide" : "Review"}
           </button>
-          <button type="button" onClick={data.discardPending} className="px-2.5 py-1 rounded-md border border-amber-400 text-xs hover:bg-amber-100">
+          <button type="button" onClick={data.discardPending} className="px-2.5 py-1 rounded-md border ring-2 ring-amber-400 text-xs hover:bg-amber-100">
             Don't do it
           </button>
           <button type="button" onClick={() => void data.applyPending()} className="px-2.5 py-1 rounded-md bg-amber-600 text-white text-xs font-medium hover:bg-amber-700">

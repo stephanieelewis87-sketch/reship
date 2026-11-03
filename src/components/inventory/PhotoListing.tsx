@@ -9,6 +9,7 @@ import { MAX_PHOTOS, cleanGroups, groupByShoot, groupPhotos, movePhotos, photoOr
 import { Modal, ModalHeader, Toggle, primaryButton, secondaryButton } from "../ui";
 import { DraftCard } from "./DraftCard";
 import { toAi, useListingDrafts } from "./useListingDrafts";
+import { minPriceLabel } from "@/lib/minPrice";
 
 type Data = ReturnType<typeof useReshipData>;
 type Step =
@@ -24,7 +25,7 @@ const s = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 // Upload photos of up to 25 items in one go. AI sorts them into one group per item, the seller
 // fixes anything it got wrong, and each group becomes a draft listing with its price filled in.
 export function PhotoListing({ data, onClose, onSaved }: { data: Data; onClose: () => void; onSaved: (message: string) => void }) {
-  const { ai, drafts, setDrafts, patch, patchListing, writeListing, makePhoto, fill, save: saveDrafts, photosOff, cancelled, busy, included } = useListingDrafts(data, "List from photos", 6);
+  const { ai, drafts, setDrafts, patch, patchListing, writeListing, makePhoto, fill, save: saveDrafts, photosOff, cancelled, busy, included, tooLow } = useListingDrafts(data, "List from photos", 6);
   const [step, setStep] = useState<Step>({ kind: "pick" });
   const [images, setImages] = useState<string[]>([]);
   const [groups, setGroups] = useState<PhotoGroup[]>([]);
@@ -322,7 +323,7 @@ export function PhotoListing({ data, onClose, onSaved }: { data: Data; onClose: 
           <button type="button" className={secondaryButton} disabled={busy} onClick={() => setStep({ kind: "sort" })}>
             <ArrowLeft className="w-4 h-4" /> Sorting
           </button>
-          <button type="button" className={primaryButton} disabled={!included || busy} onClick={() => void save()}>
+          <button type="button" className={primaryButton} disabled={!included || busy || tooLow > 0} title={tooLow ? `${tooLow} draft${tooLow === 1 ? " is" : "s are"} priced under ${minPriceLabel}` : undefined} onClick={() => void save()}>
             <Check className="w-4 h-4" /> Save {s(included, "draft")}
           </button>
         </div>

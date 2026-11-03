@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { InventoryItem } from "./types";
-import { DEFAULT_SETTINGS } from "./types";
-import { PLANS, PLAN_IDS, hasFeature, listingRoom, marketplacesInUse, nextPlanFor, planOf } from "./plans";
+import { ALL_PLATFORMS, DEFAULT_SETTINGS } from "./types";
+import { PLANS, PLAN_IDS, crosslistTargets, hasFeature, listingRoom, marketplacesInUse, nextPlanFor, planOf, yourMarketplaces } from "./plans";
 import { applySales } from "./inventory";
 
 const item = (id: string, platforms: InventoryItem["listings"][number]["platform"][], listedAt?: string): InventoryItem => ({
@@ -59,5 +59,26 @@ describe("plans", () => {
     const order = { id: "o1", platform: "Poshmark", items: [{ sku: "e" }] } as unknown as Parameters<typeof applySales>[1][number];
     expect(applySales([stock], [order], { ...DEFAULT_SETTINGS, plan: "sync" })[0].quantity).toBe(2);
     expect(applySales([stock], [order], { ...DEFAULT_SETTINGS, plan: "ship" })[0].status).toBe("sold");
+  });
+});
+
+describe("crosslist to all", () => {
+  it("uses the marketplaces with live listings, capped by the plan", () => {
+    const inv = [item("a", ["Poshmark", "Mercari"]), item("b", ["Depop"])];
+    expect(yourMarketplaces("flow", inv, ALL_PLATFORMS)).toEqual(["Poshmark", "Depop", "Mercari"]);
+    // Sell allows 3, and all 3 in use are allowed.
+    expect(yourMarketplaces("sell", inv, ALL_PLATFORMS)).toEqual(["Poshmark", "Depop", "Mercari"]);
+  });
+
+  it("falls back to past listings, then the primary marketplace", () => {
+    const past: InventoryItem = { ...item("a", ["Etsy"]), listings: [{ platform: "Etsy", status: "delisted" }] };
+    expect(yourMarketplaces("flow", [past], ALL_PLATFORMS)).toEqual(["Etsy"]);
+    expect(yourMarketplaces("flow", [], ALL_PLATFORMS, "Poshmark")).toEqual(["Poshmark"]);
+  });
+
+  it("targets only marketplaces the item isn't live on, and nothing for sold items", () => {
+    const mine = yourMarketplaces("flow", [item("a", ["Poshmark", "Mercari", "Depop"])], ALL_PLATFORMS);
+    expect(crosslistTargets(item("b", ["Poshmark"]), mine)).toEqual(["Depop", "Mercari"]);
+    expect(crosslistTargets({ ...item("c", []), status: "sold" }, mine)).toEqual([]);
   });
 });
