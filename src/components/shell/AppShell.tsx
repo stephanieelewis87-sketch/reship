@@ -1,5 +1,5 @@
 import { type ComponentType, useEffect, useState } from "react";
-import { AlertCircle, BarChart3, Gift, Home, MessageSquare, MoreHorizontal, Settings as SettingsIcon, Shirt, Truck, X, Zap } from "lucide-react";
+import { AlertCircle, BarChart3, Gift, Heart, Home, MessageSquare, MoreHorizontal, Settings as SettingsIcon, Shirt, Truck, X, Zap } from "lucide-react";
 import type { useReshipData } from "@/lib/useReshipData";
 import { isPartiallyDelisted } from "@/lib/inventory";
 import { OrdersPage } from "../Dashboard";
@@ -16,6 +16,7 @@ import { Logo } from "../brand/Logo";
 import { ThemeToggle } from "../brand/ThemeToggle";
 import { LockedSection, PlanTag, currentPlan } from "../plans/PlanGate";
 import { type Feature, hasFeature, type PlanId } from "@/lib/plans";
+import { MISSION_HREF } from "@/lib/minPrice";
 
 type Data = ReturnType<typeof useReshipData>;
 
@@ -100,6 +101,9 @@ export function AppShell({
         <div className="mt-auto px-3 pb-2 flex flex-col gap-0.5">
           <SideLink item={{ section: "settings", label: "Settings", icon: SettingsIcon }} active={route.section === "settings"} quiet />
           <SideLink item={{ section: "feedback", label: "Feedback", icon: MessageSquare }} active={route.section === "feedback"} quiet />
+          <a href={MISSION_HREF} target="_blank" rel="noreferrer" className="flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+            <Heart className="w-4 h-4" /> Our mission
+          </a>
           <ThemeToggle className="mt-2" />
         </div>
         <a href="#/settings?tab=account" className=" border-t border-border px-4 py-3 flex items-center gap-2 hover:bg-muted">
@@ -237,6 +241,9 @@ function PhoneNav({ route, badge }: { route: Section; badge: Partial<Record<Sect
                 <Icon className="w-4 h-4" /> {label}
               </a>
             ))}
+            <a href={MISSION_HREF} target="_blank" rel="noreferrer" onClick={() => setOpen(false)} className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm text-foreground">
+              <Heart className="w-4 h-4" /> Our mission
+            </a>
             <ThemeToggle className="m-1 mt-2" />
           </div>
         </div>

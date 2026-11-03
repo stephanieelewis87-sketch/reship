@@ -1,4 +1,5 @@
 import type { InventoryItem, Order, OrderItem, Platform } from "./types";
+import { MIN_PRICE } from "./minPrice";
 
 // Everything the analytics pages show is worked out here from orders and inventory, so the
 // numbers can be tested without the screen.
@@ -393,7 +394,8 @@ export interface StaleItem {
 // A markdown that grows with age, never below what the item cost plus typical fees.
 export function staleAdvice(item: InventoryItem, age: number): StaleItem {
   const cut = age > 180 ? 0.3 : age > 90 ? 0.2 : age > 60 ? 0.1 : 0;
-  const floor = (item.cost ?? 0) * 1.25;
+  // Never below SellSync's minimum price, either.
+  const floor = Math.max(MIN_PRICE, (item.cost ?? 0) * 1.25);
   const suggested = item.listPrice ? Math.max(floor, Math.floor(item.listPrice * (1 - cut))) : null;
   const advice =
     age > 180
