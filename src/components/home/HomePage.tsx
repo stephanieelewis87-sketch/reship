@@ -115,7 +115,7 @@ function GettingStarted({ data }: { data: Data }) {
       <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1.5">
         {steps.map((s) => (
           <li key={s.id}>
-            <a href={s.done ? undefined : s.href} className={`flex items-center gap-2 text-sm ${s.done ? "text-muted-foreground line-through" : "text-foreground hover:text-[#B5607A]"}`}>
+            <a href={s.done ? undefined : s.href} className={`flex items-center gap-2 text-sm ${s.done ? "text-muted-foreground line-through" : "text-foreground hover:text-accent"}`}>
               {s.done ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <Circle className="w-4 h-4 text-muted-foreground shrink-0" />}
               {s.label}
             </a>
@@ -136,7 +136,7 @@ function TodaySummary({ data, today }: { data: Data; today: string }) {
   const autos = data.settings.automations;
   const on = (kind: "shares" | "offers" | "follows" | "relists") => Object.values(autos).some((a) => a?.[kind]?.enabled);
   const Stat = ({ label, value, hint, href }: { label: string; value: string; hint?: string; href: string }) => (
-    <a href={href} className="bg-card border border-border rounded-xl px-4 py-3 hover:border-[#B5607A]/40 transition-colors">
+    <a href={href} className="bg-card border border-border rounded-xl px-4 py-3 hover:border-accent/40 transition-colors">
       <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
       <p className="font-display text-2xl font-semibold text-foreground mt-1">{value}</p>
       {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
@@ -160,7 +160,7 @@ function TodaySummary({ data, today }: { data: Data; today: string }) {
             ["Follows", "follows", null],
           ] as const
         ).map(([label, kind, n]) => (
-          <a key={kind} href="#/automations" className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-2.5 hover:border-[#B5607A]/40">
+          <a key={kind} href="#/automations" className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-2.5 hover:border-accent/40">
             <span className="text-sm text-foreground">{label}</span>
             <span className="text-sm tabular-nums text-muted-foreground">{n != null ? n : on(kind) ? "On" : "Off"}</span>
           </a>
@@ -282,7 +282,7 @@ function NeedsAttention({ data, today }: { data: Data; today: string }) {
             <li key={i.id} className="flex items-start gap-2.5 py-2.5">
               <span className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${i.tone === "warn" ? "bg-amber-50 text-amber-700" : "bg-sky-50 text-sky-700"}`}>{i.icon}</span>
               <a href={i.href} className="min-w-0 flex-1 group">
-                <p className="text-sm font-medium text-foreground truncate group-hover:text-[#B5607A]">{i.title}</p>
+                <p className="text-sm font-medium text-foreground truncate group-hover:text-accent">{i.title}</p>
                 <p className="text-xs text-muted-foreground truncate">{i.detail}</p>
               </a>
               <button type="button" onClick={() => toggle(i.id)} className="text-[11px] text-muted-foreground hover:text-foreground shrink-0 mt-1">
@@ -322,7 +322,7 @@ function Goals({ data, today }: { data: Data; today: string }) {
         subtitle="Profit, sales, listings or sell-through, by week, month, quarter or year"
         right={
           !adding && (
-            <button type="button" onClick={() => setAdding(true)} className="flex items-center gap-1 text-xs text-[#B5607A] hover:underline">
+            <button type="button" onClick={() => setAdding(true)} className="flex items-center gap-1 text-xs text-accent hover:underline">
               <Plus className="w-3 h-3" /> Add goal
             </button>
           )
@@ -358,7 +358,7 @@ function Goals({ data, today }: { data: Data; today: string }) {
               onChange={(e) => setDraft({ ...draft, target: e.target.value })}
               aria-label="Target"
             />
-            <button type="submit" className="px-3 py-1.5 rounded-md bg-[#B5607A] text-white text-xs font-medium">
+            <button type="submit" className="px-3 py-1.5 rounded-md bg-accent text-accent-foreground text-xs font-medium">
               Save
             </button>
             <button type="button" onClick={() => setAdding(false)} className="px-2 text-xs text-muted-foreground">

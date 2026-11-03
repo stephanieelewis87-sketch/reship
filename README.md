@@ -1,6 +1,6 @@
-# Reship
+# SellSync
 
-A shipping dashboard for resellers: see sold orders from Poshmark, Vinted, Depop, Mercari, Whatnot, Etsy and eBay in one place, print the labels those marketplaces already generated (with SKUs and packing slips) in one batch, and track what has shipped. Built from the Reship design in Figma Make.
+A shipping dashboard for resellers: see sold orders from Poshmark, Vinted, Depop, Mercari, Whatnot, Etsy and eBay in one place, print the labels those marketplaces already generated (with SKUs and packing slips) in one batch, and track what has shipped. Built from the SellSync design in Figma Make.
 
 ## Run it
 
@@ -11,21 +11,21 @@ npm run dev
 
 Open the address it prints (usually http://localhost:5173).
 
-Without any setup, Reship runs in **demo mode**: it starts with sample orders and saves everything in your browser only.
+Without any setup, SellSync runs in **demo mode**: it starts with sample orders and saves everything in your browser only.
 
 ## Use real accounts and a shared database (Supabase)
 
 1. Create a free project at [supabase.com](https://supabase.com).
 2. In the project's SQL editor, run the files in `supabase/migrations/` in order (0004 adds inventory and profit tracking for Analytics).
 3. Copy `.env.example` to `.env.local` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from Settings > API.
-4. Restart `npm run dev`. Reship now asks you to sign in, and each account only sees its own orders.
+4. Restart `npm run dev`. SellSync now asks you to sign in, and each account only sees its own orders.
 
 ## What works today
 
 - Order dashboard from the design: status and marketplace filters, search, list and grid views, bundles, inline SKU editing
 - Add and edit orders by hand, including buyer address and package weight
 - Import orders from a marketplace CSV export, with automatic column matching and bundle grouping
-- Poshmark orders and their prepaid labels come in automatically through the Reship browser extension (see below)
+- Poshmark orders and their prepaid labels come in automatically through the SellSync browser extension (see below)
 - Upload an order's label PDF by hand from the order drawer when needed
 - Print all selected labels in one PDF, optionally stamped with the SKUs, with a packing slip after each label (4x6, Letter or A4)
 - Optional "Buy a different label" per order, with rate estimates for USPS, UPS and FedEx
@@ -33,13 +33,31 @@ Without any setup, Reship runs in **demo mode**: it starts with sample orders an
 - Works on phones
 - **Analytics**: sales, true profit (after marketplace fees, shipping you paid and item cost), margin, days to sell, sell-through and money tied up in inventory, for any period and compared with the one before. Pages for profit (where the money went), marketplaces side by side, brands and categories, inventory health with suggested markdowns for stale listings, sourcing (which thrift stores pay off), a monthly profit goal, "what to do next" tips, and CSV reports for taxes. Click any point or row to see the sales behind it. Fees are estimated from each marketplace's fee schedule when an order doesn't say. The demo has a made-up year of sales so every page has something to show.
 
+## Automatic SKUs and barcodes
+
+- Every new item gets the next SKU automatically, like `BB-00042`. Pick the prefix and number of digits in Settings > SKUs and backups. SKUs are permanent: a number is never handed out twice, even after its item is deleted, and changing an item's SKU takes an extra click.
+- Each SKU has a Code 128 barcode. Print SKU labels from an item's menu, from the item form, or for many items at once (select them, then SKU labels): 2.25 x 1.25" roll labels for Rollo, Dymo or Zebra printers, or Letter sheets of 30 (Avery 5160).
+- Inventory > **Scan** finds an item by SKU or marketplace listing ID with any USB or Bluetooth barcode scanner, or with the camera in Chrome. It also sets where the item is stored, so putting items away is scan, type the bin, scan the next.
+- Every item has a storage location (bin, shelf). Filter by it, search by it, set it in bulk, and it's printed on the SKU label.
+
+## Inventory Guardian
+
+Inventory > **Guardian** keeps the master record of every item safe. Run `supabase/migrations/0010_inventory_guardian.sql` to turn it on with accounts (demo mode keeps it in the browser).
+
+- **Listing links**: each marketplace listing on an item can hold the marketplace's listing link or ID, so the item is the one master record those listings belong to.
+- **Backups**: a dated copy of every item each day the app opens (the last 30 are kept), plus Back up now. Download any backup, or the current inventory, as a spreadsheet.
+- **Listing checks**: duplicate SKUs, items without a SKU, one marketplace listing linked to two items, items that look entered twice (with one-click merge), open orders that match no item, sold items still listed elsewhere, and listings without a marketplace link.
+- **Recovery**: pick a backup, see exactly which items would come back or change, untick any you don't want, and restore. A backup of how things were is made first. Restoring only changes SellSync's records; it never edits, relists or deletes anything on a marketplace.
+- **Change history**: every edit, sale, bulk change, merge and restore is recorded per item (open an item, then History), and the latest changes show on the Guardian page.
+- **Sync protection**: a change that would delete, delist, mark sold or overwrite 10 or more items at once (adjustable) is paused with a banner. Review it, drop it, or back up and apply it.
+
 ## Browser extension (marketplace sync)
 
 Marketplaces don't offer label APIs, so the extension in `extension/` reads sold orders and labels using the seller's own logged-in browser session. It never asks for or stores marketplace passwords, and it shows an at-your-own-risk notice before it turns on.
 
 - `node extension/build.mjs` builds it into `extension/dist` (it reads the same Supabase settings from `.env.local`).
 - In Chrome, open `chrome://extensions`, turn on Developer mode, click Load unpacked and pick `extension/dist`.
-- Sign in with your Reship account, turn on a marketplace and press Sync now. It also syncs every 15 minutes.
+- Sign in with your SellSync account, turn on a marketplace and press Sync now. It also syncs every 15 minutes.
 - New seller setup checklist (also shown in the extension popup):
   1. Log in to each marketplace in the same Chrome profile that has the extension.
   2. Make sure Chrome isn't blocking third-party cookies. Go to Settings, then Privacy and security, then Third-party cookies, and choose "Allow third-party cookies" (or add each marketplace under "Allowed to use third-party cookies"). When they're blocked, marketplace pages such as Mercari may not load and syncs fail.
@@ -67,10 +85,10 @@ Users send feedback from the Feedback tab. The `feedback-digest` Edge Function r
 
 ## List with a video (AI)
 
-Inventory > **List with a video**: the seller films up to 25 items (up to 5 minutes), one after another. Reship reads frames out of the video in the browser (the video itself is never uploaded), then:
+Inventory > **List with a video**: the seller films up to 25 items (up to 5 minutes), one after another. SellSync reads frames out of the video in the browser (the video itself is never uploaded), then:
 
 1. Claude finds each distinct item and marks where it is in its clearest frame.
-2. Reship cuts snips of each item from the video.
+2. SellSync cuts snips of each item from the video.
 3. Claude writes each listing from its snips: title, description, brand, category, size, color, condition, flaws, tags, and a suggested price with the usual sold range and a one-line reason. It also gets the seller's AI instructions from Settings and the median sold prices of their own most common brands and categories.
 4. Optionally, an image model turns the best snip into a clean studio-style photo (it's told to keep the item exactly as it is, flaws included). The real snips are always kept with it.
 5. The seller checks each draft, edits anything, and saves them as inventory drafts, ready to crosslist.
@@ -84,7 +102,7 @@ Setup:
 3. Deploy: `supabase functions deploy video-listing`.
 4. Optional daily caps per user: `VIDEO_LISTING_DAILY_VIDEOS` (20), `VIDEO_LISTING_DAILY_ITEMS` (600), `VIDEO_LISTING_DAILY_PHOTOS` (300).
 
-In demo mode there's no AI: Reship splits the video into items by scene and makes a draft with snips for each, for the seller to fill in.
+In demo mode there's no AI: SellSync splits the video into items by scene and makes a draft with snips for each, for the seller to fill in.
 
 ## List from photos (AI)
 
@@ -97,7 +115,7 @@ Inventory > **List from photos**: the seller uploads up to 100 photos of up to 2
 
 Setup is the same as List with a video, plus `supabase/migrations/0008_photo_listing.sql` (lets the daily cap count photo batches). Optional cap: `VIDEO_LISTING_DAILY_PHOTO_BATCHES` (20). Redeploy `video-listing`.
 
-In demo mode there's no AI: Reship groups photos by when they were taken (a long pause between shots starts a new item), or by how they look when the photos carry no times.
+In demo mode there's no AI: SellSync groups photos by when they were taken (a long pause between shots starts a new item), or by how they look when the photos carry no times.
 
 ## Coming next
 

@@ -1,4 +1,4 @@
-import type { Expense, Feedback, FeedbackStatus, FeedbackSummary, InventoryItem, Order, Settings } from "./types";
+import type { Expense, Feedback, FeedbackStatus, FeedbackSummary, InventoryBackup, InventoryItem, ItemChange, Order, Settings } from "./types";
 import { DEFAULT_SETTINGS } from "./types";
 import { SAMPLE_EXPENSES, SAMPLE_HISTORY_ORDERS, SAMPLE_INVENTORY, SAMPLE_ORDERS, sampleLabelPdf } from "./sampleData";
 import { SAMPLE_FEEDBACK, SAMPLE_SUMMARY } from "./sampleFeedback";
@@ -21,6 +21,13 @@ export interface Store {
   listInventory(): Promise<InventoryItem[]>;
   saveInventory(items: InventoryItem[]): Promise<void>;
   deleteInventory(ids: string[]): Promise<void>;
+  // Inventory Guardian: dated copies of the inventory, and each item's change history.
+  listBackups(): Promise<InventoryBackup[]>; // without their items
+  getBackup(id: string): Promise<InventoryBackup | null>;
+  saveBackup(backup: InventoryBackup): Promise<void>;
+  deleteBackups(ids: string[]): Promise<void>;
+  addHistory(entries: ItemChange[]): Promise<void>;
+  listHistory(itemId?: string): Promise<ItemChange[]>; // newest first
   listExpenses(): Promise<Expense[]>;
   saveExpenses(items: Expense[]): Promise<void>;
   deleteExpenses(ids: string[]): Promise<void>;
@@ -68,6 +75,31 @@ async function labelTx<T>(mode: IDBTransactionMode, run: (s: IDBObjectStore) => 
   });
 }
 
+// Backups and change history in demo mode, also in IndexedDB since backups hold the whole inventory.
+const GUARDIAN_DB = "reship-guardian";
+function guardianDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(GUARDIAN_DB, 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore("backups", { keyPath: "id" });
+      req.result.createObjectStore("history", { keyPath: "id" }).createIndex("itemId", "itemId");
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function guardianTx<T>(store: "backups" | "history", mode: IDBTransactionMode, run: (s: IDBObjectStore) => IDBRequest | void): Promise<T> {
+  const db = await guardianDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, mode);
+    const req = run(tx.objectStore(store));
+    tx.oncomplete = () => resolve((req ? req.result : undefined) as T);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// Storage names keep the app's old name (reship) so data already saved in a browser still loads.
 // v3 added a year of sold orders behind the samples, for analytics.
 const ORDERS_KEY = "reship.orders.v3";
 // v2 tracks each marketplace listing separately.
@@ -143,6 +175,17 @@ export class LocalStore implements Store {
   saveExpenses = (items: Expense[]) => this.expenses.save(items);
   deleteExpenses = (ids: string[]) => this.expenses.remove(ids);
 
+  listBackups = async () =>
+    (await guardianTx<InventoryBackup[]>("backups", "readonly", (s) => s.getAll()))
+      .map(({ items: _items, ...meta }) => meta)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  getBackup = async (id: string) => (await guardianTx<InventoryBackup | undefined>("backups", "readonly", (s) => s.get(id))) ?? null;
+  saveBackup = (b: InventoryBackup) => guardianTx<void>("backups", "readwrite", (s) => void s.put(b));
+  deleteBackups = (ids: string[]) => guardianTx<void>("backups", "readwrite", (s) => ids.forEach((id) => s.delete(id)));
+  addHistory = (entries: ItemChange[]) => guardianTx<void>("history", "readwrite", (s) => entries.forEach((e) => s.put(e)));
+  listHistory = async (itemId?: string) =>
+    (await guardianTx<ItemChange[]>("history", "readonly", (s) => (itemId ? s.index("itemId").getAll(itemId) : s.getAll()))).sort((a, b) => b.at.localeCompare(a.at));
+
   // In demo mode you're the owner, so both sides of feedback show. Summaries need the backend.
   private feedback = new LocalList<Feedback>(FEEDBACK_KEY, () => SAMPLE_FEEDBACK);
   sendFeedback = (f: Omit<Feedback, "id" | "status" | "createdAt">) =>
@@ -167,6 +210,11 @@ export class LocalStore implements Store {
     this.inventory.reset();
     this.expenses.reset();
     this.feedback.reset();
+    try {
+      indexedDB.deleteDatabase(GUARDIAN_DB);
+    } catch {
+      // Nothing saved yet.
+    }
     try {
       localStorage.removeItem(ORDERS_KEY);
     } catch {
@@ -324,6 +372,7 @@ const inventoryToRow = (i: InventoryItem, userId: string) => ({
     quantity: i.quantity,
     labels: i.labels,
     notes: i.notes,
+    location: i.location,
     photos: i.photos,
     readyToList: i.readyToList,
     soldOrders: i.soldOrders,
@@ -429,6 +478,50 @@ export class SupabaseStore implements Store {
   async deleteInventory(ids: string[]) {
     const { error } = await this.db.from("inventory_items").delete().in("id", ids);
     if (error) throw error;
+  }
+
+  // Backups and history need migration 0010; without it there are none and saving says so.
+  async listBackups() {
+    const { data, error } = await this.db.from("inventory_backups").select("id, created_at, reason, item_count").order("created_at", { ascending: false }).limit(200);
+    if (error) return [];
+    return (data as BackupRow[]).map(backupFromRow);
+  }
+
+  async getBackup(id: string) {
+    const { data, error } = await this.db.from("inventory_backups").select("*").eq("id", id).maybeSingle();
+    if (error || !data) return null;
+    return backupFromRow(data as BackupRow);
+  }
+
+  async saveBackup(b: InventoryBackup) {
+    const { error } = await this.db
+      .from("inventory_backups")
+      .insert({ id: b.id, user_id: this.userId, created_at: b.createdAt, reason: b.reason, item_count: b.itemCount, items: b.items ?? [] });
+    if (error) throw new Error(`Couldn't save the backup (${error.message}). Run supabase/migrations/0010_inventory_guardian.sql.`);
+  }
+
+  async deleteBackups(ids: string[]) {
+    if (!ids.length) return;
+    const { error } = await this.db.from("inventory_backups").delete().in("id", ids);
+    if (error) throw error;
+  }
+
+  async addHistory(entries: ItemChange[]) {
+    if (!entries.length) return;
+    // History is a nice-to-have: a database without the table just doesn't keep it.
+    await this.db.from("inventory_history").insert(
+      entries.map((e) => ({ id: e.id, user_id: this.userId, item_id: e.itemId, sku: e.sku, at: e.at, source: e.source, kind: e.kind, changes: e.changes })),
+    );
+  }
+
+  async listHistory(itemId?: string) {
+    let q = this.db.from("inventory_history").select("*").order("at", { ascending: false }).limit(itemId ? 200 : 500);
+    if (itemId) q = q.eq("item_id", itemId);
+    const { data, error } = await q;
+    if (error) return [];
+    return (data as HistoryRow[]).map(
+      (r): ItemChange => ({ id: r.id, itemId: r.item_id, sku: r.sku, at: r.at, source: r.source, kind: r.kind, changes: r.changes ?? [] }),
+    );
   }
 
   async listExpenses() {
@@ -547,4 +640,24 @@ interface SummaryRow {
   summary: FeedbackSummary["summary"];
   emailed_to: string | null;
   created_at: string;
+}
+
+interface BackupRow {
+  id: string;
+  created_at: string;
+  reason: string;
+  item_count: number;
+  items?: InventoryItem[];
+}
+
+const backupFromRow = (r: BackupRow): InventoryBackup => ({ id: r.id, createdAt: r.created_at, reason: r.reason, itemCount: r.item_count, items: r.items });
+
+interface HistoryRow {
+  id: string;
+  item_id: string;
+  sku: string;
+  at: string;
+  source: string;
+  kind: ItemChange["kind"];
+  changes: ItemChange["changes"] | null;
 }

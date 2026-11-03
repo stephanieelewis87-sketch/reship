@@ -47,7 +47,7 @@ export function stampSku(page: PDFPage, font: PDFFont, skus: string[]) {
   page.drawText(text, { x: x + 10, y: y + 7, size, font, color: rgb(0, 0, 0), maxWidth: width - 20 });
 }
 
-// Poshmark's label download already ends with its own packing slip page, so Reship's would be a
+// Poshmark's label download already ends with its own packing slip page, so SellSync's would be a
 // second one for the same order.
 export const labelIncludesSlip = (order: Pick<Order, "platform">, labelPages: number) => order.platform === "Poshmark" && labelPages > 1;
 

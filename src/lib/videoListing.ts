@@ -1,7 +1,7 @@
 import type { Condition, InventoryItem } from "./types";
 import { CONDITIONS } from "./types";
 
-// "List with a video": the seller films up to 25 items, Reship finds each one, keeps snips from
+// "List with a video": the seller films up to 25 items, SellSync finds each one, keeps snips from
 // the video, and fills in a draft listing with a suggested price. This file holds the parts that
 // don't need a browser or the AI service, so they can be tested.
 

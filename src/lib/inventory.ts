@@ -60,10 +60,7 @@ export function duplicateSkus(inventory: InventoryItem[]): Set<string> {
   return new Set([...seen].filter(([, n]) => n > 1).map(([k]) => k));
 }
 
-export const nextSku = (inventory: InventoryItem[], prefix = "RS") => {
-  const nums = inventory.map((i) => Number(i.sku.match(new RegExp(`^${prefix}-(\\d+)$`))?.[1] ?? 0));
-  return `${prefix}-${String(Math.max(1000, ...nums) + 1)}`;
-};
+export { nextSku } from "./sku";
 
 // The price for one marketplace after the seller's pricing rule, rounded to whole dollars.
 export const priceFor = (base: number | undefined, platform: Platform, settings: Settings) =>

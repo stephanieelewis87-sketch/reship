@@ -41,7 +41,7 @@ export function needsShipping(sale: PoshmarkSale): boolean {
   return status === "sold" && !!sale.shipping_label_download_url;
 }
 
-// Poshmark's order status as Reship tracks it, or null for states Reship doesn't follow.
+// Poshmark's order status as SellSync tracks it, or null for states SellSync doesn't follow.
 export function shipmentStatus(sale: PoshmarkSale): ShipmentStatus | null {
   const status = (sale.display_status || sale.state || "").trim().toLowerCase();
   if (status === "sold") return "label_created";
@@ -181,7 +181,7 @@ const LABEL_FILE = /^https:\/\/labels-poshmark-production\.s3[.\w-]*\.amazonaws\
 const LABEL_WAIT_MS = 20_000;
 
 // Poshmark's label link is a page that looks up the label and then downloads the PDF from
-// Poshmark's label storage through a short-lived signed address. Reship opens that page in a
+// Poshmark's label storage through a short-lived signed address. SellSync opens that page in a
 // background tab, catches the download as it starts, cancels it (so nothing lands in the
 // seller's Downloads folder) and returns the signed address to fetch the PDF from.
 function labelFileUrl(labelUrl: string): Promise<string | null> {

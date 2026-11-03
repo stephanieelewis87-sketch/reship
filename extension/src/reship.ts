@@ -6,7 +6,7 @@ import type { OrderSink } from "./sync";
 declare const __SUPABASE_URL__: string;
 declare const __SUPABASE_ANON_KEY__: string;
 
-// Keeps the Reship sign-in in extension storage, shared by the popup and the background worker.
+// Keeps the SellSync sign-in in extension storage, shared by the popup and the background worker.
 const chromeStorage: SupportedStorage = {
   getItem: async (key) => ((await chrome.storage.local.get(key))[key] as string | undefined) ?? null,
   setItem: async (key, value) => chrome.storage.local.set({ [key]: value }),

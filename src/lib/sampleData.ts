@@ -1,7 +1,7 @@
 import type { Expense, InventoryItem, Order } from "./types";
 import { sampleHistory } from "./sampleHistory";
 
-// Sample orders from the Reship design, loaded on first run in demo mode so the app isn't empty.
+// Sample orders from the SellSync design, loaded on first run in demo mode so the app isn't empty.
 const RAW: Omit<Order, "source">[] = [
   {
     id: "1", platform: "Poshmark", orderId: "PM-44821", buyer: "jessica_m", date: "2026-07-20", status: "pending", carrier: "USPS Priority",

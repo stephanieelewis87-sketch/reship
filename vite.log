@@ -1,0 +1,6 @@
+
+  VITE v6.3.5  ready in 371 ms
+
+  ➜  Local:   http://localhost:5199/
+  ➜  Network: use --host to expose
+2:50:39 AM [vite] (client) hmr update /src/components/inventory/PendingBanner.tsx, /src/styles/index.css

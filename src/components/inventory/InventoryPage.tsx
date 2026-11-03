@@ -17,7 +17,9 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
+  ScanLine,
   Search,
+  ShieldCheck,
   Tag,
   Trash2,
   X,
@@ -31,13 +33,16 @@ import { newId } from "@/lib/ids";
 import { salesHints } from "@/lib/videoListing";
 import { Pills } from "../analytics/parts";
 import { PageHeader } from "../shell/PageHeader";
-import type { Route } from "../shell/route";
+import { go, type Route } from "../shell/route";
 import { PlatformIcon, inputClass, selectClass } from "../ui";
 import { LabelDots } from "./LabelChips";
 import { ListingForm } from "./ListingForm";
 import { QuickEdit } from "./QuickEdit";
 import { PhotoListing } from "./PhotoListing";
 import { VideoListing } from "./VideoListing";
+import { ScanModal, SkuLabelsModal } from "./SkuTools";
+import { GuardianPage } from "./GuardianPage";
+import { checkInventory } from "@/lib/guardian";
 
 type Data = ReturnType<typeof useReshipData>;
 type StatusFilter = "all" | "draft" | "listed" | "sold";
@@ -97,6 +102,9 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
   const [sort, setSort] = useState<Sort>("newest");
   const [labelIn, setLabelIn] = useState<string[]>([]);
   const [labelOut, setLabelOut] = useState<string[]>([]);
+  const [location, setLocation] = useState("");
+  const [scan, setScan] = useState(false);
+  const [skuLabels, setSkuLabels] = useState<InventoryItem[] | null>(null);
   const [showFilters, setShowFilters] = useState(!!route.params.get("issue"));
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -132,7 +140,8 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
     const q = search.trim().toLowerCase();
     const rows = inventory.filter((i) => {
       if (status !== "all" && i.status !== status) return false;
-      if (q && ![i.title, i.sku, i.brand ?? "", i.notes ?? ""].some((s) => s.toLowerCase().includes(q))) return false;
+      if (q && ![i.title, i.sku, i.brand ?? "", i.notes ?? "", i.location ?? "", ...i.listings.map((l) => l.listingId ?? "")].some((s) => s.toLowerCase().includes(q))) return false;
+      if (location && (location === "-" ? !!i.location : i.location !== location)) return false;
       if (issue === "partial" && !isPartiallyDelisted(i)) return false;
       if (issue === "stale" && !(i.status === "listed" && i.listings.some((l) => relistState(l, today) === "stale"))) return false;
       if (issue === "duplicate" && !dupes.has(i.sku.trim().toLowerCase())) return false;
@@ -150,9 +159,11 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
       sold: (a, b) => (b.soldAt ?? "").localeCompare(a.soldAt ?? ""),
     };
     return rows.sort(by[sort]);
-  }, [inventory, status, search, issue, labelIn, labelOut, sort, dupes, today]);
+  }, [inventory, status, search, issue, labelIn, labelOut, location, sort, dupes, today]);
+  const locations = useMemo(() => [...new Set(inventory.map((i) => i.location).filter((l): l is string => !!l))].sort(), [inventory]);
+  const guardianAlerts = useMemo(() => checkInventory(inventory, data.orders).filter((i) => i.severity === "high").length, [inventory, data.orders]);
 
-  useEffect(() => setPage(0), [status, search, issue, labelIn, labelOut, sort]);
+  useEffect(() => setPage(0), [status, search, issue, labelIn, labelOut, location, sort]);
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const shown = filtered.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
   // Bulk selection covers the current page only, as the bar says.
@@ -183,7 +194,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
       item: {
         ...item,
         id: newId(),
-        sku: nextSku(inventory),
+        sku: nextSku(inventory, settings.skuFormat),
         status: "draft",
         listings: [],
         soldAt: undefined,
@@ -194,7 +205,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
       isNew: true,
     });
   const deleteItem = (item: InventoryItem) => {
-    if (window.confirm(`Delete ${item.title} from Reship? Live listings on marketplaces stay up.`)) deleteInventory([item.id]);
+    if (window.confirm(`Delete ${item.title} from SellSync? Live listings on marketplaces stay up.`)) deleteInventory([item.id]);
   };
   const moveListing = (item: InventoryItem, l: Listing) =>
     saveInventory([
@@ -206,7 +217,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
       {
         ...item,
         id: newId(),
-        sku: nextSku(inventory),
+        sku: nextSku(inventory, settings.skuFormat),
         listings: [l],
         status: l.status === "sold" ? "sold" : l.status === "active" ? "listed" : "draft",
         soldOrders: undefined,
@@ -227,7 +238,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
     });
   const blank = (): InventoryItem => ({
     id: newId(),
-    sku: nextSku(inventory),
+    sku: nextSku(inventory, settings.skuFormat),
     title: "",
     status: "draft",
     listings: [],
@@ -235,6 +246,40 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
     labels: [],
     purchasedAt: today,
   });
+
+  const formModal = form && (
+    <ListingForm
+      key={form.item.id + (form.platform ?? "")}
+      item={form.item}
+      isNew={form.isNew}
+      settings={settings}
+      ai={data.store.listingAi}
+      store={data.store}
+      salesNotes={salesHints(inventory)}
+      onlyPlatform={form.platform}
+      onClose={() => setForm(null)}
+      onSave={(i, msg) => {
+        saveInventory([i]);
+        setForm(null);
+        if (msg) setNotice(msg);
+      }}
+      onDelete={(id) => {
+        deleteInventory([id]);
+        setForm(null);
+      }}
+      onPrintLabel={(i) => setSkuLabels([i])}
+    />
+  );
+  const skuLabelsModal = skuLabels && <SkuLabelsModal items={skuLabels} onClose={() => setSkuLabels(null)} />;
+
+  if (route.params.has("guardian"))
+    return (
+      <>
+        <GuardianPage data={data} onOpenItem={(item) => setForm({ item, isNew: false })} />
+        {formModal}
+        {skuLabelsModal}
+      </>
+    );
 
   return (
     <div>
@@ -253,7 +298,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                 <MenuItem
                   onClick={() => {
                     close();
-                    setNotice("Full sync reads every listing and sale from your marketplaces. Open the Reship extension and press Sync now; it also runs every 15 minutes.");
+                    setNotice("Full sync reads every listing and sale from your marketplaces. Open the SellSync extension and press Sync now; it also runs every 15 minutes.");
                   }}
                 >
                   Full sync
@@ -261,7 +306,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                 <MenuItem
                   onClick={() => {
                     close();
-                    setNotice("Quick sync checks for new sales only. Open the Reship extension and press Sync now.");
+                    setNotice("Quick sync checks for new sales only. Open the SellSync extension and press Sync now.");
                   }}
                 >
                   Quick sync
@@ -272,6 +317,18 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
           </Menu>
           <button
             type="button"
+            onClick={() => go("inventory", { guardian: "" })}
+            title="Inventory Guardian: backups, recovery, listing checks and change history"
+            className="relative flex items-center gap-1.5 px-3 py-2 rounded-md border border-border text-sm hover:bg-muted"
+          >
+            <ShieldCheck className="w-4 h-4" /> Guardian
+            {guardianAlerts > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-rose-600 text-white text-[10px] leading-4 text-center">{guardianAlerts}</span>}
+          </button>
+          <button type="button" onClick={() => setScan(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-border text-sm hover:bg-muted">
+            <ScanLine className="w-4 h-4" /> Scan
+          </button>
+          <button
+            type="button"
             onClick={() => setVideo(true)}
             className="flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-lg bg-amber-400 text-amber-950 text-sm font-bold shadow-md shadow-amber-400/30 ring-2 ring-amber-300 hover:bg-amber-300 hover:shadow-lg transition"
           >
@@ -280,14 +337,14 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
           <button
             type="button"
             onClick={() => setPhotoUpload(true)}
-            className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-md border border-[#B5607A] text-[#B5607A] text-sm font-medium hover:bg-rose-50"
+            className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-md border border-accent text-accent text-sm font-medium hover:bg-rose-50"
           >
             <Images className="w-4 h-4" /> List from photos
           </button>
           <button
             type="button"
             onClick={() => setForm({ item: blank(), isNew: true })}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-[#B5607A] text-white text-sm font-medium hover:bg-[#9E4D6A]"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-accent text-accent-foreground text-sm font-medium hover:bg-accent-hover"
           >
             <Plus className="w-4 h-4" /> Add item
           </button>
@@ -324,7 +381,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search title, SKU, brand, notes…"
               aria-label="Search inventory"
-              className="pl-9 pr-3 py-1.5 text-sm bg-muted rounded-md border border-transparent focus:border-[#B5607A] focus:outline-none w-full"
+              className="pl-9 pr-3 py-1.5 text-sm bg-muted rounded-md border border-transparent focus:border-accent focus:outline-none w-full"
             />
           </div>
           <select className={selectClass} value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort">
@@ -338,7 +395,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
             type="button"
             onClick={() => setShowFilters((v) => !v)}
             aria-pressed={showFilters}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs ${showFilters || issue || labelIn.length || labelOut.length ? "border-[#B5607A] text-[#B5607A]" : "border-border text-foreground"}`}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs ${showFilters || issue || location || labelIn.length || labelOut.length ? "border-accent text-accent" : "border-border text-foreground"}`}
           >
             <Filter className="w-3.5 h-3.5" /> Filter
           </button>
@@ -354,7 +411,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                 type="button"
                 aria-pressed={view === v}
                 onClick={() => setView(v)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 ${view === v ? "bg-[#B5607A] text-white" : "text-foreground hover:bg-muted"}`}
+                className={`flex items-center gap-1 px-2.5 py-1.5 ${view === v ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-muted"}`}
               >
                 <Icon className="w-3.5 h-3.5" /> {label}
               </button>
@@ -371,6 +428,16 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                   <option key={i.key} value={i.key}>
                     {i.label}
                   </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-2">
+              <span className="text-muted-foreground w-14">Location</span>
+              <select className={selectClass} value={location} onChange={(e) => setLocation(e.target.value)}>
+                <option value="">Anywhere</option>
+                <option value="-">No location yet</option>
+                {locations.map((l) => (
+                  <option key={l}>{l}</option>
                 ))}
               </select>
             </label>
@@ -420,7 +487,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
             </label>
             {shown.length === 0 ? (
               <p className="bg-card border border-border rounded-xl text-center text-sm text-muted-foreground py-12">
-                {inventory.length === 0 ? "No items yet. Add one, or sync your marketplaces with the Reship extension." : "No items match."}
+                {inventory.length === 0 ? "No items yet. Add one, or sync your marketplaces with the SellSync extension." : "No items match."}
               </p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -436,7 +503,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                     onQuick={() => setQuick(item)}
                     onListOn={(p) => setForm({ item, isNew: false, platform: p })}
                     actionsFor={(l) => listingActions(item, l)}
-                    menu={<ItemMenu item={item} onEdit={() => setForm({ item, isNew: false })} onDelistAll={() => delistAll([item])} onCopy={() => copyItem(item)} onDelete={() => deleteItem(item)} />}
+                    menu={<ItemMenu item={item} onEdit={() => setForm({ item, isNew: false })} onDelistAll={() => delistAll([item])} onCopy={() => copyItem(item)} onDelete={() => deleteItem(item)} onLabel={() => setSkuLabels([item])} />}
                   />
                 ))}
               </div>
@@ -471,7 +538,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                 {shown.length === 0 && (
                   <tr>
                     <td colSpan={2 + ALL_PLATFORMS.length} className="text-center text-sm text-muted-foreground py-12">
-                      {inventory.length === 0 ? "No items yet. Add one, or sync your marketplaces with the Reship extension." : "No items match."}
+                      {inventory.length === 0 ? "No items yet. Add one, or sync your marketplaces with the SellSync extension." : "No items match."}
                     </td>
                   </tr>
                 )}
@@ -485,7 +552,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                         {item.photo ? <img src={item.photo} alt="" className="w-11 h-11 rounded-md object-cover shrink-0" /> : <div className="w-11 h-11 rounded-md bg-muted shrink-0" />}
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1">
-                            <button type="button" onClick={() => setForm({ item, isNew: false })} className="text-sm font-medium text-foreground truncate max-w-[220px] text-left hover:text-[#B5607A]">
+                            <button type="button" onClick={() => setForm({ item, isNew: false })} className="text-sm font-medium text-foreground truncate max-w-[220px] text-left hover:text-accent">
                               {item.title || "Untitled"}
                             </button>
                             <button type="button" aria-label="Quick edit" title="Quick edit" onClick={() => setQuick(item)} className="p-0.5 text-muted-foreground hover:text-foreground">
@@ -497,10 +564,12 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                               onDelistAll={() => delistAll([item])}
                               onCopy={() => copyItem(item)}
                               onDelete={() => deleteItem(item)}
+                              onLabel={() => setSkuLabels([item])}
                             />
                           </div>
                           <div className="flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground">
                             <span className="font-mono">{item.sku}</span>
+                            {item.location && <span title="Location">@ {item.location}</span>}
                             {item.listPrice != null && <span>${item.listPrice}</span>}
                             {(item.quantity ?? 1) > 1 && <span>qty {item.quantity}</span>}
                             <StatusChip item={item} />
@@ -523,7 +592,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                               title={`List on ${p}`}
                               aria-label={`List ${item.title} on ${p}`}
                               onClick={() => setForm({ item, isNew: false, platform: p })}
-                              className="w-10 h-10 rounded-md border border-dashed border-border hover:border-[#B5607A] hover:bg-rose-50/40 inline-flex items-center justify-center text-muted-foreground/40 hover:text-[#B5607A]"
+                              className="w-10 h-10 rounded-md border border-dashed border-border hover:border-accent hover:bg-rose-50/40 inline-flex items-center justify-center text-muted-foreground/40 hover:text-accent"
                             >
                               <Plus className="w-3.5 h-3.5" />
                             </button>
@@ -568,6 +637,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
             delistAll(selectedRows);
             setSelected(new Set());
           }}
+          onLabels={() => setSkuLabels(selectedRows)}
         />
       )}
 
@@ -593,25 +663,17 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
           }}
         />
       )}
-      {form && (
-        <ListingForm
-          key={form.item.id + (form.platform ?? "")}
-          item={form.item}
-          isNew={form.isNew}
-          settings={settings}
-          ai={data.store.listingAi}
-          salesNotes={salesHints(inventory)}
-          onlyPlatform={form.platform}
-          onClose={() => setForm(null)}
-          onSave={(i, msg) => {
-            saveInventory([i]);
-            setForm(null);
-            if (msg) setNotice(msg);
+      {formModal}
+      {skuLabelsModal}
+      {scan && (
+        <ScanModal
+          inventory={inventory}
+          onClose={() => setScan(false)}
+          onOpen={(item) => {
+            setScan(false);
+            setForm({ item, isNew: false });
           }}
-          onDelete={(id) => {
-            deleteInventory([id]);
-            setForm(null);
-          }}
+          onMove={(item, loc) => saveInventory([{ ...item, location: loc || undefined, updatedAt: new Date().toISOString() }])}
         />
       )}
       {quick && (
@@ -643,7 +705,21 @@ function StatusChip({ item }: { item: InventoryItem }) {
   return <span className={`px-1.5 rounded ${cfg}`}>{item.status === "draft" ? (item.readyToList ? "Ready to list" : "Draft") : item.status === "listed" ? "Listed" : "Sold"}</span>;
 }
 
-function ItemMenu({ item, onEdit, onDelistAll, onCopy, onDelete }: { item: InventoryItem; onEdit: () => void; onDelistAll: () => void; onCopy: () => void; onDelete: () => void }) {
+function ItemMenu({
+  item,
+  onEdit,
+  onDelistAll,
+  onCopy,
+  onDelete,
+  onLabel,
+}: {
+  item: InventoryItem;
+  onEdit: () => void;
+  onDelistAll: () => void;
+  onCopy: () => void;
+  onDelete: () => void;
+  onLabel: () => void;
+}) {
   const run = (close: () => void, fn: () => void) => () => {
     close();
     fn();
@@ -662,6 +738,9 @@ function ItemMenu({ item, onEdit, onDelistAll, onCopy, onDelete }: { item: Inven
           {listedOn(item).length > 0 && <MenuItem onClick={run(close, onDelistAll)}>Delist everywhere</MenuItem>}
           <MenuItem onClick={run(close, onCopy)}>
             <Copy className="w-3.5 h-3.5" /> Copy
+          </MenuItem>
+          <MenuItem onClick={run(close, onLabel)}>
+            <ScanLine className="w-3.5 h-3.5" /> Print SKU label
           </MenuItem>
           <MenuItem danger onClick={run(close, onDelete)}>
             <Trash2 className="w-3.5 h-3.5" /> Delete
@@ -763,7 +842,7 @@ function ListingCell({ item, listing, today, ...actions }: { item: InventoryItem
               <CheckCircle2 className="w-4 h-4 text-white" />
             </span>
           )}
-          {listing.status === "active" && <span className="absolute top-0.5 left-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white" />}
+          {listing.status === "active" && <span className="absolute top-0.5 left-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-card" />}
           <span className="absolute bottom-0.5 right-0.5">
             <RelistBadge listing={listing} today={today} />
           </span>
@@ -806,7 +885,7 @@ function BoardCard({
 }) {
   const notOn = ALL_PLATFORMS.filter((p) => !item.listings.some((l) => l.platform === p));
   return (
-    <article className={`bg-card border rounded-xl overflow-hidden flex flex-col ${selected ? "border-[#B5607A] ring-1 ring-[#B5607A]/40" : "border-border"}`}>
+    <article className={`bg-card border rounded-xl overflow-hidden flex flex-col ${selected ? "border-accent ring-1 ring-accent/40" : "border-border"}`}>
       <div className="relative aspect-[16/9] sm:aspect-[4/3] bg-muted">
         {item.photo && <img src={item.photo} alt="" className="w-full h-full object-cover" />}
         <label className="absolute top-2 left-2 bg-card/90 rounded p-1 flex">
@@ -819,7 +898,7 @@ function BoardCard({
       <div className="p-3 flex-1 flex flex-col gap-2">
         <div>
           <div className="flex items-start gap-1">
-            <button type="button" onClick={onEdit} className="text-sm font-medium text-foreground text-left leading-snug hover:text-[#B5607A] flex-1 min-w-0">
+            <button type="button" onClick={onEdit} className="text-sm font-medium text-foreground text-left leading-snug hover:text-accent flex-1 min-w-0">
               {item.title || "Untitled"}
             </button>
             <button type="button" aria-label="Quick edit" title="Quick edit" onClick={onQuick} className="p-0.5 text-muted-foreground hover:text-foreground">
@@ -865,7 +944,7 @@ function BoardCard({
                 title={`List on ${p}`}
                 aria-label={`List ${item.title} on ${p}`}
                 onClick={() => onListOn(p)}
-                className="w-6 h-6 rounded-md border border-dashed border-border hover:border-[#B5607A] hover:bg-rose-50/40 inline-flex items-center justify-center"
+                className="w-6 h-6 rounded-md border border-dashed border-border hover:border-accent hover:bg-rose-50/40 inline-flex items-center justify-center"
               >
                 <PlatformIcon platform={p} className="w-3 h-3" />
               </button>
@@ -878,7 +957,7 @@ function BoardCard({
 }
 
 // Actions for the checked rows on this page.
-function BulkBar({ data, items, onDone, onDelist }: { data: Data; items: InventoryItem[]; onDone: (msg?: string) => void; onDelist: () => void }) {
+function BulkBar({ data, items, onDone, onDelist, onLabels }: { data: Data; items: InventoryItem[]; onDone: (msg?: string) => void; onDelist: () => void; onLabels: () => void }) {
   const { settings, saveInventory, deleteInventory } = data;
   const [mode, setMode] = useState<"" | "crosslist" | "label" | "edit">("");
   const [platforms, setPlatforms] = useState<Set<Platform>>(new Set());
@@ -886,8 +965,8 @@ function BulkBar({ data, items, onDone, onDelist }: { data: Data; items: Invento
     condition: string;
     quantity: string;
     cost: string;
-    skuPrefix: string;
-  }>({ condition: "", quantity: "", cost: "", skuPrefix: "" });
+    location: string;
+  }>({ condition: "", quantity: "", cost: "", location: "" });
   const today = isoDay(new Date());
   const crosslist = () => {
     saveInventory(
@@ -924,14 +1003,15 @@ function BulkBar({ data, items, onDone, onDelist }: { data: Data; items: Invento
   };
   const applyEdit = () => {
     saveInventory(
-      items.map((i, n) => ({
+      items.map((i) => ({
         ...i,
         condition: (edit.condition || i.condition) as Condition | undefined,
         quantity: edit.quantity ? Math.max(1, parseInt(edit.quantity) || 1) : i.quantity,
         cost: edit.cost ? parseFloat(edit.cost) || 0 : i.cost,
-        sku: edit.skuPrefix ? `${edit.skuPrefix}-${String(n + 1).padStart(3, "0")}` : i.sku,
+        location: edit.location.trim() || i.location,
         updatedAt: new Date().toISOString(),
       })),
+      "Bulk edit",
     );
     onDone(`Updated ${items.length} item${items.length !== 1 ? "s" : ""}.`);
   };
@@ -939,27 +1019,30 @@ function BulkBar({ data, items, onDone, onDelist }: { data: Data; items: Invento
     <div className="fixed bottom-16 md:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-3xl bg-foreground text-background rounded-xl shadow-2xl p-3 text-sm">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="font-medium mr-2">{items.length} selected on this page</span>
-        <button type="button" onClick={() => setMode(mode === "crosslist" ? "" : "crosslist")} className="px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20">
+        <button type="button" onClick={() => setMode(mode === "crosslist" ? "" : "crosslist")} className="px-2.5 py-1 rounded-md bg-background/10 hover:bg-background/20">
           Crosslist
         </button>
-        <button type="button" onClick={() => setMode(mode === "label" ? "" : "label")} className="px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 flex items-center gap-1">
+        <button type="button" onClick={() => setMode(mode === "label" ? "" : "label")} className="px-2.5 py-1 rounded-md bg-background/10 hover:bg-background/20 flex items-center gap-1">
           <Tag className="w-3.5 h-3.5" /> Labels
         </button>
-        <button type="button" onClick={() => setMode(mode === "edit" ? "" : "edit")} className="px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20">
+        <button type="button" onClick={() => setMode(mode === "edit" ? "" : "edit")} className="px-2.5 py-1 rounded-md bg-background/10 hover:bg-background/20">
           Bulk edit
         </button>
-        <button type="button" onClick={onDelist} className="px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20">
+        <button type="button" onClick={onLabels} className="px-2.5 py-1 rounded-md bg-background/10 hover:bg-background/20 flex items-center gap-1">
+          <ScanLine className="w-3.5 h-3.5" /> SKU labels
+        </button>
+        <button type="button" onClick={onDelist} className="px-2.5 py-1 rounded-md bg-background/10 hover:bg-background/20">
           Delist
         </button>
         <button
           type="button"
           onClick={() => {
-            if (window.confirm(`Delete ${items.length} items from Reship? Live listings on marketplaces stay up.`)) {
+            if (window.confirm(`Delete ${items.length} items from SellSync? Live listings on marketplaces stay up.`)) {
               deleteInventory(items.map((i) => i.id));
               onDone();
             }
           }}
-          className="px-2.5 py-1 rounded-md bg-white/10 hover:bg-rose-500/70"
+          className="px-2.5 py-1 rounded-md bg-background/10 hover:bg-rose-500/70"
         >
           Delete
         </button>
@@ -982,12 +1065,12 @@ function BulkBar({ data, items, onDone, onDelist }: { data: Data; items: Invento
                   return n;
                 })
               }
-              className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs ${platforms.has(p) ? "bg-white text-foreground" : "bg-white/10"}`}
+              className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs ${platforms.has(p) ? "bg-background text-foreground" : "bg-background/10"}`}
             >
               <PlatformIcon platform={p} /> {p}
             </button>
           ))}
-          <button type="button" disabled={!platforms.size} onClick={crosslist} className="ml-auto px-3 py-1 rounded-md bg-[#B5607A] text-white text-xs font-medium disabled:opacity-50">
+          <button type="button" disabled={!platforms.size} onClick={crosslist} className="ml-auto px-3 py-1 rounded-md bg-accent text-accent-foreground text-xs font-medium disabled:opacity-50">
             List on {platforms.size || "…"}
           </button>
         </div>
@@ -1008,7 +1091,7 @@ function BulkBar({ data, items, onDone, onDelist }: { data: Data; items: Invento
                     })),
                   )
                 }
-                className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${all ? "bg-white text-foreground" : "bg-white/10"}`}
+                className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${all ? "bg-background text-foreground" : "bg-background/10"}`}
               >
                 <span className="w-2 h-2 rounded-full" style={{ background: l.color }} />
                 {all ? `Remove ${l.name}` : `Add ${l.name}`}
@@ -1027,8 +1110,8 @@ function BulkBar({ data, items, onDone, onDelist }: { data: Data; items: Invento
           </select>
           <input className={inputClass} placeholder="Quantity" inputMode="numeric" value={edit.quantity} onChange={(e) => setEdit({ ...edit, quantity: e.target.value })} />
           <input className={inputClass} placeholder="Cost each ($)" inputMode="decimal" value={edit.cost} onChange={(e) => setEdit({ ...edit, cost: e.target.value })} />
-          <input className={inputClass} placeholder="New SKU prefix" value={edit.skuPrefix} onChange={(e) => setEdit({ ...edit, skuPrefix: e.target.value.toUpperCase() })} />
-          <button type="button" onClick={applyEdit} className="px-3 py-1.5 rounded-md bg-[#B5607A] text-white text-xs font-medium">
+          <input className={inputClass} placeholder="Location" value={edit.location} onChange={(e) => setEdit({ ...edit, location: e.target.value })} />
+          <button type="button" onClick={applyEdit} className="px-3 py-1.5 rounded-md bg-accent text-accent-foreground text-xs font-medium">
             Apply to {items.length}
           </button>
         </div>
