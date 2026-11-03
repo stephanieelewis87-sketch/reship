@@ -33,10 +33,18 @@ export function supabaseSink(userId: string): OrderSink {
     recordSale,
 
     async knownOrders(platform: Platform) {
-      const { data, error } = await reship.from("orders").select("*").eq("platform", platform);
-      if (error) throw error;
+      // Only the columns a sync needs, read in pages: Supabase returns at most 1,000 rows per request,
+      // and an order missing from this list would be imported a second time.
+      type Row = { order_number: string; label: Order["label"] | null; items: Order["items"] | null; shipment?: Order["shipment"] | null };
+      const data: Row[] = [];
+      for (let from = 0; ; from += 1000) {
+        const page = await reship.from("orders").select("order_number, label, items, shipment").eq("platform", platform).order("id").range(from, from + 999);
+        if (page.error) throw page.error;
+        data.push(...((page.data ?? []) as Row[]));
+        if ((page.data ?? []).length < 1000) break;
+      }
       return new Map(
-        (data ?? []).map((r: { order_number: string; label: Order["label"] | null; items: Order["items"] | null; shipment?: Order["shipment"] | null }) => [
+        data.map((r: { order_number: string; label: Order["label"] | null; items: Order["items"] | null; shipment?: Order["shipment"] | null }) => [
           r.order_number,
           { hasLabel: !!r.label, missingSku: !(r.items ?? []).some((i) => i.sku), missingQr: !!r.label && !r.label.qrCode, shipment: r.shipment?.status },
         ]),

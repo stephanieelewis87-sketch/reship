@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
   CheckCircle2,
@@ -110,6 +110,8 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
   const [status, setStatus] = useState<StatusFilter>((route.params.get("status") as StatusFilter) || "all");
   const [issue, setIssue] = useState<Issue>((route.params.get("issue") as Issue) || "");
   const [search, setSearch] = useState("");
+  // Typing stays instant; the list catches up a moment later on big inventories.
+  const query = useDeferredValue(search);
   const [sort, setSort] = useState<Sort>("newest");
   const [labelIn, setLabelIn] = useState<string[]>([]);
   const [labelOut, setLabelOut] = useState<string[]>([]);
@@ -159,7 +161,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
 
   const dupes = useMemo(() => duplicateSkus(inventory), [inventory]);
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = query.trim().toLowerCase();
     const rows = inventory.filter((i) => {
       if (status !== "all" && i.status !== status) return false;
       if (q && ![i.title, i.sku, i.brand ?? "", i.notes ?? "", i.location ?? "", ...i.listings.map((l) => l.listingId ?? "")].some((s) => s.toLowerCase().includes(q))) return false;
@@ -183,7 +185,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
       watchers: (a, b) => itemStats(b).watchers - itemStats(a).watchers,
     };
     return rows.sort(by[sort]);
-  }, [inventory, status, search, issue, labelIn, labelOut, location, sort, dupes, today]);
+  }, [inventory, status, query, issue, labelIn, labelOut, location, sort, dupes, today]);
   const locations = useMemo(() => [...new Set(inventory.map((i) => i.location).filter((l): l is string => !!l))].sort(), [inventory]);
   const guardianAlerts = useMemo(() => checkInventory(inventory, data.orders).filter((i) => i.severity === "high").length, [inventory, data.orders]);
 
@@ -640,7 +642,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                     </td>
                     <td className="px-2 py-2">
                       <div className="flex items-center gap-2.5">
-                        {item.photo ? <img src={item.photo} alt="" className="w-11 h-11 rounded-md object-cover shrink-0" /> : <div className="w-11 h-11 rounded-md bg-muted shrink-0" />}
+                        {item.photo ? <img src={item.photo} alt="" loading="lazy" decoding="async" className="w-11 h-11 rounded-md object-cover shrink-0" /> : <div className="w-11 h-11 rounded-md bg-muted shrink-0" />}
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1">
                             <button type="button" onClick={() => setForm({ item, isNew: false })} className="text-sm font-medium text-foreground truncate max-w-[220px] text-left hover:text-accent">
@@ -973,7 +975,7 @@ function ListingCell({ item, listing, today, ...actions }: { item: InventoryItem
           className="relative inline-block w-10 h-10 rounded-md overflow-hidden border border-border align-middle"
         >
           {item.photo ? (
-            <img src={item.photo} alt="" className={`w-full h-full object-cover ${listing.status === "delisted" ? "grayscale opacity-40" : ""}`} />
+            <img src={item.photo} alt="" loading="lazy" decoding="async" className={`w-full h-full object-cover ${listing.status === "delisted" ? "grayscale opacity-40" : ""}`} />
           ) : (
             <span className="block w-full h-full bg-muted" />
           )}
@@ -1029,7 +1031,7 @@ function BoardCard({
   return (
     <article className={`bg-card border rounded-xl overflow-hidden flex flex-col ${selected ? "border-accent ring-1 ring-accent/40" : "border-border"}`}>
       <div className="relative aspect-[16/9] sm:aspect-[4/3] bg-muted">
-        {item.photo && <img src={item.photo} alt="" className="w-full h-full object-cover" />}
+        {item.photo && <img src={item.photo} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />}
         <label className="absolute top-2 left-2 bg-card/90 rounded p-1 flex">
           <input type="checkbox" aria-label={`Select ${item.title}`} checked={selected} onChange={onToggle} />
         </label>

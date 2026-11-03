@@ -336,7 +336,7 @@ function Thumb({ src, selected, cover, onToggle, onCover }: { src: string; selec
   return (
     <div className={`relative w-20 h-20 rounded-lg overflow-hidden border-2 group ${selected ? "border-accent" : "border-transparent"}`}>
       <button type="button" onClick={onToggle} aria-pressed={selected} aria-label={selected ? "Unselect photo" : "Select photo"} className="w-full h-full">
-        <img src={src} alt="" className={`w-full h-full object-cover ${selected ? "opacity-70" : ""}`} />
+        <img src={src} alt="" loading="lazy" decoding="async" className={`w-full h-full object-cover ${selected ? "opacity-70" : ""}`} />
       </button>
       {selected && (
         <span className="absolute top-1 left-1 w-4 h-4 rounded-full bg-accent text-accent-foreground flex items-center justify-center pointer-events-none">

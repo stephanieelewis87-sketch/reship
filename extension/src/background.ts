@@ -25,7 +25,17 @@ async function enabledPlatforms(): Promise<Set<Platform>> {
   return new Set((enabled as Platform[] | undefined) ?? []);
 }
 
-async function runSync(): Promise<SyncState> {
+// The 15-minute alarm and Sync now can fire together; two syncs at once would open marketplace
+// pages twice and could import the same order twice, so a second request joins the one running.
+let running: Promise<SyncState> | null = null;
+function runSync(): Promise<SyncState> {
+  running ??= doSync().finally(() => {
+    running = null;
+  });
+  return running;
+}
+
+async function doSync(): Promise<SyncState> {
   const { data } = await reship.auth.getSession();
   const user = data.session?.user;
   if (!user) return { results: [] };

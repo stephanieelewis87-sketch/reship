@@ -5,6 +5,7 @@ import { DAILY, backupsToPrune, changesForDelete, changesForSave, destructiveCou
 import { cleanPrefix, highestSkuNumber } from "./sku";
 import { DEFAULT_SETTINGS } from "./types";
 import type { Store } from "./store";
+import { mergeById } from "./store";
 
 // Loads orders and settings from the store and keeps the screen in step with every save.
 export function useReshipData(store: Store) {
@@ -43,12 +44,7 @@ export function useReshipData(store: Store) {
 
   const saveOrders = useCallback(
     (changed: Order[]) => {
-      setOrders((prev) => {
-        const ids = new Set(prev.map((o) => o.id));
-        const byId = new Map(changed.map((o) => [o.id, o]));
-        const fresh = changed.filter((o) => !ids.has(o.id));
-        return [...fresh, ...prev.map((o) => byId.get(o.id) ?? o)];
-      });
+      setOrders((prev) => mergeById(prev, changed));
       store.saveOrders(changed).catch(report);
     },
     [store],
@@ -56,7 +52,8 @@ export function useReshipData(store: Store) {
 
   const patchOrders = useCallback(
     (ids: string[], patch: (o: Order) => Partial<Order>) => {
-      const changed = orders.filter((o) => ids.includes(o.id)).map((o) => ({ ...o, ...patch(o) }));
+      const wanted = new Set(ids);
+      const changed = orders.filter((o) => wanted.has(o.id)).map((o) => ({ ...o, ...patch(o) }));
       saveOrders(changed);
     },
     [orders, saveOrders],
@@ -64,7 +61,8 @@ export function useReshipData(store: Store) {
 
   const deleteOrders = useCallback(
     (ids: string[]) => {
-      setOrders((prev) => prev.filter((o) => !ids.includes(o.id)));
+      const gone = new Set(ids);
+      setOrders((prev) => prev.filter((o) => !gone.has(o.id)));
       store.deleteOrders(ids).catch(report);
     },
     [store],
@@ -116,7 +114,8 @@ export function useReshipData(store: Store) {
 
   const deleteOrdersAndLabels = useCallback(
     (ids: string[]) => {
-      const withLabels = orders.filter((o) => ids.includes(o.id) && o.label).map((o) => o.id);
+      const gone = new Set(ids);
+      const withLabels = orders.filter((o) => gone.has(o.id) && o.label).map((o) => o.id);
       deleteOrders(ids);
       withLabels.forEach((id) => store.deleteLabelPdf(id).catch(report));
     },
@@ -135,11 +134,7 @@ export function useReshipData(store: Store) {
         setPending({ kind: "save", items: changed, source, count: risky, at: new Date().toISOString() });
         return;
       }
-      setInventory((p) => {
-        const byId = new Map(changed.map((i) => [i.id, i]));
-        const fresh = changed.filter((i) => !p.some((x) => x.id === i.id));
-        return [...fresh, ...p.map((x) => byId.get(x.id) ?? x)];
-      });
+      setInventory((p) => mergeById(p, changed));
       store.saveInventory(changed).catch(report);
       store.addHistory(changesForSave(prev, changed, source)).catch(() => {});
     },
@@ -148,14 +143,15 @@ export function useReshipData(store: Store) {
 
   const deleteInventory = useCallback(
     (ids: string[], source = "You", opts: { confirmed?: boolean } = {}) => {
-      const gone = inventoryRef.current.filter((i) => ids.includes(i.id));
+      const wanted = new Set(ids);
+      const gone = inventoryRef.current.filter((i) => wanted.has(i.id));
       if (!gone.length) return;
       const g = settingsRef.current.guardian;
       if (g.protect && !opts.confirmed && gone.length >= g.threshold) {
         setPending({ kind: "delete", ids, source, count: gone.length, at: new Date().toISOString() });
         return;
       }
-      setInventory((prev) => prev.filter((i) => !ids.includes(i.id)));
+      setInventory((prev) => prev.filter((i) => !wanted.has(i.id)));
       store.deleteInventory(ids).catch(report);
       store.addHistory(changesForDelete(gone, source)).catch(() => {});
     },
@@ -232,11 +228,7 @@ export function useReshipData(store: Store) {
 
   const saveExpenses = useCallback(
     (changed: Expense[]) => {
-      setExpenses((prev) => {
-        const byId = new Map(changed.map((e) => [e.id, e]));
-        const fresh = changed.filter((e) => !prev.some((p) => p.id === e.id));
-        return [...fresh, ...prev.map((p) => byId.get(p.id) ?? p)].sort((a, b) => b.date.localeCompare(a.date));
-      });
+      setExpenses((prev) => mergeById(prev, changed).sort((a, b) => b.date.localeCompare(a.date)));
       store.saveExpenses(changed).catch(report);
     },
     [store],
@@ -244,7 +236,8 @@ export function useReshipData(store: Store) {
 
   const deleteExpenses = useCallback(
     (ids: string[]) => {
-      setExpenses((prev) => prev.filter((e) => !ids.includes(e.id)));
+      const gone = new Set(ids);
+      setExpenses((prev) => prev.filter((e) => !gone.has(e.id)));
       store.deleteExpenses(ids).catch(report);
     },
     [store],
