@@ -21,8 +21,8 @@ export function Logo({ size = "sm", tagline = false }: { size?: "sm" | "lg"; tag
     <span className="flex items-center gap-2.5">
       <BrandMark className={lg ? "w-10 h-10" : "w-8 h-8"} />
       <span className="flex flex-col">
-        <Wordmark className={lg ? "text-xl leading-none" : "text-[15px] leading-none"} />
-        {tagline && <span className="mt-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{TAGLINE}</span>}
+        <Wordmark className={lg ? "text-xl leading-none" : "text-[16px] leading-none"} />
+        {tagline && <span className="mt-1.5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{TAGLINE}</span>}
       </span>
     </span>
   );

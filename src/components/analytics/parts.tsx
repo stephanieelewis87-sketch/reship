@@ -55,7 +55,7 @@ export function Kpi({
       onClick={onClick}
       className={`text-left bg-card border border-border rounded-xl px-4 py-3 min-w-0 ${onClick ? "hover:border-accent/40 hover:shadow-sm transition-all" : ""}`}
     >
-      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground truncate">{label}</p>
+      <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground truncate">{label}</p>
       <div className="flex items-end justify-between gap-2 mt-1">
         <p className="font-display text-2xl font-semibold text-foreground leading-tight">{value}</p>
         {spark && (
@@ -64,7 +64,7 @@ export function Kpi({
           </span>
         )}
       </div>
-      <div className="flex items-center gap-1.5 mt-0.5 text-[11px] min-h-[16px]">
+      <div className="flex items-center gap-1.5 mt-0.5 text-[12px] min-h-[16px]">
         {delta != null && Math.abs(delta) >= 0.005 && (
           <span className={`inline-flex items-center gap-0.5 font-medium whitespace-nowrap ${good ? "text-emerald-700" : "text-rose-700"}`}>
             {delta >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
@@ -129,7 +129,7 @@ export function SortTable<T>({
             {columns.map((c) => (
               <th
                 key={c.key}
-                className={`py-2 px-2 first:pl-0 last:pr-0 font-mono text-[10px] uppercase tracking-wider text-muted-foreground font-normal whitespace-nowrap ${c.align === "right" ? "text-right" : "text-left"}`}
+                className={`py-2 px-2 first:pl-0 last:pr-0 font-mono text-[11px] uppercase tracking-wider text-muted-foreground font-normal whitespace-nowrap ${c.align === "right" ? "text-right" : "text-left"}`}
               >
                 {c.sort ? (
                   <button
@@ -191,7 +191,7 @@ export function SalesTable({ lines, onOpenOrder, limit = 10 }: { lines: SaleLine
               {l.photo ? <img src={l.photo} alt="" className="w-8 h-8 rounded object-cover shrink-0" /> : <div className="w-8 h-8 rounded bg-muted shrink-0" />}
               <div className="min-w-0">
                 <p className="text-xs font-medium text-foreground truncate max-w-[220px]">{l.name}</p>
-                <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                <p className="text-[12px] text-muted-foreground flex items-center gap-1">
                   <PlatformIcon platform={l.platform} /> {l.platform} · {l.brand}
                 </p>
               </div>
@@ -208,7 +208,7 @@ export function SalesTable({ lines, onOpenOrder, limit = 10 }: { lines: SaleLine
           render: (l) => (
             <span className="text-muted-foreground" title={l.feesEstimated ? "Fees estimated from the marketplace's fee schedule" : undefined}>
               {fmtMoney(l.fees + l.shipping, true)}
-              {l.feesEstimated && l.fees > 0 && <span className="text-[10px]"> est.</span>}
+              {l.feesEstimated && l.fees > 0 && <span className="text-[11px]"> est.</span>}
             </span>
           ),
           sort: (l) => l.fees + l.shipping,
@@ -217,7 +217,7 @@ export function SalesTable({ lines, onOpenOrder, limit = 10 }: { lines: SaleLine
           key: "cost",
           label: "Cost",
           align: "right",
-          render: (l) => (l.cost == null ? <span className="text-[11px] text-amber-700">add</span> : <span className="text-muted-foreground">{fmtMoney(l.cost, true)}</span>),
+          render: (l) => (l.cost == null ? <span className="text-[12px] text-amber-700">add</span> : <span className="text-muted-foreground">{fmtMoney(l.cost, true)}</span>),
           sort: (l) => l.cost,
         },
         {

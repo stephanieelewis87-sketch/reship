@@ -87,7 +87,7 @@ export function BuyLabelsModal({
         >
           Apply to all
         </button>
-        <span className="text-[11px] text-muted-foreground sm:ml-auto">
+        <span className="text-[12px] text-muted-foreground sm:ml-auto">
           {readyCount}/{drafts.length} rates selected
         </span>
       </div>
@@ -106,7 +106,7 @@ export function BuyLabelsModal({
                   <p className="text-sm font-medium text-foreground truncate">
                     {isBundle(d.order) ? `Bundle · ${d.order.items.length} items` : d.order.items[0]?.name}
                   </p>
-                  <p className="font-mono text-[11px] text-muted-foreground flex items-center gap-1.5">
+                  <p className="font-mono text-[12px] text-muted-foreground flex items-center gap-1.5">
                     <PlatformIcon platform={d.order.platform} />
                     {d.order.orderId} · @{d.order.buyer}
                   </p>
@@ -152,7 +152,7 @@ export function BuyLabelsModal({
                           <p className={`text-xs font-medium leading-none ${on ? "text-accent" : "text-foreground"}`}>
                             {rate.carrier} {rate.service}
                           </p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">{rate.days}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">{rate.days}</p>
                         </div>
                         <div className="text-right">
                           <p className={`text-sm font-semibold ${on ? "text-accent" : "text-foreground"}`}>~${rate.price.toFixed(2)}</p>
@@ -164,7 +164,7 @@ export function BuyLabelsModal({
                 </div>
               )}
               {!isAddressComplete(d.order.shipTo) && (
-                <p className="text-[11px] text-amber-700 mt-2 flex items-center gap-1">
+                <p className="text-[12px] text-amber-700 mt-2 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" /> Needs the buyer's address before a label can be bought
                 </p>
               )}
@@ -174,7 +174,7 @@ export function BuyLabelsModal({
       </div>
 
       <div className="px-5 sm:px-6 py-4 border-t border-border bg-muted/20 flex flex-col gap-3 shrink-0">
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[12px] text-muted-foreground">
           Use this when you want a carrier or service other than the marketplace's label. Prices are estimates until label buying is connected.
           {!hasShipFrom && " Add your ship-from address in Settings too."}
           {missingAddress > 0 && ` ${missingAddress} order${missingAddress !== 1 ? "s" : ""} still need${missingAddress === 1 ? "s" : ""} a buyer address.`}

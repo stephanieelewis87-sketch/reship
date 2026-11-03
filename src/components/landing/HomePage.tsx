@@ -131,7 +131,7 @@ function Hero({ onSignUp, demoHref }: { onSignUp: () => void; demoHref: string }
           <Eyebrow>
             <Sparkles className="w-3.5 h-3.5" /> The all-in-one reseller app
           </Eyebrow>
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-medium leading-[1.05] mt-5 tracking-tight">
+          <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-medium leading-[1.05] mt-5 tracking-tight">
             List with a video.
             <br />
             Cash out in one tap.
@@ -167,7 +167,7 @@ function HeroVisual() {
         </PhoneFrame>
       </div>
       <div className="absolute right-0 top-0 w-[56%] bg-card border border-border rounded-2xl shadow-xl p-4 rotate-[3deg]">
-        <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Ready to withdraw</p>
+        <p className="text-[12px] uppercase tracking-wider text-muted-foreground">Ready to withdraw</p>
         <p className="font-display text-3xl mt-1">$481.45</p>
         <div className="mt-3 h-9 rounded-full bg-accent text-accent-foreground text-xs font-semibold flex items-center justify-center gap-1.5">
           <Landmark className="w-3.5 h-3.5" /> Withdraw all
@@ -182,7 +182,7 @@ function HeroVisual() {
       </div>
       <div className="absolute right-4 bottom-0 w-[44%] rotate-[-2deg]">
         <LabelCard sku="DN-0412" carrier="USPS Ground Advantage" className="shadow-xl" />
-        <div className="absolute -top-3 -left-3 px-2.5 py-1 rounded-full bg-foreground text-background text-[11px] font-semibold flex items-center gap-1">
+        <div className="absolute -top-3 -left-3 px-2.5 py-1 rounded-full bg-foreground text-background text-[12px] font-semibold flex items-center gap-1">
           <Printer className="w-3 h-3" /> 12 labels, 1 click
         </div>
       </div>
@@ -234,7 +234,7 @@ function FeaturePillars() {
     <section id="features" className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
       <div className="text-center max-w-2xl mx-auto">
         <Eyebrow>Why resellers switch</Eyebrow>
-        <h2 className="font-display text-3xl sm:text-4xl font-medium mt-4">The three slowest parts of reselling, made fast</h2>
+        <h2 className="font-serif text-3xl sm:text-4xl font-medium mt-4">The three slowest parts of reselling, made fast</h2>
         <p className="mt-4 text-muted-foreground">Less typing, fewer tabs, and no more printing labels one at a time.</p>
       </div>
       <div className="mt-12 grid md:grid-cols-3 gap-5">
@@ -283,7 +283,7 @@ function FeatureRow({
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20 grid md:grid-cols-2 gap-12 items-center">
         <div className={flip ? "md:order-2" : ""}>
           <Eyebrow>{eyebrow}</Eyebrow>
-          <h2 className="font-display text-3xl sm:text-4xl font-medium mt-4 leading-tight">{title}</h2>
+          <h2 className="font-serif text-3xl sm:text-4xl font-medium mt-4 leading-tight">{title}</h2>
           <p className="mt-4 text-muted-foreground text-lg">{body}</p>
           <ul className="mt-6 space-y-3">
             {points.map((pt) => (
@@ -354,7 +354,7 @@ function VideoScreen({ step, compact = false }: { step: number; compact?: boolea
   const progress = Math.min(100, (step / 4) * 100);
   return (
     <div className="absolute inset-0 flex flex-col">
-      <div className="flex items-center justify-between px-3 pt-3 text-[10px] text-white/80">
+      <div className="flex items-center justify-between px-3 pt-3 text-[11px] text-white/80">
         <span className="flex items-center gap-1">
           <span className={`w-2 h-2 rounded-full bg-red-500 ${step < 4 ? "animate-pulse" : ""}`} />
           {step < 4 ? "REC" : "Done"}
@@ -396,7 +396,7 @@ const DRAFT_FIELDS = [
 function ListingDraft({ step }: { step: number }) {
   return (
     <div className="flex-1 max-w-[15rem] bg-card border border-border rounded-2xl shadow-xl p-4">
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-accent">
+      <div className="flex items-center gap-1.5 text-[12px] font-semibold text-accent">
         <Sparkles className="w-3.5 h-3.5" /> Drafted from your video
       </div>
       <div className="mt-3 grid grid-cols-3 gap-1.5">
@@ -414,7 +414,7 @@ function ListingDraft({ step }: { step: number }) {
       <dl className="mt-3 space-y-2">
         {DRAFT_FIELDS.map((f, i) => (
           <div key={f.label}>
-            <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">{f.label}</dt>
+            <dt className="text-[11px] uppercase tracking-wider text-muted-foreground">{f.label}</dt>
             <dd className="text-xs font-medium h-4">
               {step > i ? f.value : <span className="block h-2.5 mt-1 w-3/4 rounded bg-muted animate-pulse" />}
             </dd>
@@ -512,7 +512,7 @@ function PayoutDemo() {
           {state === "sending" ? "Sending…" : `Withdraw ${money(total)}`}
         </button>
       )}
-      <p className="mt-2 text-center text-[11px] text-muted-foreground">Try it: this is a demo, no money moves.</p>
+      <p className="mt-2 text-center text-[12px] text-muted-foreground">Try it: this is a demo, no money moves.</p>
     </div>
   );
 }
@@ -562,10 +562,10 @@ function LabelCard({ sku, carrier, className = "" }: { sku: string; carrier: str
     <div className={`bg-white text-[#1C1017] border border-[#1C1017]/15 rounded-lg p-3 aspect-[4/5] flex flex-col ${className}`}>
       <div className="flex items-center justify-between border-b-2 border-[#1C1017] pb-1.5">
         <span className="font-bold text-sm">{carrier.split(" ")[0]}</span>
-        <span className="text-[9px] text-right leading-tight">{carrier.split(" ").slice(1).join(" ")}</span>
+        <span className="text-[10px] text-right leading-tight">{carrier.split(" ").slice(1).join(" ")}</span>
       </div>
-      <div className="mt-2 text-[9px] leading-snug">
-        <p className="text-[8px] text-[#1C1017]/60">SHIP TO</p>
+      <div className="mt-2 text-[10px] leading-snug">
+        <p className="text-[9px] text-[#1C1017]/60">SHIP TO</p>
         <p className="font-semibold">J. Buyer</p>
         <p>1234 Example St, Apt 5</p>
         <p>Portland, OR 97201</p>
@@ -576,8 +576,8 @@ function LabelCard({ sku, carrier, className = "" }: { sku: string; carrier: str
             <span key={i} className="bg-[#1C1017] h-full" style={{ width: (i * 7) % 3 === 0 ? 3 : 1 }} />
           ))}
         </div>
-        <p className="font-mono text-[8px] mt-1 tracking-widest">9400 1000 0000 0000 0000 00</p>
-        <span className="mt-1.5 inline-block px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-mono text-[9px]">SKU {sku}</span>
+        <p className="font-mono text-[9px] mt-1 tracking-widest">9400 1000 0000 0000 0000 00</p>
+        <span className="mt-1.5 inline-block px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-mono text-[10px]">SKU {sku}</span>
       </div>
     </div>
   );
@@ -594,7 +594,7 @@ function MoreTools() {
   return (
     <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
       <div className="text-center max-w-2xl mx-auto">
-        <h2 className="font-display text-3xl sm:text-4xl font-medium">Plus everything else your shop runs on</h2>
+        <h2 className="font-serif text-3xl sm:text-4xl font-medium">Plus everything else your shop runs on</h2>
         <p className="mt-4 text-muted-foreground">One app from the first photo to the money in your bank.</p>
       </div>
       <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -620,7 +620,7 @@ function HowItWorks() {
   return (
     <section id="how" className="scroll-mt-16 bg-foreground text-background">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
-        <h2 className="font-display text-3xl sm:text-4xl font-medium text-center">Up and running in minutes</h2>
+        <h2 className="font-serif text-3xl sm:text-4xl font-medium text-center">Up and running in minutes</h2>
         <ol className="mt-12 grid md:grid-cols-3 gap-8">
           {STEPS.map((s, i) => (
             <li key={s.title}>
@@ -650,7 +650,7 @@ function Pricing({ onSignUp }: { onSignUp: () => void }) {
     <section id="pricing" className="scroll-mt-16 max-w-6xl mx-auto px-4 sm:px-6 py-20">
       <div className="text-center max-w-2xl mx-auto">
         <Eyebrow>Pricing</Eyebrow>
-        <h2 className="font-display text-3xl sm:text-4xl font-medium mt-4">Start selling. Grow into everything.</h2>
+        <h2 className="font-serif text-3xl sm:text-4xl font-medium mt-4">Start selling. Grow into everything.</h2>
         <p className="mt-4 text-muted-foreground">Pick the plan that fits your shop today, and change it any time.</p>
       </div>
       <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-5 gap-4 items-stretch">
@@ -716,7 +716,7 @@ function Faq() {
   return (
     <section id="faq" className="scroll-mt-16 bg-secondary/60">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-20">
-        <h2 className="font-display text-3xl sm:text-4xl font-medium text-center">Questions, answered</h2>
+        <h2 className="font-serif text-3xl sm:text-4xl font-medium text-center">Questions, answered</h2>
         <div className="mt-10 space-y-3">
           {FAQS.map((f) => (
             <details key={f.q} className="group bg-card border border-border rounded-xl px-5 py-4">

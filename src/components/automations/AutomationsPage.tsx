@@ -79,7 +79,7 @@ export function AutomationsPage({ data }: { data: Data }) {
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs whitespace-nowrap ${platform === p ? "border-accent bg-rose-50/60 text-accent" : "border-border text-muted-foreground hover:bg-muted"}`}
               >
                 <PlatformIcon platform={p} /> {p}
-                {on > 0 && <span className="font-mono text-[10px]">{on} on</span>}
+                {on > 0 && <span className="font-mono text-[11px]">{on} on</span>}
               </button>
             );
           })}
@@ -97,7 +97,7 @@ export function AutomationsPage({ data }: { data: Data }) {
                   </div>
                   <Toggle label={`${meta.label} on ${platform}`} checked={s.enabled} onChange={() => set(k, { enabled: !s.enabled })} />
                 </div>
-                {!s.enabled && <p className="text-[11px] text-muted-foreground">{summaryOf(k, s)}. Turn it on to change these.</p>}
+                {!s.enabled && <p className="text-[12px] text-muted-foreground">{summaryOf(k, s)}. Turn it on to change these.</p>}
                 {s.enabled && (
                 <div className="grid grid-cols-2 gap-2">
                   <NumberField label="Most a day" value={s.perDay} onChange={(v) => set(k, { perDay: v })} />
@@ -107,12 +107,12 @@ export function AutomationsPage({ data }: { data: Data }) {
                 </div>
                 )}
                 {k === "relists" && (
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-[12px] text-muted-foreground">
                     {stale} item{stale !== 1 ? "s" : ""} on {platform} haven't been relisted in over 60 days.
                   </p>
                 )}
                 {k === "offers" && s.enabled && s.followUps ? (
-                  <p className="text-[11px] text-muted-foreground">Each follow-up takes off another {s.discountPct ?? 10}%, a day apart.</p>
+                  <p className="text-[12px] text-muted-foreground">Each follow-up takes off another {s.discountPct ?? 10}%, a day apart.</p>
                 ) : null}
               </section>
             );
@@ -121,7 +121,7 @@ export function AutomationsPage({ data }: { data: Data }) {
         <details className="group rounded-xl border border-border bg-card px-4 py-3 text-xs text-muted-foreground">
           <summary className="cursor-pointer list-none font-display text-sm font-semibold text-foreground flex items-center gap-1.5">
             <Info className="w-4 h-4" /> How automations work
-            <span className="ml-auto text-[11px] font-sans font-normal text-muted-foreground group-open:hidden">Show</span>
+            <span className="ml-auto text-[12px] font-sans font-normal text-muted-foreground group-open:hidden">Show</span>
           </summary>
           <div className="space-y-1.5 mt-2">
             <p>Each automation runs in small batches spread through the day, staying under the daily cap you set, so it looks like normal activity.</p>
@@ -142,7 +142,7 @@ function summaryOf(k: AutomationKind, s: AutomationSetting) {
 
 function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
-    <label className="text-[11px] text-muted-foreground space-y-1">
+    <label className="text-[12px] text-muted-foreground space-y-1">
       <span>{label}</span>
       <input className={inputClass} inputMode="numeric" value={value} onChange={(e) => onChange(Math.max(0, Math.round(Number(e.target.value) || 0)))} />
     </label>

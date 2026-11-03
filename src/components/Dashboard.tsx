@@ -40,9 +40,9 @@ function StatCard({
 }) {
   return (
     <button type="button" onClick={onClick} className="text-left bg-card border border-border rounded-xl px-4 py-3 hover:border-accent/40 hover:shadow-sm transition-all">
-      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
+      <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">{label}</p>
       <p className={`font-display text-2xl font-semibold mt-1 tabular-nums ${tone}`}>{value}</p>
-      <p className="text-[11px] text-muted-foreground mt-0.5">{hint}</p>
+      <p className="text-[12px] text-muted-foreground mt-0.5">{hint}</p>
     </button>
   );
 }
@@ -350,7 +350,7 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
               )
             )}
             {view === "shipped" && listed.length > 0 && (
-              <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
                 <Truck className="w-3 h-3" /> Shipping status comes from the marketplace each time the SellSync extension syncs.
               </p>
             )}

@@ -174,12 +174,12 @@ export function ListingForm({
                 {aiLocked && <PlanTag feature="ai" />}
               </button>
             </div>
-            {gen.message && <p className="text-[11px] text-muted-foreground">{gen.message}</p>}
+            {gen.message && <p className="text-[12px] text-muted-foreground">{gen.message}</p>}
             <div className="flex gap-2 flex-wrap">
               {photos.map((p, i) => (
                 <div key={p + i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
                   <img src={p} alt="" className="w-full h-full object-cover" />
-                  {i === 0 && <span className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[9px] text-center">Cover</span>}
+                  {i === 0 && <span className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px] text-center">Cover</span>}
                   <button
                     type="button"
                     aria-label="Remove photo"
@@ -307,8 +307,8 @@ export function ListingForm({
                     >
                       <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? "bg-accent border-accent" : "border-border"}`}>{on && <Check className="w-3 h-3 text-accent-foreground" />}</span>
                       <PlatformIcon platform={p} className="w-4 h-4" /> {p}
-                      {sold && <span className="text-[10px] text-emerald-700">sold here</span>}
-                      {!sold && existing.has(p) && item.listings.find((l) => l.platform === p)?.status === "active" && <span className="text-[10px] text-muted-foreground">listed</span>}
+                      {sold && <span className="text-[11px] text-emerald-700">sold here</span>}
+                      {!sold && existing.has(p) && item.listings.find((l) => l.platform === p)?.status === "active" && <span className="text-[11px] text-muted-foreground">listed</span>}
                     </button>
                     <input
                       className={`${inputClass} w-20 text-right`}
@@ -323,7 +323,7 @@ export function ListingForm({
               })}
             </div>
             {marketFull && (
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-[12px] text-muted-foreground">
                 {PLANS[plan].name} lists on up to {marketLimit} marketplaces ({[...inUse].join(", ")}).{" "}
                 {moreMarkets && (
                   <button type="button" className="text-accent hover:underline" onClick={() => upgradeTo(moreMarkets)}>
@@ -349,10 +349,10 @@ export function ListingForm({
                     />
                   </label>
                 ))}
-                <p className="text-[11px] text-muted-foreground">Linking each listing to this item lets Inventory Guardian spot duplicates and listings that come apart.</p>
+                <p className="text-[12px] text-muted-foreground">Linking each listing to this item lets Inventory Guardian spot duplicates and listings that come apart.</p>
               </div>
             )}
-            <p className="text-[11px] text-muted-foreground">Prices start from your pricing rules in Settings. SellSync records each listing here; posting to the marketplace itself runs through the SellSync browser extension.</p>
+            <p className="text-[12px] text-muted-foreground">Prices start from your pricing rules in Settings. SellSync records each listing here; posting to the marketplace itself runs through the SellSync browser extension.</p>
           </section>
 
           <section className="space-y-3">
@@ -365,7 +365,7 @@ export function ListingForm({
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>
                   Ready to list
-                  <span className="block text-[11px] text-muted-foreground">Marks a draft as finished so it shows up under Needs attention.</span>
+                  <span className="block text-[12px] text-muted-foreground">Marks a draft as finished so it shows up under Needs attention.</span>
                 </span>
                 <Toggle label="Ready to list" checked={!!d.readyToList} onChange={() => set("readyToList", !d.readyToList)} />
               </label>
@@ -399,7 +399,7 @@ export function ListingForm({
               </button>
             ))}
           {dailyFull && (
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[12px] text-muted-foreground">
               You've listed {room.cap} new items today, {PLANS[plan].name}'s daily limit. Save it as a draft
               {moreListings && (
                 <>

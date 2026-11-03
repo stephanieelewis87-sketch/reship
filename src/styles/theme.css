@@ -1,34 +1,82 @@
 @custom-variant dark (&:is(.dark *));
 
-/* SellSync: rose gold and copper on black, taken from the logo. */
+/* SellSync: rose gold on warm porcelain. The rose gold is deepened just enough that it reads as clearly as
+   body text on the light background; the bright logo gold is kept for the mark, the wordmark and the dark theme. */
 :root {
-  color-scheme: dark;
-  --font-size: 15px;
-  --background: #0C0A09;
-  --foreground: #F3E7DF;
-  --card: #161211;
-  --card-foreground: #F3E7DF;
-  --popover: #1A1514;
-  --popover-foreground: #F3E7DF;
-  --primary: #F3E7DF;
-  --primary-foreground: #0C0A09;
-  --secondary: #221C1A;
-  --secondary-foreground: #F3E7DF;
-  --muted: #221C1A;
-  --muted-foreground: #A8968C;
-  --accent: #D99B7A;
-  --accent-hover: #EBB596;
-  --accent-foreground: #1A0E09;
-  --destructive: #C8463E;
+  color-scheme: light;
+  --font-size: 16px;
+  --background: #FBF6F3;
+  --foreground: #2A1B17;
+  --card: #FFFFFF;
+  --card-foreground: #2A1B17;
+  --popover: #FFFFFF;
+  --popover-foreground: #2A1B17;
+  --sidebar: #F5EAE4;
+  --primary: #2A1B17;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F3E8E2;
+  --secondary-foreground: #2A1B17;
+  --muted: #F3E8E2;
+  --muted-foreground: #6B564D;
+  --accent: #9E5238;
+  --accent-hover: #874530;
+  --accent-foreground: #FFFFFF;
+  --accent-soft: #F7E4DA;
+  --destructive: #B8322B;
   --destructive-foreground: #FFFFFF;
-  --border: rgba(233, 190, 160, 0.13);
+  --border: rgba(110, 60, 40, 0.14);
   --input: transparent;
-  --input-background: #1E1917;
-  --switch-background: #3B312D;
+  --input-background: #FFFFFF;
+  --switch-background: #DCCBC2;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: #D99B7A;
-  --radius: 0.5rem;
+  --ring: #B4634A;
+  --radius: 0.625rem;
+  --card-shadow: 0 1px 2px rgba(80, 40, 25, 0.05), 0 4px 16px -6px rgba(80, 40, 25, 0.08);
+  --metal: linear-gradient(180deg, #C98A6B 0%, #A45A3D 50%, #7F3F2A 75%, #B87556 100%);
+  --chart-revenue: #2A6FC4;
+  --chart-profit: #B4634A;
+  --chart-grid: #EFE4DE;
+  --chart-axis: #D9C8BF;
+  --chart-muted: #7A655B;
+  --chart-ink: #2A1B17;
+  --chart-loss: #C8463E;
+}
+
+/* Night: a softer warm charcoal instead of black, with brighter text and the logo's light rose gold. */
+.dark {
+  color-scheme: dark;
+  --background: #1C1716;
+  --foreground: #FAF1EC;
+  --card: #26201E;
+  --card-foreground: #FAF1EC;
+  --popover: #2B2422;
+  --popover-foreground: #FAF1EC;
+  --sidebar: #211B1A;
+  --primary: #FAF1EC;
+  --primary-foreground: #1C1716;
+  --secondary: #332A27;
+  --secondary-foreground: #FAF1EC;
+  --muted: #332A27;
+  --muted-foreground: #C9B6AC;
+  --accent: #F2BC9C;
+  --accent-hover: #F7CFB6;
+  --accent-foreground: #2A140B;
+  --accent-soft: rgba(242, 188, 156, 0.14);
+  --destructive: #E0605A;
+  --border: rgba(242, 200, 175, 0.16);
+  --input-background: #2B2422;
+  --switch-background: #4A3E3A;
+  --ring: #F2BC9C;
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --metal: linear-gradient(180deg, #F8D9C4 0%, #E2A585 45%, #B9734F 70%, #EDC0A2 100%);
+  --chart-revenue: #6FA8EE;
+  --chart-profit: #F2BC9C;
+  --chart-grid: #362D2A;
+  --chart-axis: #4A3E3A;
+  --chart-muted: #C9B6AC;
+  --chart-ink: #FAF1EC;
+  --chart-loss: #EE746E;
 }
 
 @theme inline {
@@ -38,6 +86,8 @@
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-accent-soft: var(--accent-soft);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -59,43 +109,45 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --font-display: 'Montserrat', sans-serif;
+  --font-serif: 'Fraunces', Georgia, serif;
+  --shadow-card: var(--card-shadow);
   --font-sans: 'Plus Jakarta Sans', sans-serif;
   --font-mono: 'DM Mono', monospace;
 }
 
-/* The app is dark, so the light status tints used across the app (bg-rose-50 with text-rose-700 and so on)
-   are remapped here instead of in every component: 50, 100 and 200 become see-through tints of the color,
-   and 600 to 900 become the light shades that read well on black. 300, 400, 500 and 950 are unchanged. */
-@theme {
-  --color-red-50: color-mix(in oklab, var(--color-red-500) 12%, transparent); --color-red-100: color-mix(in oklab, var(--color-red-500) 18%, transparent); --color-red-200: color-mix(in oklab, var(--color-red-500) 30%, transparent);
+/* The status tints used across the app (bg-rose-50 with text-rose-700 and so on) are made for a light background.
+   In the dark theme they are remapped here instead of in every component: 50, 100 and 200 become see-through tints
+   of the color, and 600 to 900 become the light shades that read well on charcoal. */
+.dark {
+  --color-red-50: color-mix(in oklab, oklch(63.7% 0.237 25.331) 12%, transparent); --color-red-100: color-mix(in oklab, oklch(63.7% 0.237 25.331) 18%, transparent); --color-red-200: color-mix(in oklab, oklch(63.7% 0.237 25.331) 30%, transparent);
   --color-red-600: oklch(70.4% 0.191 22.216); --color-red-700: oklch(80.8% 0.114 19.571); --color-red-800: oklch(88.5% 0.062 18.334); --color-red-900: oklch(93.6% 0.032 17.717);
-  --color-orange-50: color-mix(in oklab, var(--color-orange-500) 12%, transparent); --color-orange-100: color-mix(in oklab, var(--color-orange-500) 18%, transparent); --color-orange-200: color-mix(in oklab, var(--color-orange-500) 30%, transparent);
+  --color-orange-50: color-mix(in oklab, oklch(70.5% 0.213 47.604) 12%, transparent); --color-orange-100: color-mix(in oklab, oklch(70.5% 0.213 47.604) 18%, transparent); --color-orange-200: color-mix(in oklab, oklch(70.5% 0.213 47.604) 30%, transparent);
   --color-orange-600: oklch(75% 0.183 55.934); --color-orange-700: oklch(83.7% 0.128 66.29); --color-orange-800: oklch(90.1% 0.076 70.697); --color-orange-900: oklch(95.4% 0.038 75.164);
-  --color-amber-50: color-mix(in oklab, var(--color-amber-500) 12%, transparent); --color-amber-100: color-mix(in oklab, var(--color-amber-500) 18%, transparent); --color-amber-200: color-mix(in oklab, var(--color-amber-500) 30%, transparent);
+  --color-amber-50: color-mix(in oklab, oklch(76.9% 0.188 70.08) 12%, transparent); --color-amber-100: color-mix(in oklab, oklch(76.9% 0.188 70.08) 18%, transparent); --color-amber-200: color-mix(in oklab, oklch(76.9% 0.188 70.08) 30%, transparent);
   --color-amber-600: oklch(82.8% 0.189 84.429); --color-amber-700: oklch(87.9% 0.169 91.605); --color-amber-800: oklch(92.4% 0.12 95.746); --color-amber-900: oklch(96.2% 0.059 95.617);
-  --color-yellow-50: color-mix(in oklab, var(--color-yellow-500) 12%, transparent); --color-yellow-100: color-mix(in oklab, var(--color-yellow-500) 18%, transparent); --color-yellow-200: color-mix(in oklab, var(--color-yellow-500) 30%, transparent);
+  --color-yellow-50: color-mix(in oklab, oklch(79.5% 0.184 86.047) 12%, transparent); --color-yellow-100: color-mix(in oklab, oklch(79.5% 0.184 86.047) 18%, transparent); --color-yellow-200: color-mix(in oklab, oklch(79.5% 0.184 86.047) 30%, transparent);
   --color-yellow-600: oklch(85.2% 0.199 91.936); --color-yellow-700: oklch(90.5% 0.182 98.111); --color-yellow-800: oklch(94.5% 0.129 101.54); --color-yellow-900: oklch(97.3% 0.071 103.193);
-  --color-emerald-50: color-mix(in oklab, var(--color-emerald-500) 12%, transparent); --color-emerald-100: color-mix(in oklab, var(--color-emerald-500) 18%, transparent); --color-emerald-200: color-mix(in oklab, var(--color-emerald-500) 30%, transparent);
+  --color-emerald-50: color-mix(in oklab, oklch(69.6% 0.17 162.48) 12%, transparent); --color-emerald-100: color-mix(in oklab, oklch(69.6% 0.17 162.48) 18%, transparent); --color-emerald-200: color-mix(in oklab, oklch(69.6% 0.17 162.48) 30%, transparent);
   --color-emerald-600: oklch(76.5% 0.177 163.223); --color-emerald-700: oklch(84.5% 0.143 164.978); --color-emerald-800: oklch(90.5% 0.093 164.15); --color-emerald-900: oklch(95% 0.052 163.051);
-  --color-teal-50: color-mix(in oklab, var(--color-teal-500) 12%, transparent); --color-teal-100: color-mix(in oklab, var(--color-teal-500) 18%, transparent); --color-teal-200: color-mix(in oklab, var(--color-teal-500) 30%, transparent);
+  --color-teal-50: color-mix(in oklab, oklch(70.4% 0.14 182.503) 12%, transparent); --color-teal-100: color-mix(in oklab, oklch(70.4% 0.14 182.503) 18%, transparent); --color-teal-200: color-mix(in oklab, oklch(70.4% 0.14 182.503) 30%, transparent);
   --color-teal-600: oklch(77.7% 0.152 181.912); --color-teal-700: oklch(85.5% 0.138 181.071); --color-teal-800: oklch(91% 0.096 180.426); --color-teal-900: oklch(95.3% 0.051 180.801);
-  --color-sky-50: color-mix(in oklab, var(--color-sky-500) 12%, transparent); --color-sky-100: color-mix(in oklab, var(--color-sky-500) 18%, transparent); --color-sky-200: color-mix(in oklab, var(--color-sky-500) 30%, transparent);
+  --color-sky-50: color-mix(in oklab, oklch(68.5% 0.169 237.323) 12%, transparent); --color-sky-100: color-mix(in oklab, oklch(68.5% 0.169 237.323) 18%, transparent); --color-sky-200: color-mix(in oklab, oklch(68.5% 0.169 237.323) 30%, transparent);
   --color-sky-600: oklch(74.6% 0.16 232.661); --color-sky-700: oklch(82.8% 0.111 230.318); --color-sky-800: oklch(90.1% 0.058 230.902); --color-sky-900: oklch(95.1% 0.026 236.824);
-  --color-blue-50: color-mix(in oklab, var(--color-blue-500) 12%, transparent); --color-blue-100: color-mix(in oklab, var(--color-blue-500) 18%, transparent); --color-blue-200: color-mix(in oklab, var(--color-blue-500) 30%, transparent);
+  --color-blue-50: color-mix(in oklab, oklch(62.3% 0.214 259.815) 12%, transparent); --color-blue-100: color-mix(in oklab, oklch(62.3% 0.214 259.815) 18%, transparent); --color-blue-200: color-mix(in oklab, oklch(62.3% 0.214 259.815) 30%, transparent);
   --color-blue-600: oklch(70.7% 0.165 254.624); --color-blue-700: oklch(80.9% 0.105 251.813); --color-blue-800: oklch(88.2% 0.059 254.128); --color-blue-900: oklch(93.2% 0.032 255.585);
-  --color-violet-50: color-mix(in oklab, var(--color-violet-500) 12%, transparent); --color-violet-100: color-mix(in oklab, var(--color-violet-500) 18%, transparent); --color-violet-200: color-mix(in oklab, var(--color-violet-500) 30%, transparent);
+  --color-violet-50: color-mix(in oklab, oklch(60.6% 0.25 292.717) 12%, transparent); --color-violet-100: color-mix(in oklab, oklch(60.6% 0.25 292.717) 18%, transparent); --color-violet-200: color-mix(in oklab, oklch(60.6% 0.25 292.717) 30%, transparent);
   --color-violet-600: oklch(70.2% 0.183 293.541); --color-violet-700: oklch(81.1% 0.111 293.571); --color-violet-800: oklch(89.4% 0.057 293.283); --color-violet-900: oklch(94.3% 0.029 294.588);
-  --color-purple-50: color-mix(in oklab, var(--color-purple-500) 12%, transparent); --color-purple-100: color-mix(in oklab, var(--color-purple-500) 18%, transparent); --color-purple-200: color-mix(in oklab, var(--color-purple-500) 30%, transparent);
+  --color-purple-50: color-mix(in oklab, oklch(62.7% 0.265 303.9) 12%, transparent); --color-purple-100: color-mix(in oklab, oklch(62.7% 0.265 303.9) 18%, transparent); --color-purple-200: color-mix(in oklab, oklch(62.7% 0.265 303.9) 30%, transparent);
   --color-purple-600: oklch(71.4% 0.203 305.504); --color-purple-700: oklch(82.7% 0.119 306.383); --color-purple-800: oklch(90.2% 0.063 306.703); --color-purple-900: oklch(94.6% 0.033 307.174);
-  --color-rose-50: color-mix(in oklab, var(--color-rose-500) 12%, transparent); --color-rose-100: color-mix(in oklab, var(--color-rose-500) 18%, transparent); --color-rose-200: color-mix(in oklab, var(--color-rose-500) 30%, transparent);
+  --color-rose-50: color-mix(in oklab, oklch(64.5% 0.246 16.439) 12%, transparent); --color-rose-100: color-mix(in oklab, oklch(64.5% 0.246 16.439) 18%, transparent); --color-rose-200: color-mix(in oklab, oklch(64.5% 0.246 16.439) 30%, transparent);
   --color-rose-600: oklch(71.2% 0.194 13.428); --color-rose-700: oklch(81% 0.117 11.638); --color-rose-800: oklch(89.2% 0.058 10.001); --color-rose-900: oklch(94.1% 0.03 12.58);
-  --color-stone-50: color-mix(in oklab, var(--color-stone-500) 12%, transparent); --color-stone-100: color-mix(in oklab, var(--color-stone-500) 18%, transparent); --color-stone-200: color-mix(in oklab, var(--color-stone-500) 30%, transparent);
+  --color-stone-50: color-mix(in oklab, oklch(55.3% 0.013 58.071) 12%, transparent); --color-stone-100: color-mix(in oklab, oklch(55.3% 0.013 58.071) 18%, transparent); --color-stone-200: color-mix(in oklab, oklch(55.3% 0.013 58.071) 30%, transparent);
   --color-stone-600: oklch(70.9% 0.01 56.259); --color-stone-700: oklch(86.9% 0.005 56.366); --color-stone-800: oklch(92.3% 0.003 48.717); --color-stone-900: oklch(97% 0.001 106.424);
 }
 
 /* The logo's metallic rose gold, for the wordmark and big headlines. */
 @utility text-metal {
-  background-image: linear-gradient(180deg, #F8D9C4 0%, #E2A585 45%, #B9734F 70%, #EDC0A2 100%);
+  background-image: var(--metal);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -107,7 +159,13 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground font-sans antialiased;
+    line-height: 1.55;
+  }
+
+  /* Every bordered card gets a soft lift; a component's own shadow utility still wins. */
+  [class~="bg-card"][class~="border"] {
+    box-shadow: var(--card-shadow);
   }
 
   html {

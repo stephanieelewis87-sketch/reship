@@ -38,7 +38,7 @@ export function DraftCard({
         </div>
         <div className="aspect-square rounded-lg overflow-hidden border border-border bg-muted relative">
           <img src={d.cover} alt="" className="w-full h-full object-contain" />
-          {d.cover === d.aiPhoto && <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-card/90 text-[10px] font-medium flex items-center gap-1"><Sparkles className="w-3 h-3 text-accent" /> AI photo</span>}
+          {d.cover === d.aiPhoto && <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-card/90 text-[11px] font-medium flex items-center gap-1"><Sparkles className="w-3 h-3 text-accent" /> AI photo</span>}
         </div>
         <div className="flex gap-1.5 flex-wrap">
           {photos.map((p, i) => (
@@ -70,7 +70,7 @@ export function DraftCard({
             </button>
           )}
         </div>
-        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+        <p className="text-[11px] text-muted-foreground flex items-center gap-1">
           <Star className="w-3 h-3" /> Tap a photo to make it the cover.
         </p>
       </div>
@@ -130,7 +130,7 @@ export function DraftCard({
           </div>
         )}
         {l.flaws && <p className="text-xs text-amber-800">Flaws noted: {l.flaws}</p>}
-        {l.tags.length > 0 && <p className="text-[11px] text-muted-foreground">Tags: {l.tags.join(", ")}</p>}
+        {l.tags.length > 0 && <p className="text-[12px] text-muted-foreground">Tags: {l.tags.join(", ")}</p>}
       </div>
     </div>
   );

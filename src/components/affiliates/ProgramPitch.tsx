@@ -10,8 +10,8 @@ export function ProgramHero({ program, children }: { program: AffiliateProgram; 
     <section className="rounded-2xl bg-card border border-border text-foreground px-5 py-8 md:px-10 md:py-12 overflow-hidden relative">
       <div aria-hidden className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-accent/25 blur-3xl" />
       <div className="relative max-w-xl">
-        <p className="font-mono text-[11px] uppercase tracking-widest text-accent">SellSync affiliate program</p>
-        <h1 className="font-display text-3xl md:text-4xl font-semibold mt-2 leading-tight">
+        <p className="font-mono text-[12px] uppercase tracking-widest text-accent">SellSync affiliate program</p>
+        <h1 className="font-serif text-3xl md:text-[44px] font-medium tracking-tight mt-2 leading-tight">
           Earn {bonusHeadline(program)}, then {ratePercent(program.rate)} for life.
         </h1>
         <p className="text-sm text-muted-foreground mt-3">
@@ -42,7 +42,7 @@ export function HowItWorks({ program }: { program: AffiliateProgram }) {
             <span className="w-7 h-7 rounded-lg bg-accent/12 text-accent flex items-center justify-center">
               <Icon className="w-4 h-4" />
             </span>
-            <span className="font-mono text-[10px] text-muted-foreground">Step {i + 1}</span>
+            <span className="font-mono text-[11px] text-muted-foreground">Step {i + 1}</span>
           </div>
           <p className="font-display text-sm font-semibold text-foreground mt-2">{title}</p>
           <p className="text-xs text-muted-foreground mt-1">{text}</p>
@@ -83,7 +83,7 @@ export function EarningsCalculator({ program }: { program: AffiliateProgram }) {
       </div>
       <div className="mt-4 pt-4 border-t border-border flex flex-wrap items-end gap-x-8 gap-y-2">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">First year</p>
+          <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">First year</p>
           <p className="font-display text-3xl font-semibold text-accent">{formatCents(year.totalCents)}</p>
         </div>
         <p className="text-xs text-muted-foreground pb-1">

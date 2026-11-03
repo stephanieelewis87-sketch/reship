@@ -196,7 +196,7 @@ export function PhotoListing({ data, onClose, onSaved }: { data: Data; onClose: 
             </label>
             <div className="space-y-3 text-sm">
               <p className="font-medium">For the best results</p>
-              <ul className="space-y-1.5 text-muted-foreground text-[13px] list-disc pl-5">
+              <ul className="space-y-1.5 text-muted-foreground text-[14px] list-disc pl-5">
                 <li>Shoot one item at a time: front, back, brand tag, size tag and any flaws.</li>
                 <li>Start each item with a full photo of it. That's usually the cover.</li>
                 <li>Good light and a plain background help a lot.</li>
@@ -206,7 +206,7 @@ export function PhotoListing({ data, onClose, onSaved }: { data: Data; onClose: 
                 <label className="flex items-center justify-between gap-3 pt-2">
                   <span>
                     Also make clean AI photos
-                    <span className="block text-[11px] text-muted-foreground">A studio-style photo from each cover. Your own photos are always kept too.</span>
+                    <span className="block text-[12px] text-muted-foreground">A studio-style photo from each cover. Your own photos are always kept too.</span>
                   </span>
                   <Toggle label="Also make clean AI photos" checked={makePhotos} onChange={() => setMakePhotos(!makePhotos)} />
                 </label>
@@ -250,7 +250,7 @@ export function PhotoListing({ data, onClose, onSaved }: { data: Data; onClose: 
                     <button
                       type="button"
                       onClick={() => apply(movePhotos(groups, selected, gi))}
-                      className="w-20 h-20 rounded-lg border-2 border-dashed border-accent text-accent text-[11px] font-medium flex flex-col items-center justify-center gap-1 hover:bg-rose-50"
+                      className="w-20 h-20 rounded-lg border-2 border-dashed border-accent text-accent text-[12px] font-medium flex flex-col items-center justify-center gap-1 hover:bg-rose-50"
                     >
                       <FolderInput className="w-4 h-4" /> Move here
                     </button>

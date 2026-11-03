@@ -15,7 +15,7 @@ export const upgradeTo = (plan: PlanId) => go("settings", { tab: "subscription",
 // A small "Grow" chip with a lock, next to something the current plan doesn't include.
 export function PlanTag({ feature, className = "" }: { feature: Feature; className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-accent/15 text-accent text-[10px] font-medium leading-none ${className}`}>
+    <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-accent/15 text-accent text-[11px] font-medium leading-none ${className}`}>
       <Lock className="w-2.5 h-2.5" /> {PLANS[FEATURE_PLAN[feature]].name}
     </span>
   );

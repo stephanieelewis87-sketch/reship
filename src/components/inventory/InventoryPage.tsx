@@ -78,7 +78,7 @@ function AddOption({ icon: Icon, title, hint, onClick }: { icon: typeof Plus; ti
       <Icon className="w-4 h-4 mt-0.5 text-accent shrink-0" />
       <span>
         <span className="block text-sm text-foreground">{title}</span>
-        <span className="block text-[11px] text-muted-foreground">{hint}</span>
+        <span className="block text-[12px] text-muted-foreground">{hint}</span>
       </span>
     </button>
   );
@@ -316,7 +316,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
           >
             <ShieldCheck className="w-4 h-4" /> <span className="hidden sm:inline">Guardian</span>
             {!can("backups") && <PlanTag feature="backups" className="hidden sm:inline-flex" />}
-            {guardianAlerts > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-rose-600 text-white text-[10px] leading-4 text-center">{guardianAlerts}</span>}
+            {guardianAlerts > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-rose-600 text-white text-[11px] leading-4 text-center">{guardianAlerts}</span>}
           </button>
           <Menu
             align="right"
@@ -551,13 +551,13 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                       onChange={(e) => setSelected(e.target.checked ? new Set(shown.map((i) => i.id)) : new Set())}
                     />
                   </th>
-                  <th className="text-left px-2 py-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground font-normal min-w-[240px]">Item</th>
+                  <th className="text-left px-2 py-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground font-normal min-w-[240px]">Item</th>
                   {ALL_PLATFORMS.map((p) => (
                     <th key={p} className="px-1.5 py-2 font-normal" title={`${everListed(p)} of these items have been listed on ${p}`}>
                       <span className="flex flex-col items-center gap-0.5">
                         <PlatformIcon platform={p} className="w-4 h-4" />
-                        <span className="text-[10px] text-muted-foreground">{p === "WhatNot" ? "Whatnot" : p}</span>
-                        <span className="text-[10px] text-muted-foreground/70 tabular-nums">{everListed(p)}</span>
+                        <span className="text-[11px] text-muted-foreground">{p === "WhatNot" ? "Whatnot" : p}</span>
+                        <span className="text-[11px] text-muted-foreground/70 tabular-nums">{everListed(p)}</span>
                       </span>
                     </th>
                   ))}
@@ -594,7 +594,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                               onLabel={() => setSkuLabels([item])}
                             />
                           </div>
-                          <div className="flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground">
+                          <div className="flex items-center gap-2 flex-wrap text-[12px] text-muted-foreground">
                             <span className="font-mono">{item.sku}</span>
                             {item.location && <span title="Location">@ {item.location}</span>}
                             {item.listPrice != null && <span>${item.listPrice}</span>}
@@ -814,7 +814,7 @@ function ListingMenu({
     <Menu button={button}>
       {(close) => (
         <>
-          <p className="px-3 py-1 text-[11px] text-muted-foreground capitalize">
+          <p className="px-3 py-1 text-[12px] text-muted-foreground capitalize">
             {listing.platform} · {listing.status}
             {listing.price != null ? ` · $${listing.price}` : ""}
           </p>
@@ -927,7 +927,7 @@ function BoardCard({
         <label className="absolute top-2 left-2 bg-card/90 rounded p-1 flex">
           <input type="checkbox" aria-label={`Select ${item.title}`} checked={selected} onChange={onToggle} />
         </label>
-        <span className="absolute top-2 right-2 text-[11px]">
+        <span className="absolute top-2 right-2 text-[12px]">
           <StatusChip item={item} />
         </span>
       </div>
@@ -942,7 +942,7 @@ function BoardCard({
             </button>
             {menu}
           </div>
-          <div className="flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground mt-0.5">
+          <div className="flex items-center gap-2 flex-wrap text-[12px] text-muted-foreground mt-0.5">
             <span className="font-mono">{item.sku}</span>
             {item.listPrice != null && <span>${item.listPrice}</span>}
             {(item.quantity ?? 1) > 1 && <span>qty {item.quantity}</span>}
@@ -972,7 +972,7 @@ function BoardCard({
         </ul>
         {item.status !== "sold" && notOn.length > 0 && (
           <div className="mt-auto flex items-center gap-1 flex-wrap pt-1">
-            <span className="text-[11px] text-muted-foreground mr-0.5">List on</span>
+            <span className="text-[12px] text-muted-foreground mr-0.5">List on</span>
             {notOn.map((p) => (
               <button
                 key={p}

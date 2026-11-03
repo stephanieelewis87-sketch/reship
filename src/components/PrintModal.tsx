@@ -55,15 +55,15 @@ export function PrintModal({
                 <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                   <PlatformBadge platform={order.platform} />
                   {isBundle(order) && <BundleBadge count={order.items.length} />}
-                  <span className="font-mono text-[11px] text-muted-foreground">{order.orderId}</span>
+                  <span className="font-mono text-[12px] text-muted-foreground">{order.orderId}</span>
                 </div>
                 <p className="text-sm text-foreground truncate">{isBundle(order) ? `Bundle · ${order.items.length} items` : order.items[0]?.name}</p>
                 {order.label ? (
-                  <p className="text-[11px] text-emerald-700 flex items-center gap-1 mt-0.5">
+                  <p className="text-[12px] text-emerald-700 flex items-center gap-1 mt-0.5">
                     <CheckCircle2 className="w-3 h-3" /> Label ready
                   </p>
                 ) : (
-                  <p className="text-[11px] text-amber-700 flex items-center gap-1 mt-0.5">
+                  <p className="text-[12px] text-amber-700 flex items-center gap-1 mt-0.5">
                     <AlertCircle className="w-3 h-3" /> No label uploaded yet
                   </p>
                 )}
@@ -81,7 +81,7 @@ export function PrintModal({
             <Tag className="w-3.5 h-3.5 text-muted-foreground" />
             <div>
               <p className="text-sm text-foreground leading-none">Include SKU on label</p>
-              {!selectedHasSku && <p className="text-[11px] text-muted-foreground mt-0.5">No SKU on selected orders</p>}
+              {!selectedHasSku && <p className="text-[12px] text-muted-foreground mt-0.5">No SKU on selected orders</p>}
             </div>
           </div>
           <Toggle
@@ -95,13 +95,13 @@ export function PrintModal({
             <FileText className="w-3.5 h-3.5 text-muted-foreground" />
             <div>
               <p className="text-sm text-foreground leading-none">Print packing slip</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Separate page per order. Poshmark labels already include theirs.</p>
+              <p className="text-[12px] text-muted-foreground mt-0.5">Separate page per order. Poshmark labels already include theirs.</p>
             </div>
           </div>
           <Toggle label="Print packing slip" checked={opts.packingSlip} onChange={() => setOpts((o) => ({ ...o, packingSlip: !o.packingSlip }))} />
         </div>
         {withoutLabel > 0 && (
-          <p className="text-[11px] text-amber-800 bg-amber-50 rounded-md px-2.5 py-1.5">
+          <p className="text-[12px] text-amber-800 bg-amber-50 rounded-md px-2.5 py-1.5">
             {withoutLabel} selected order{withoutLabel !== 1 ? "s have" : " has"} no marketplace label yet.
             {opts.packingSlip ? " Their packing slips will print, and they'll stay in To print." : " They'll stay in To print."}
           </p>
