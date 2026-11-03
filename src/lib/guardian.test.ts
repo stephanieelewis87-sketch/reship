@@ -91,6 +91,8 @@ describe("listing links", () => {
     expect(parseListingRef("https://poshmark.com/listing/Levis-501-Jeans-65a1b2c3d4")).toMatchObject({ listingId: "65a1b2c3d4" });
     expect(parseListingRef("https://www.vinted.com/items/4567-levis-jeans")).toMatchObject({ listingId: "4567" });
     expect(parseListingRef("https://www.etsy.com/listing/998877/vintage-top")).toMatchObject({ listingId: "998877" });
+    expect(parseListingRef("https://www.facebook.com/marketplace/item/1122334455/?ref=share")).toMatchObject({ listingId: "1122334455" });
+    expect(parseListingRef("https://www.thredup.com/product/women-levis-blue-jeans/223344556")).toMatchObject({ listingId: "223344556" });
     expect(parseListingRef(" 42 ")).toEqual({ listingId: "42" });
   });
 });

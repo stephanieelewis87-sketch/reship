@@ -13,6 +13,8 @@ export const PLATFORM_CONFIG: Record<Platform, { color: string; bg: string; doma
   WhatNot: { color: "text-purple-700", bg: "bg-purple-50", domain: "whatnot.com" },
   Etsy: { color: "text-orange-700", bg: "bg-orange-50", domain: "etsy.com" },
   eBay: { color: "text-yellow-800", bg: "bg-yellow-50", domain: "ebay.com" },
+  Facebook: { color: "text-sky-700", bg: "bg-sky-50", domain: "facebook.com" },
+  ThredUp: { color: "text-indigo-700", bg: "bg-indigo-50", domain: "thredup.com" },
   Other: { color: "text-stone-700", bg: "bg-stone-100" },
 };
 
