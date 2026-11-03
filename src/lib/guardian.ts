@@ -280,7 +280,8 @@ export function parseListingRef(text: string): { listingId?: string; url?: strin
   try {
     const u = new URL(t);
     const parts = u.pathname.split("/").filter(Boolean);
-    // eBay /itm/123, Mercari /item/m123, Poshmark /listing/title-abc123, Etsy /listing/123/title, Depop /products/x, Vinted /items/123-title
+    // eBay /itm/123, Mercari /item/m123, Poshmark /listing/title-abc123, Etsy /listing/123/title, Depop /products/x, Vinted /items/123-title,
+    // Facebook /marketplace/item/123, ThredUp /product/title/123
     const after = (w: string) => (parts.includes(w) ? parts[parts.indexOf(w) + 1] : undefined);
     const raw = after("itm") ?? after("item") ?? after("items") ?? after("listing") ?? after("products") ?? parts[parts.length - 1];
     let id = raw ?? "";

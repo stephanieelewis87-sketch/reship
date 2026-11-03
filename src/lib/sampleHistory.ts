@@ -45,8 +45,8 @@ const CATALOG: Line[] = [
   { brand: "Levi's", category: "Bottoms", names: ["501 Jeans", "505 Jeans", "Ribcage Jeans", "Wedgie Jeans"], cost: [3, 8], price: [26, 48], sellRate: 0.84, days: 19, weight: 9, where: ["eBay", "Poshmark", "Depop"] },
   { brand: "Levi's", category: "Outerwear", names: ["Denim Trucker Jacket", "Sherpa Trucker Jacket"], cost: [6, 12], price: [38, 65], sellRate: 0.82, days: 22, weight: 4, where: ["eBay", "Poshmark"] },
   { brand: "Nike", category: "Shoes", names: ["Air Max 90", "Air Force 1", "Dunk Low", "Pegasus 39"], cost: [10, 22], price: [48, 95], sellRate: 0.86, days: 12, weight: 6, where: ["eBay", "Mercari", "Poshmark"] },
-  { brand: "Coach", category: "Bags", names: ["Leather Crossbody Bag", "Signature Tote", "Willow Shoulder Bag"], cost: [8, 20], price: [55, 120], sellRate: 0.78, days: 26, weight: 5, where: ["Poshmark", "eBay", "Mercari"] },
-  { brand: "Patagonia", category: "Outerwear", names: ["Better Sweater Fleece", "Synchilla Snap-T", "Nano Puff Jacket"], cost: [8, 16], price: [48, 98], sellRate: 0.88, days: 13, weight: 4, where: ["eBay", "Poshmark", "Mercari"] },
+  { brand: "Coach", category: "Bags", names: ["Leather Crossbody Bag", "Signature Tote", "Willow Shoulder Bag"], cost: [8, 20], price: [55, 120], sellRate: 0.78, days: 26, weight: 5, where: ["Poshmark", "eBay", "Mercari", "ThredUp"] },
+  { brand: "Patagonia", category: "Outerwear", names: ["Better Sweater Fleece", "Synchilla Snap-T", "Nano Puff Jacket"], cost: [8, 16], price: [48, 98], sellRate: 0.88, days: 13, weight: 4, where: ["eBay", "Poshmark", "Facebook"] },
   { brand: "Madewell", category: "Bottoms", names: ["Perfect Vintage Jeans", "Curvy Skinny Jeans"], cost: [4, 8], price: [24, 42], sellRate: 0.7, days: 34, weight: 5, where: ["Poshmark", "Mercari"] },
   { brand: "Zara", category: "Outerwear", names: ["Belted Trench Coat", "Faux Leather Jacket", "Wool Blend Coat"], cost: [5, 10], price: [24, 45], sellRate: 0.62, days: 41, weight: 5, where: ["Poshmark", "Vinted", "Depop"] },
   { brand: "Anthropologie", category: "Bottoms", names: ["Linen Wide Leg Pants", "Colette Trousers"], cost: [5, 10], price: [28, 52], sellRate: 0.72, days: 30, weight: 4, where: ["Poshmark", "Mercari"] },
@@ -55,7 +55,7 @@ const CATALOG: Line[] = [
   { brand: "Juicy Couture", category: "Tops", names: ["Velour Hoodie", "Tracksuit Top"], cost: [4, 8], price: [26, 48], sellRate: 0.74, days: 21, weight: 3, where: ["Depop", "Poshmark", "Mercari"] },
   { brand: "J.Crew", category: "Tops", names: ["Cashmere Sweater", "Perfect Tee", "Silk Blouse"], cost: [3, 7], price: [14, 30], sellRate: 0.5, days: 62, weight: 6, where: ["Poshmark", "Mercari"] },
   { brand: "Old Navy", category: "Tops", names: ["Graphic Tee", "Cozy Cardigan"], cost: [1, 4], price: [8, 16], sellRate: 0.38, days: 78, weight: 5, where: ["Poshmark", "Mercari"] },
-  { brand: "Pokémon", category: "Collectibles", names: ["Base Set Holo", "Jungle Holo Lot", "Vintage Booster Pack"], cost: [6, 30], price: [35, 140], sellRate: 0.8, days: 9, weight: 3, where: ["WhatNot", "eBay"] },
+  { brand: "Pokémon", category: "Collectibles", names: ["Base Set Holo", "Jungle Holo Lot", "Vintage Booster Pack"], cost: [6, 30], price: [35, 140], sellRate: 0.8, days: 9, weight: 3, where: ["WhatNot", "eBay", "Facebook"] },
   { brand: "Unbranded", category: "Accessories", names: ["Vintage Silk Scarf", "Leather Belt", "Beaded Necklace"], cost: [1, 4], price: [10, 24], sellRate: 0.46, days: 70, weight: 5, where: ["Etsy", "Poshmark", "Depop"] },
   { brand: "Unbranded", category: "Tops", names: ["Hand-knit Cardigan", "Vintage Floral Blouse", "90s Band Tee"], cost: [2, 6], price: [18, 44], sellRate: 0.6, days: 38, weight: 4, where: ["Etsy", "Depop", "eBay"] },
 ];
@@ -80,7 +80,7 @@ const SIZES: Record<string, string[]> = {
 };
 
 const BUYERS = ["jessica_m", "thrift_hunter_99", "cottagecore_kate", "y2k_archive", "deals_always", "secondhandrose", "luxe_finds_la", "resale_queen_ny", "vintage_vault_uk", "capsule_closet", "grunge_garden", "stylestack_sam", "wardrobe_clear", "boho_dreams_shop", "slab_hunter", "denim_dreamer", "athleisure_amy", "preloved_paige", "sneakerhead_sid", "closet_curator"];
-const PREFIX: Record<Platform, string> = { Poshmark: "PM", Mercari: "MC", eBay: "EB", Depop: "DP", Etsy: "ET", WhatNot: "WN", Vinted: "VT", Other: "OT" };
+const PREFIX: Record<Platform, string> = { Poshmark: "PM", Mercari: "MC", eBay: "EB", Depop: "DP", Etsy: "ET", WhatNot: "WN", Vinted: "VT", Facebook: "FB", ThredUp: "TU", Other: "OT" };
 
 const pick = <T,>(r: () => number, xs: T[]) => xs[Math.floor(r() * xs.length)];
 const between = (r: () => number, [lo, hi]: [number, number]) => lo + r() * (hi - lo);
