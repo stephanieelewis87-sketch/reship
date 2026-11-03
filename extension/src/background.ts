@@ -4,6 +4,8 @@ import { describeLabelResponse } from "./connectors/poshmark";
 import { lastRead as mercariRead } from "./connectors/mercari";
 import { reship, supabaseSink } from "./reship";
 import { syncAll, type PlatformResult } from "./sync";
+import { MESSAGE_CONTEXTS, messagingOf, templatesFor } from "../../src/lib/messaging";
+import type { Settings } from "../../src/lib/types";
 
 const SYNC_ALARM = "reship-sync";
 const SYNC_MINUTES = 15;
@@ -47,6 +49,19 @@ async function checkPlatform(platform: Platform): Promise<string> {
   }
 }
 
+// The seller's message templates for one marketplace, for the Templates button in comment boxes.
+// Falls back to SellSync's default templates when the seller isn't signed in.
+async function messageTemplates(platform: Platform) {
+  let saved: Partial<Settings> | undefined;
+  const { data } = await reship.auth.getSession();
+  if (data.session) {
+    const res = await reship.from("settings").select("data").eq("user_id", data.session.user.id).maybeSingle();
+    saved = res.data?.data as Partial<Settings> | undefined;
+  }
+  const m = messagingOf(saved?.messaging);
+  return { seller: saved?.displayName ?? "", templates: MESSAGE_CONTEXTS.flatMap((c) => templatesFor(m.templates, platform, c)) };
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create(SYNC_ALARM, { periodInMinutes: SYNC_MINUTES });
 });
@@ -58,6 +73,10 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
   if (msg?.type === "check-platform") {
     checkPlatform(msg.platform).then(reply);
+    return true;
+  }
+  if (msg?.type === "message-templates") {
+    messageTemplates(msg.platform).then(reply, () => reply({ templates: [], seller: "" }));
     return true;
   }
   if (msg?.type === "sync-now") {

@@ -1,4 +1,5 @@
 import { DEFAULT_PLAN, type PlanId } from "./plans";
+import type { MessagingSettings } from "./messaging";
 export type Platform = "Poshmark" | "Vinted" | "Depop" | "Mercari" | "WhatNot" | "Etsy" | "eBay" | "Facebook" | "ThredUp" | "Other";
 export type LabelStatus = "pending" | "printed" | "shipped";
 export type OrderSource = "manual" | "csv" | "sample" | "sync";
@@ -205,6 +206,9 @@ export interface Settings {
   guardian: GuardianSettings;
   // The seller's plan. There's no billing yet, so it's picked in Settings > Subscription.
   plan: PlanId;
+  // Buyer message templates and who was messaged when. Missing in settings saved before messages
+  // existed; read it through messagingOf().
+  messaging?: MessagingSettings;
 }
 
 export interface SkuFormat {
