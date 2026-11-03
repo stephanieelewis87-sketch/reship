@@ -48,14 +48,14 @@ export function HomePage({ onSignIn, onSignUp, demoHref = "/?demo" }: { onSignIn
 }
 
 const ctaPrimary =
-  "inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-[#B5607A] text-white text-sm font-semibold hover:bg-[#9E4D6A] transition-colors shadow-sm";
+  "inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-accent text-accent-foreground text-sm font-semibold hover:bg-accent/90 transition-colors shadow-sm";
 const ctaSecondary =
-  "inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full border border-border bg-card text-foreground text-sm font-semibold hover:border-[#B5607A]/50 hover:text-[#B5607A] transition-colors";
+  "inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full border border-border bg-card text-foreground text-sm font-semibold hover:border-accent/50 hover:text-accent transition-colors";
 
 function Logo() {
   return (
     <a href="#top" className="flex items-center gap-2.5">
-      <span className="w-8 h-8 rounded-lg bg-[#B5607A] flex items-center justify-center">
+      <span className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
         <Package className="w-4 h-4 text-white" />
       </span>
       <span className="font-display font-semibold text-lg">Reship</span>
@@ -84,7 +84,7 @@ function NavBar({ onSignIn, onSignUp }: { onSignIn: () => void; onSignUp: () => 
           ))}
         </nav>
         <div className="hidden md:flex items-center gap-2">
-          <button onClick={onSignIn} className="px-4 py-2 text-sm text-foreground hover:text-[#B5607A]">
+          <button onClick={onSignIn} className="px-4 py-2 text-sm text-foreground hover:text-accent">
             Sign in
           </button>
           <button onClick={onSignUp} className={`${ctaPrimary} !py-2`}>
@@ -118,7 +118,7 @@ function NavBar({ onSignIn, onSignUp }: { onSignIn: () => void; onSignUp: () => 
 
 function Eyebrow({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#B5607A]/10 text-[#B5607A] text-xs font-semibold tracking-wide">
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-semibold tracking-wide">
       {children}
     </span>
   );
@@ -138,7 +138,7 @@ function Hero({ onSignUp, demoHref }: { onSignUp: () => void; demoHref: string }
             <br />
             Cash out in one tap.
             <br />
-            <span className="text-[#B5607A]">Ship in one print.</span>
+            <span className="text-accent">Ship in one print.</span>
           </h1>
           <p className="mt-6 text-lg text-muted-foreground max-w-md">
             Reship turns a quick clip of your item into a ready-to-post listing, pulls your payouts from every marketplace together, and prints
@@ -171,7 +171,7 @@ function HeroVisual() {
       <div className="absolute right-0 top-0 w-[56%] bg-card border border-border rounded-2xl shadow-xl p-4 rotate-[3deg]">
         <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Ready to withdraw</p>
         <p className="font-display text-3xl mt-1">$481.45</p>
-        <div className="mt-3 h-9 rounded-full bg-[#B5607A] text-white text-xs font-semibold flex items-center justify-center gap-1.5">
+        <div className="mt-3 h-9 rounded-full bg-accent text-accent-foreground text-xs font-semibold flex items-center justify-center gap-1.5">
           <Landmark className="w-3.5 h-3.5" /> Withdraw all
         </div>
         <div className="mt-3 flex -space-x-1">
@@ -244,14 +244,14 @@ function FeaturePillars() {
           <a
             key={p.title}
             href={p.href}
-            className="group bg-card border border-border rounded-2xl p-6 hover:border-[#B5607A]/40 hover:shadow-lg transition-all"
+            className="group bg-card border border-border rounded-2xl p-6 hover:border-accent/40 hover:shadow-lg transition-all"
           >
-            <span className="w-11 h-11 rounded-xl bg-[#B5607A]/10 text-[#B5607A] flex items-center justify-center">
+            <span className="w-11 h-11 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
               <p.icon className="w-5 h-5" />
             </span>
             <h3 className="font-display text-xl font-medium mt-5">{p.title}</h3>
             <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{p.body}</p>
-            <span className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-[#B5607A]">
+            <span className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-accent">
               See how <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </span>
           </a>
@@ -290,7 +290,7 @@ function FeatureRow({
           <ul className="mt-6 space-y-3">
             {points.map((pt) => (
               <li key={pt} className="flex gap-3 text-sm">
-                <span className="mt-0.5 w-5 h-5 rounded-full bg-[#B5607A] text-white flex items-center justify-center shrink-0">
+                <span className="mt-0.5 w-5 h-5 rounded-full bg-accent text-accent-foreground flex items-center justify-center shrink-0">
                   <Check className="w-3 h-3" />
                 </span>
                 {pt}
@@ -365,7 +365,7 @@ function VideoScreen({ step, compact = false }: { step: number; compact?: boolea
       </div>
       <div className="flex-1 flex items-center justify-center">
         <div className="relative">
-          <div className="absolute inset-0 blur-2xl bg-[#B5607A]/40 rounded-full" />
+          <div className="absolute inset-0 blur-2xl bg-accent/40 rounded-full" />
           <Shirt
             className={`relative text-[#F3D9E1] transition-transform duration-700 ${compact ? "w-20 h-20" : "w-24 h-24"}`}
             style={{ transform: `rotateY(${step * 45}deg)` }}
@@ -375,7 +375,7 @@ function VideoScreen({ step, compact = false }: { step: number; compact?: boolea
       </div>
       <div className="px-3 pb-3 space-y-2">
         <div className="h-1 rounded-full bg-white/15 overflow-hidden">
-          <div className="h-full bg-[#B5607A] transition-all duration-700" style={{ width: `${progress}%` }} />
+          <div className="h-full bg-accent transition-all duration-700" style={{ width: `${progress}%` }} />
         </div>
         <div className="flex justify-center">
           <span className="w-9 h-9 rounded-full border-2 border-white flex items-center justify-center">
@@ -398,7 +398,7 @@ const DRAFT_FIELDS = [
 function ListingDraft({ step }: { step: number }) {
   return (
     <div className="flex-1 max-w-[15rem] bg-card border border-border rounded-2xl shadow-xl p-4">
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#B5607A]">
+      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-accent">
         <Sparkles className="w-3.5 h-3.5" /> Drafted from your video
       </div>
       <div className="mt-3 grid grid-cols-3 gap-1.5">
@@ -470,7 +470,7 @@ function PayoutDemo() {
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Available to withdraw</p>
           <p className="font-display text-4xl mt-1">{state === "sent" ? "$0.00" : money(total)}</p>
         </div>
-        <span className="w-10 h-10 rounded-xl bg-[#B5607A]/10 text-[#B5607A] flex items-center justify-center">
+        <span className="w-10 h-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
           <Landmark className="w-5 h-5" />
         </span>
       </div>
@@ -579,7 +579,7 @@ function LabelCard({ sku, carrier, className = "" }: { sku: string; carrier: str
           ))}
         </div>
         <p className="font-mono text-[8px] mt-1 tracking-widest">9400 1000 0000 0000 0000 00</p>
-        <span className="mt-1.5 inline-block px-1.5 py-0.5 rounded bg-[#B5607A] text-white font-mono text-[9px]">SKU {sku}</span>
+        <span className="mt-1.5 inline-block px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-mono text-[9px]">SKU {sku}</span>
       </div>
     </div>
   );
@@ -602,7 +602,7 @@ function MoreTools() {
       <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {MORE.map((m) => (
           <div key={m.title} className="bg-card border border-border rounded-2xl p-5">
-            <m.icon className="w-5 h-5 text-[#B5607A]" />
+            <m.icon className="w-5 h-5 text-accent" />
             <h3 className="font-semibold mt-3">{m.title}</h3>
             <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{m.body}</p>
           </div>
@@ -626,7 +626,7 @@ function HowItWorks() {
         <ol className="mt-12 grid md:grid-cols-3 gap-8">
           {STEPS.map((s, i) => (
             <li key={s.title}>
-              <span className="font-display text-5xl text-[#E7A9BD]">{i + 1}</span>
+              <span className="font-display text-5xl text-accent">{i + 1}</span>
               <h3 className="text-lg font-semibold mt-3">{s.title}</h3>
               <p className="text-sm text-background/70 mt-2 leading-relaxed">{s.body}</p>
             </li>
@@ -681,7 +681,7 @@ function Pricing({ onSignUp }: { onSignUp: () => void }) {
             }`}
           >
             {plan.featured && (
-              <span className="absolute -top-3 left-7 px-3 py-1 rounded-full bg-[#B5607A] text-white text-xs font-semibold">Everything included</span>
+              <span className="absolute -top-3 left-7 px-3 py-1 rounded-full bg-accent text-accent-foreground text-xs font-semibold">Everything included</span>
             )}
             <p className="font-semibold text-lg">{plan.name}</p>
             <p className={`mt-1 text-sm ${plan.featured ? "text-background/70" : "text-muted-foreground"}`}>{plan.pitch}</p>
@@ -692,7 +692,7 @@ function Pricing({ onSignUp }: { onSignUp: () => void }) {
             <ul className="mt-6 space-y-3 flex-1">
               {plan.features.map((f) => (
                 <li key={f} className="flex gap-3 text-sm">
-                  <Check className={`w-4 h-4 shrink-0 mt-0.5 ${plan.featured ? "text-[#E7A9BD]" : "text-[#B5607A]"}`} />
+                  <Check className={`w-4 h-4 shrink-0 mt-0.5 ${plan.featured ? "text-accent" : "text-accent"}`} />
                   {f}
                 </li>
               ))}
@@ -755,12 +755,12 @@ function Faq() {
 function FinalCta({ onSignUp, demoHref }: { onSignUp: () => void; demoHref: string }) {
   return (
     <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
-      <div className="rounded-3xl bg-[#B5607A] text-white px-6 py-14 sm:px-12 text-center relative overflow-hidden">
+      <div className="rounded-3xl bg-accent text-accent-foreground px-6 py-14 sm:px-12 text-center relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.18),transparent_45%)]" />
         <h2 className="relative font-display text-3xl sm:text-4xl font-medium">Spend your time finding inventory, not doing paperwork.</h2>
         <p className="relative mt-4 text-white/85 max-w-xl mx-auto">List faster, ship in one batch, and cash out in one tap.</p>
         <div className="relative mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-          <button onClick={onSignUp} className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white text-[#B5607A] text-sm font-semibold hover:bg-white/90">
+          <button onClick={onSignUp} className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white text-accent text-sm font-semibold hover:bg-white/90">
             Get started <ArrowRight className="w-4 h-4" />
           </button>
           <a href={demoHref} className="inline-flex items-center justify-center px-6 py-3 rounded-full border border-white/50 text-sm font-semibold hover:bg-white/10">
