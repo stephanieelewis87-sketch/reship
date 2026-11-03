@@ -3,10 +3,10 @@ import type { InventoryItem, ItemChange, Listing, Order } from "./types";
 import { ALL_PLATFORMS } from "./types";
 import { duplicateSkus, isPartiallyDelisted } from "./inventory";
 
-// Inventory Guardian: Reship's own record of every item is the master copy. It keeps dated
+// Inventory Guardian: SellSync's own record of every item is the master copy. It keeps dated
 // backups of it, a history of every change, watches for listings that lost their link to an
 // item, and pauses big destructive changes until the owner says yes. Restoring only changes
-// Reship's records; it never edits or relists anything on a marketplace.
+// SellSync's records; it never edits or relists anything on a marketplace.
 
 // ---- Change history ----
 
@@ -119,7 +119,7 @@ export function checkInventory(inventory: InventoryItem[], orders: Order[]): Gua
   }
 
   const noSku = inventory.filter((i) => !i.sku.trim());
-  if (noSku.length) issues.push({ kind: "no-sku", severity: "high", title: `${noSku.length} item${noSku.length > 1 ? "s have" : " has"} no SKU`, detail: "Without a SKU, Reship can't match a sale to the item.", itemIds: noSku.map((i) => i.id) });
+  if (noSku.length) issues.push({ kind: "no-sku", severity: "high", title: `${noSku.length} item${noSku.length > 1 ? "s have" : " has"} no SKU`, detail: "Without a SKU, SellSync can't match a sale to the item.", itemIds: noSku.map((i) => i.id) });
 
   // The same marketplace listing linked to two items.
   const byListing = new Map<string, InventoryItem[]>();
@@ -258,7 +258,7 @@ export function inventoryCsv(items: InventoryItem[]): string {
       ),
       Description: i.description ?? "",
       Notes: i.notes ?? "",
-      "Reship ID": i.id,
+      "SellSync ID": i.id,
     })),
   );
 }
