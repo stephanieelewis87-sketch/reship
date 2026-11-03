@@ -6,6 +6,7 @@ import { OrdersPage } from "../Dashboard";
 import { AnalyticsView } from "../analytics/AnalyticsView";
 import { HomePage } from "../home/HomePage";
 import { InventoryPage } from "../inventory/InventoryPage";
+import { PendingBanner } from "../inventory/PendingBanner";
 import { AutomationsPage } from "../automations/AutomationsPage";
 import { SettingsPage } from "../settings/SettingsPage";
 import { FeedbackPage } from "../feedback/FeedbackPage";
@@ -108,6 +109,7 @@ export function AppShell({
             </button>
           </div>
         )}
+        <PendingBanner data={data} />
         <div className="flex-1 overflow-y-auto pb-16 md:pb-0">
           {data.loading ? (
             <p className="text-sm text-muted-foreground text-center py-20">Loading…</p>

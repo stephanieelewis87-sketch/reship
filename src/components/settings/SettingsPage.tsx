@@ -7,13 +7,15 @@ import { AddressFields } from "../AddressFields";
 import { Field, PlatformIcon, Toggle, inputClass, primaryButton, secondaryButton, selectClass } from "../ui";
 import { PageHeader } from "../shell/PageHeader";
 import { go } from "../shell/route";
+import { cleanPrefix, nextSku } from "@/lib/sku";
 
 type Data = ReturnType<typeof useReshipData>;
 
-export type SettingsTab = "connections" | "sale" | "labels" | "marketplaces" | "pricing" | "shipping" | "ai" | "subscription" | "account";
+export type SettingsTab = "connections" | "sale" | "guardian" | "labels" | "marketplaces" | "pricing" | "shipping" | "ai" | "subscription" | "account";
 const TABS: { key: SettingsTab; label: string }[] = [
   { key: "connections", label: "Connections" },
   { key: "sale", label: "Sale detection" },
+  { key: "guardian", label: "SKUs and backups" },
   { key: "labels", label: "Labels" },
   { key: "marketplaces", label: "Marketplaces" },
   { key: "pricing", label: "Pricing rules" },
@@ -85,6 +87,57 @@ export function SettingsPage({
               ))}
               <Note>Delisting runs through the browser extension. Until it does, items that sold show as "partially delisted" on Home and in Inventory so you can take them down yourself.</Note>
             </Section>
+          )}
+          {tab === "guardian" && (
+            <>
+              <Section title="Automatic SKUs" text="Every new item gets the next SKU, and keeps it for good. A SKU is never reused, even after its item is deleted.">
+                <Row title="Prefix" text="Letters or numbers, up to 6. For example your initials.">
+                  <div className="w-28 shrink-0">
+                    <input
+                      className={`${inputClass} font-mono uppercase`}
+                      aria-label="SKU prefix"
+                      value={draft.skuFormat.prefix}
+                      onChange={(e) => set("skuFormat", { ...draft.skuFormat, prefix: cleanPrefix(e.target.value) })}
+                    />
+                  </div>
+                </Row>
+                <Row title="Digits">
+                  <select className={selectClass} value={draft.skuFormat.digits} onChange={(e) => set("skuFormat", { ...draft.skuFormat, digits: Number(e.target.value) })}>
+                    {[3, 4, 5, 6].map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                </Row>
+                <Row title="Next SKU">
+                  <span className="font-mono text-sm">{nextSku(data.inventory, { ...draft.skuFormat, prefix: draft.skuFormat.prefix || "RS" })}</span>
+                </Row>
+                <Note>Existing items keep their SKUs. Print barcode labels from Inventory (an item's menu, or select items and press SKU labels), and find items with Scan.</Note>
+              </Section>
+              <Section title="Inventory Guardian" text="Keeps your inventory safe from a bad sync, a slip of the finger or a marketplace glitch.">
+                <Row title="Sync protection" text="Pause any change that would delete, delist, mark sold or overwrite many items at once, and ask you first.">
+                  <Toggle label="Sync protection" checked={draft.guardian.protect} onChange={() => set("guardian", { ...draft.guardian, protect: !draft.guardian.protect })} />
+                </Row>
+                {draft.guardian.protect && (
+                  <Row title="Ask me when a change touches">
+                    <select className={selectClass} value={draft.guardian.threshold} onChange={(e) => set("guardian", { ...draft.guardian, threshold: Number(e.target.value) })}>
+                      {[3, 5, 10, 25, 50].map((n) => (
+                        <option key={n} value={n}>
+                          {n}+ items
+                        </option>
+                      ))}
+                    </select>
+                  </Row>
+                )}
+                <Row title="Daily backups" text="A dated copy of every item, made the first time you open the app each day. The last 30 are kept.">
+                  <Toggle label="Daily backups" checked={draft.guardian.dailyBackup} onChange={() => set("guardian", { ...draft.guardian, dailyBackup: !draft.guardian.dailyBackup })} />
+                </Row>
+                <a href="#/inventory?guardian" className="text-sm text-accent hover:underline">
+                  Open Inventory Guardian: backups, restore, listing checks and history
+                </a>
+              </Section>
+            </>
           )}
           {tab === "labels" && (
             <Section title="Labels" text="Tag inventory with your own labels, like a storage bin or a to-do. Filter by them in Inventory.">

@@ -77,7 +77,7 @@ export function useListingDrafts(data: Data, madeWith: string, photosPerItem = 4
     for (const [n, d] of chosen.entries()) {
       // Demo mode keeps photos in this browser, so they're kept small there.
       const photos = await Promise.all(orderedPhotos(d).slice(0, ai ? 8 : 3).map(async (p) => data.store.saveListingPhoto(ai ? p : await shrinkImage(p, 480))));
-      const item = draftToItem(d, photos, nextSku(all), new Date(), madeWith);
+      const item = draftToItem(d, photos, nextSku(all, data.settings.skuFormat), new Date(), madeWith);
       all = [...all, item];
       items.push(item);
       onProgress(n + 1, chosen.length);

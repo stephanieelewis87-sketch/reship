@@ -33,6 +33,24 @@ Without any setup, Reship runs in **demo mode**: it starts with sample orders an
 - Works on phones
 - **Analytics**: sales, true profit (after marketplace fees, shipping you paid and item cost), margin, days to sell, sell-through and money tied up in inventory, for any period and compared with the one before. Pages for profit (where the money went), marketplaces side by side, brands and categories, inventory health with suggested markdowns for stale listings, sourcing (which thrift stores pay off), a monthly profit goal, "what to do next" tips, and CSV reports for taxes. Click any point or row to see the sales behind it. Fees are estimated from each marketplace's fee schedule when an order doesn't say. The demo has a made-up year of sales so every page has something to show.
 
+## Automatic SKUs and barcodes
+
+- Every new item gets the next SKU automatically, like `BB-00042`. Pick the prefix and number of digits in Settings > SKUs and backups. SKUs are permanent: a number is never handed out twice, even after its item is deleted, and changing an item's SKU takes an extra click.
+- Each SKU has a Code 128 barcode. Print SKU labels from an item's menu, from the item form, or for many items at once (select them, then SKU labels): 2.25 x 1.25" roll labels for Rollo, Dymo or Zebra printers, or Letter sheets of 30 (Avery 5160).
+- Inventory > **Scan** finds an item by SKU or marketplace listing ID with any USB or Bluetooth barcode scanner, or with the camera in Chrome. It also sets where the item is stored, so putting items away is scan, type the bin, scan the next.
+- Every item has a storage location (bin, shelf). Filter by it, search by it, set it in bulk, and it's printed on the SKU label.
+
+## Inventory Guardian
+
+Inventory > **Guardian** keeps the master record of every item safe. Run `supabase/migrations/0010_inventory_guardian.sql` to turn it on with accounts (demo mode keeps it in the browser).
+
+- **Listing links**: each marketplace listing on an item can hold the marketplace's listing link or ID, so the item is the one master record those listings belong to.
+- **Backups**: a dated copy of every item each day the app opens (the last 30 are kept), plus Back up now. Download any backup, or the current inventory, as a spreadsheet.
+- **Listing checks**: duplicate SKUs, items without a SKU, one marketplace listing linked to two items, items that look entered twice (with one-click merge), open orders that match no item, sold items still listed elsewhere, and listings without a marketplace link.
+- **Recovery**: pick a backup, see exactly which items would come back or change, untick any you don't want, and restore. A backup of how things were is made first. Restoring only changes SellSync's records; it never edits, relists or deletes anything on a marketplace.
+- **Change history**: every edit, sale, bulk change, merge and restore is recorded per item (open an item, then History), and the latest changes show on the Guardian page.
+- **Sync protection**: a change that would delete, delist, mark sold or overwrite 10 or more items at once (adjustable) is paused with a banner. Review it, drop it, or back up and apply it.
+
 ## Browser extension (marketplace sync)
 
 Marketplaces don't offer label APIs, so the extension in `extension/` reads sold orders and labels using the seller's own logged-in browser session. It never asks for or stores marketplace passwords, and it shows an at-your-own-risk notice before it turns on.

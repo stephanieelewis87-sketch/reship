@@ -1,10 +1,14 @@
 import { useState } from "react";
-import { Check, ImagePlus, Loader2, Sparkles, Trash2, X } from "lucide-react";
+import { Check, ImagePlus, Loader2, Lock, ScanLine, Sparkles, Trash2, X } from "lucide-react";
 import type { Condition, InventoryItem, Listing, Platform, Settings } from "@/lib/types";
 import { ALL_PLATFORMS, CONDITIONS } from "@/lib/types";
 import { isoDay } from "@/lib/analytics";
 import { priceFor } from "@/lib/inventory";
-import type { ListingAi } from "@/lib/store";
+import type { ListingAi, Store } from "@/lib/store";
+import type { ItemChange } from "@/lib/types";
+import { parseListingRef } from "@/lib/guardian";
+import { HistoryList } from "./GuardianPage";
+import { Barcode } from "./SkuTools";
 import type { ListingSuggestion } from "@/lib/videoListing";
 import { splitDataUrl } from "@/lib/videoFrames";
 import { Field, PlatformIcon, SectionLabel, Toggle, inputClass, primaryButton, secondaryButton } from "../ui";
@@ -23,6 +27,8 @@ export function ListingForm({
   onClose,
   onSave,
   onDelete,
+  store,
+  onPrintLabel,
 }: {
   item: InventoryItem;
   isNew: boolean;
@@ -33,7 +39,14 @@ export function ListingForm({
   onClose: () => void;
   onSave: (item: InventoryItem, note?: string) => void;
   onDelete?: (id: string) => void;
+  store?: Store;
+  onPrintLabel?: (item: InventoryItem) => void;
 }) {
+  // SKUs are permanent once an item is saved: changing one breaks the link to past sales and
+  // printed labels, so it takes an extra click.
+  const [skuUnlocked, setSkuUnlocked] = useState(isNew || !item.sku.trim());
+  const [refs, setRefs] = useState<Partial<Record<Platform, string>>>(() => Object.fromEntries(item.listings.map((l) => [l.platform, l.url ?? l.listingId ?? ""])));
+  const [history, setHistory] = useState<ItemChange[] | null>(null);
   const [d, setD] = useState<InventoryItem>(item);
   const [text, setText] = useState({
     listPrice: item.listPrice?.toString() ?? "",
@@ -61,6 +74,13 @@ export function ListingForm({
         if (prev?.status === "sold") return;
         listings.push({ ...prev, platform: p, status: "active", listedAt: prev?.status === "active" ? prev.listedAt : today, price: num(prices[p] ?? "") ?? priceFor(base, p, settings) });
       });
+    // Listing links or IDs typed in for each marketplace.
+    for (const [p, text] of Object.entries(refs) as [Platform, string][]) {
+      const at = listings.findIndex((l) => l.platform === p);
+      if (at === -1) continue;
+      const ref = parseListingRef(text);
+      listings[at] = { ...listings[at], listingId: ref.listingId, url: ref.url ?? (text.trim() ? listings[at].url : undefined) };
+    }
     const active = listings.some((l) => l.status === "active");
     return {
       ...d,
@@ -205,7 +225,23 @@ export function ListingForm({
                 <input className={inputClass} inputMode="numeric" value={text.quantity} onChange={(e) => setText({ ...text, quantity: e.target.value })} />
               </Field>
               <Field label="SKU">
-                <input className={`${inputClass} font-mono`} value={d.sku} onChange={(e) => set("sku", e.target.value)} />
+                <div className="relative">
+                  <input className={`${inputClass} font-mono pr-7`} value={d.sku} readOnly={!skuUnlocked} onChange={(e) => set("sku", e.target.value)} />
+                  {!skuUnlocked && (
+                    <button
+                      type="button"
+                      title="SKUs stay the same for good. Click to change it anyway."
+                      aria-label="Change SKU"
+                      onClick={() => window.confirm("Change this SKU? Labels you've printed and past sales use the old one.") && setSkuUnlocked(true)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <Lock className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </Field>
+              <Field label="Location">
+                <input className={inputClass} value={d.location ?? ""} onChange={(e) => set("location", e.target.value || undefined)} placeholder="Bin 4" />
               </Field>
               <Field label="Bought at">
                 <input className={inputClass} value={d.source ?? ""} onChange={(e) => set("source", e.target.value || undefined)} placeholder="Goodwill" />
@@ -214,6 +250,16 @@ export function ListingForm({
                 <input type="date" className={inputClass} value={d.purchasedAt ?? ""} onChange={(e) => set("purchasedAt", e.target.value || undefined)} />
               </Field>
             </div>
+            {d.sku.trim() && (
+              <div className="flex items-center gap-3">
+                <Barcode value={d.sku.trim()} className="h-8 w-40 rounded-sm border border-border" />
+                {onPrintLabel && (
+                  <button type="button" onClick={() => onPrintLabel(build(false))} className="flex items-center gap-1.5 text-xs text-accent hover:underline">
+                    <ScanLine className="w-3.5 h-3.5" /> Print SKU label
+                  </button>
+                )}
+              </div>
+            )}
           </section>
 
           <section className="space-y-2">
@@ -253,6 +299,26 @@ export function ListingForm({
                 );
               })}
             </div>
+            {item.listings.length > 0 && (
+              <div className="space-y-1.5 pt-1">
+                <p className="text-xs font-medium text-foreground">Marketplace listing links</p>
+                {item.listings.map((l) => (
+                  <label key={l.platform} className="flex items-center gap-2 text-xs">
+                    <span className="flex items-center gap-1.5 w-24 shrink-0">
+                      <PlatformIcon platform={l.platform} /> {l.platform}
+                    </span>
+                    <input
+                      className={`${inputClass} font-mono text-xs`}
+                      value={refs[l.platform] ?? ""}
+                      onChange={(e) => setRefs({ ...refs, [l.platform]: e.target.value })}
+                      placeholder="Paste the listing link or ID"
+                      aria-label={`${l.platform} listing link or ID`}
+                    />
+                  </label>
+                ))}
+                <p className="text-[11px] text-muted-foreground">Linking each listing to this item lets Inventory Guardian spot duplicates and listings that come apart.</p>
+              </div>
+            )}
             <p className="text-[11px] text-muted-foreground">Prices start from your pricing rules in Settings. Reship records each listing here; posting to the marketplace itself runs through the Reship browser extension.</p>
           </section>
 
@@ -272,6 +338,20 @@ export function ListingForm({
               </label>
             )}
           </section>
+
+          {!isNew && store && (
+            <section className="space-y-2">
+              <div className="flex items-center justify-between">
+                <SectionLabel>History</SectionLabel>
+                {history === null && (
+                  <button type="button" className="text-xs text-accent hover:underline" onClick={() => store.listHistory(item.id).then(setHistory)}>
+                    Show changes
+                  </button>
+                )}
+              </div>
+              {history && (history.length ? <HistoryList entries={history} /> : <p className="text-xs text-muted-foreground">No changes recorded yet.</p>)}
+            </section>
+          )}
         </div>
 
         <div className="px-5 py-3 border-t border-border flex items-center gap-2 sticky bottom-0 bg-card sm:rounded-b-xl">
