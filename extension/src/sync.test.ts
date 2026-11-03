@@ -117,4 +117,16 @@ describe("syncAll", () => {
     expect(res.status).toBe("ok");
     expect(shipments).toEqual(["A1:in_transit"]);
   });
+
+  it("tells the sink about each new sale so it can delist elsewhere", async () => {
+    const { sink } = memorySink([["A1", true]]);
+    const sales: string[] = [];
+    sink.recordSale = async (o) => {
+      sales.push(o.orderNumber);
+      if (o.orderNumber === "A2") throw new Error("delist failed");
+    };
+    const [res] = await syncAll([fakeConnector()], new Set(["Poshmark"]), sink);
+    expect(sales).toEqual(["A2", "A3"]);
+    expect(res).toMatchObject({ status: "ok", imported: 2 });
+  });
 });

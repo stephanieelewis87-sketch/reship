@@ -97,6 +97,8 @@ export function toImportedOrder(page: MercariOrderPage): ImportedOrder {
     }),
     carrier: page.carrier.split("/")[0].trim() || "USPS",
     labelUrl: page.labelUrl ? new URL(page.labelUrl, ORIGIN).href : undefined,
+    // A Mercari order is numbered by the listing that sold.
+    listingIds: [page.itemId],
   };
 }
 

@@ -24,8 +24,9 @@ export type CsvField = (typeof CSV_FIELDS)[number]["key"];
 export type ColumnMapping = Partial<Record<CsvField, string>>;
 
 // Common header names across marketplace exports (Etsy, eBay, Poshmark, Mercari and others).
+// Mercari's sales report numbers each sale by "Item Id" and names it "Item Title".
 const ALIASES: Record<CsvField, string[]> = {
-  orderId: ["order id", "order number", "order no", "order #", "order", "sales record number", "transaction id"],
+  orderId: ["order id", "order number", "order no", "order #", "order", "sales record number", "transaction id", "item id"],
   itemName: ["item name", "item title", "title", "listing title", "product name", "item", "listing"],
   sku: ["sku", "custom label", "custom label (sku)", "item sku"],
   price: ["item price", "price", "sale price", "sold for", "order value", "item total"],

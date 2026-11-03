@@ -92,7 +92,7 @@ Marketplaces don't offer label APIs, so the extension in `extension/` reads sold
   1. Log in to each marketplace in the same Chrome profile that has the extension.
   2. Make sure Chrome isn't blocking third-party cookies. Go to Settings, then Privacy and security, then Third-party cookies, and choose "Allow third-party cookies" (or add each marketplace under "Allowed to use third-party cookies"). When they're blocked, marketplace pages such as Mercari may not load and syncs fail.
   3. Turn off ad or privacy blockers on marketplace sites.
-- Poshmark and Mercari work today. Depop, Vinted and Whatnot show as "coming soon". The "Capture this page" and "Test" buttons help map and check a marketplace.
+- Poshmark, Mercari and Vinted orders sync today. Depop and Whatnot show as "coming soon". Vinted is new: press "Test Vinted" once on a real account to confirm it finds your sales and labels. The "Capture this page" and "Test" buttons help map and check a marketplace.
 - Mercari's pages are drawn in the browser, so the extension reads them in a minimized window it opens and closes during a sync. Mercari's letter-size label is cut out and turned upright when printing on 4x6 labels.
 
 ## Bundle comments and buyer messages
@@ -183,6 +183,14 @@ SellSync buys its own labels through EasyPost at EasyPost's discounted carrier r
 3. `supabase secrets set EASYPOST_API_KEY=...` and `supabase functions deploy labels`.
 
 Until the function is deployed, the app shows estimated prices and can't buy. In demo mode, buying makes a clearly marked practice label so the flow can be tried. Labels are paid from the EasyPost account, so charging sellers for them (or for the Ship plan) needs to be in place before using a live key.
+
+## Crosslisting and delisting (Mercari and Vinted)
+
+- Run `supabase/migrations/0005_crosslist.sql` first.
+- The app queues an item for Mercari or Vinted with `queueCrosslist(draft, ["Mercari", "Vinted"])` from `src/lib/listingJobs.ts`. Titles, descriptions and photos are trimmed to each marketplace's limits, and conditions are renamed to each marketplace's wording (`src/lib/crosslist.ts`).
+- Within about 30 seconds the extension opens each marketplace's sell form in a background tab with the title, description, price, photos and condition filled in. The toolbar icon shows how many are waiting. Pick the category, brand and size from the marketplace's own lists and press List. SellSync notices the new listing's page and records it.
+- Delisting is `queueDelist(platform, listingId)`. SellSync deactivates Mercari listings and hides Vinted listings rather than deleting them, so either can be turned back on. If a page doesn't go the way SellSync expects, it leaves the tab open for you to finish.
+- Auto-delist: in the extension popup, choose which marketplaces to take an item down from when it sells somewhere else. It works for items SellSync listed, matched by listing or SKU.
 
 ## Coming next
 

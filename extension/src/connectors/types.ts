@@ -12,6 +12,8 @@ export interface ImportedOrder {
   shipTo?: Address;
   // Where the marketplace serves this order's label; fetched with the seller's own session.
   labelUrl?: string;
+  // The marketplace's ids for the listings that sold, so Reship can delist them elsewhere.
+  listingIds?: string[];
 }
 
 // One per marketplace. Each runs inside the seller's browser and uses the session they are
