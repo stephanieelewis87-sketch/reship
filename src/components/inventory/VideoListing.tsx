@@ -36,12 +36,12 @@ export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: 
         try {
           const frames = await Promise.all(picked.map((i) => shrinkImage(video.images[i], AI_IMAGE_SIDE).then(toAi)));
           found = cleanDetected(await ai.detect(frames, picked.map((i) => video.samples[i].t)), picked.length);
-          if (!found.length) setNotice("The AI didn't spot any items, so Reship split the video by scene instead.");
+          if (!found.length) setNotice("The AI didn't spot any items, so SellSync split the video by scene instead.");
         } catch (e) {
-          setNotice(`${(e as Error).message} Reship split the video by scene instead.`);
+          setNotice(`${(e as Error).message} SellSync split the video by scene instead.`);
         }
       } else {
-        setNotice("AI is off in demo mode, so Reship split your video into items by scene. With your Reship account, AI names, describes and prices each item and makes clean photos.");
+        setNotice("AI is off in demo mode, so SellSync split your video into items by scene. With your SellSync account, AI names, describes and prices each item and makes clean photos.");
       }
       if (!found.length) found = itemsFromScenes(scenes, picked);
       if (cancelled.current) return;
@@ -82,9 +82,9 @@ export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: 
     <Modal onClose={step.kind === "review" || step.kind === "pick" ? close : () => {}} maxWidth="max-w-5xl" label="List with a video">
       <ModalHeader
         title="List with a video"
-        subtitle={step.kind === "review" ? `${drafts.length} item${drafts.length === 1 ? "" : "s"} found. Check each one, then save them as drafts.` : `Film up to ${MAX_ITEMS} items. Reship finds each one and writes its listing.`}
+        subtitle={step.kind === "review" ? `${drafts.length} item${drafts.length === 1 ? "" : "s"} found. Check each one, then save them as drafts.` : `Film up to ${MAX_ITEMS} items. SellSync finds each one and writes its listing.`}
         onClose={close}
-        icon={<Clapperboard className="w-5 h-5 text-[#B5607A]" />}
+        icon={<Clapperboard className="w-5 h-5 text-accent" />}
       />
       <div className="overflow-y-auto flex-1 p-5 sm:p-6 space-y-4">
         {error && (
@@ -96,8 +96,8 @@ export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: 
 
         {step.kind === "pick" && (
           <div className="grid md:grid-cols-2 gap-6">
-            <label className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-[#B5607A] hover:bg-rose-50/30">
-              <Upload className="w-8 h-8 text-[#B5607A]" />
+            <label className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-accent hover:bg-rose-50/30">
+              <Upload className="w-8 h-8 text-accent" />
               <span className="font-medium text-sm">Choose or record a video</span>
               <span className="text-xs text-muted-foreground">Up to {MAX_VIDEO_SECONDS / 60} minutes. The video stays on your device; only still frames are sent.</span>
               <input
@@ -134,11 +134,11 @@ export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: 
 
         {step.kind === "working" && (
           <div className="py-16 flex flex-col items-center gap-3 text-sm">
-            <Loader2 className="w-6 h-6 animate-spin text-[#B5607A]" />
+            <Loader2 className="w-6 h-6 animate-spin text-accent" />
             <p>{step.label}…</p>
             {step.progress != null && (
               <div className="w-64 h-1.5 rounded-full bg-muted overflow-hidden">
-                <div className="h-full bg-[#B5607A] transition-all" style={{ width: `${Math.round(step.progress * 100)}%` }} />
+                <div className="h-full bg-accent transition-all" style={{ width: `${Math.round(step.progress * 100)}%` }} />
               </div>
             )}
           </div>
@@ -146,7 +146,7 @@ export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: 
 
         {step.kind === "saving" && (
           <div className="py-16 flex flex-col items-center gap-3 text-sm">
-            <Loader2 className="w-6 h-6 animate-spin text-[#B5607A]" />
+            <Loader2 className="w-6 h-6 animate-spin text-accent" />
             <p>
               Saving drafts… {step.done} of {step.total}
             </p>

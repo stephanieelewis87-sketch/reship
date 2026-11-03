@@ -112,7 +112,7 @@ export function ListingForm({
         <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-card z-10 sm:rounded-t-xl">
           <div>
             <h2 className="font-display text-sm font-semibold text-foreground">{isNew ? "Add item" : "Edit item"}</h2>
-            <p className="text-xs text-muted-foreground">Enter it once. Reship fills in each marketplace.</p>
+            <p className="text-xs text-muted-foreground">Enter it once. SellSync fills in each marketplace.</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 rounded-md hover:bg-muted">
             <X className="w-4 h-4 text-muted-foreground" />
@@ -127,8 +127,8 @@ export function ListingForm({
                 type="button"
                 disabled={!ai || !photos.length || gen.busy}
                 onClick={() => void generate()}
-                title={!ai ? "AI listing runs with your Reship account; it's off in demo mode." : !photos.length ? "Add a photo first." : "Writes the title, description, details and a suggested price from your photos."}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border text-xs text-[#B5607A] hover:bg-rose-50 disabled:text-muted-foreground disabled:opacity-60 disabled:hover:bg-transparent"
+                title={!ai ? "AI listing runs with your SellSync account; it's off in demo mode." : !photos.length ? "Add a photo first." : "Writes the title, description, details and a suggested price from your photos."}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border text-xs text-accent hover:bg-rose-50 disabled:text-muted-foreground disabled:opacity-60 disabled:hover:bg-transparent"
               >
                 {gen.busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />} Generate listing
               </button>
@@ -143,7 +143,7 @@ export function ListingForm({
                     type="button"
                     aria-label="Remove photo"
                     onClick={() => set("photos", photos.filter((_, j) => j !== i))}
-                    className="absolute top-1 right-1 p-0.5 rounded bg-white/90 opacity-0 group-hover:opacity-100"
+                    className="absolute top-1 right-1 p-0.5 rounded bg-card/90 opacity-0 group-hover:opacity-100"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
@@ -223,7 +223,7 @@ export function ListingForm({
                 const sold = item.listings.find((l) => l.platform === p)?.status === "sold";
                 const on = chosen.has(p);
                 return (
-                  <div key={p} className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${on ? "border-[#B5607A] bg-rose-50/40" : "border-border"}`}>
+                  <div key={p} className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${on ? "border-accent bg-rose-50/40" : "border-border"}`}>
                     <button
                       type="button"
                       disabled={sold}
@@ -236,7 +236,7 @@ export function ListingForm({
                       })}
                       className="flex items-center gap-2 flex-1 text-left text-sm disabled:opacity-50"
                     >
-                      <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? "bg-[#B5607A] border-[#B5607A]" : "border-border"}`}>{on && <Check className="w-3 h-3 text-white" />}</span>
+                      <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? "bg-accent border-accent" : "border-border"}`}>{on && <Check className="w-3 h-3 text-accent-foreground" />}</span>
                       <PlatformIcon platform={p} className="w-4 h-4" /> {p}
                       {sold && <span className="text-[10px] text-emerald-700">sold here</span>}
                       {!sold && existing.has(p) && item.listings.find((l) => l.platform === p)?.status === "active" && <span className="text-[10px] text-muted-foreground">listed</span>}
@@ -253,7 +253,7 @@ export function ListingForm({
                 );
               })}
             </div>
-            <p className="text-[11px] text-muted-foreground">Prices start from your pricing rules in Settings. Reship records each listing here; posting to the marketplace itself runs through the Reship browser extension.</p>
+            <p className="text-[11px] text-muted-foreground">Prices start from your pricing rules in Settings. SellSync records each listing here; posting to the marketplace itself runs through the SellSync browser extension.</p>
           </section>
 
           <section className="space-y-3">
@@ -277,7 +277,7 @@ export function ListingForm({
         <div className="px-5 py-3 border-t border-border flex items-center gap-2 sticky bottom-0 bg-card sm:rounded-b-xl">
           {!isNew && onDelete &&
             (confirmDelete ? (
-              <button type="button" onClick={() => onDelete(item.id)} className="px-3 py-2 rounded-md bg-destructive text-white text-sm font-medium">
+              <button type="button" onClick={() => onDelete(item.id)} className="px-3 py-2 rounded-md bg-destructive text-destructive-foreground text-sm font-medium">
                 Confirm delete
               </button>
             ) : (

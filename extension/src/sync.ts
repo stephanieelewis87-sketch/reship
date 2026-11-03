@@ -13,18 +13,18 @@ export interface PlatformResult {
 
 export interface KnownOrder {
   hasLabel: boolean;
-  // No item in Reship has a SKU yet, so one found on the marketplace can be filled in.
+  // No item in SellSync has a SKU yet, so one found on the marketplace can be filled in.
   missingSku: boolean;
   shipment?: ShipmentStatus;
 }
 
-// Where synced orders go: the seller's Reship account.
+// Where synced orders go: the seller's SellSync account.
 export interface OrderSink {
-  // Orders already in Reship for this marketplace, by order number.
+  // Orders already in SellSync for this marketplace, by order number.
   knownOrders(platform: Platform): Promise<Map<string, KnownOrder>>;
   saveOrder(order: ImportedOrder, label: Blob | null): Promise<void>;
   attachLabel(order: ImportedOrder, label: Blob): Promise<void>;
-  // Copies the marketplace's SKUs onto an order already in Reship.
+  // Copies the marketplace's SKUs onto an order already in SellSync.
   fillSkus(order: ImportedOrder): Promise<void>;
   // Records where a shipped order is now (in transit, delivered and so on).
   updateShipment(platform: Platform, orderNumber: string, status: ShipmentStatus): Promise<void>;

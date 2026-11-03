@@ -2,7 +2,7 @@ import Papa from "papaparse";
 import type { Address, Order, OrderItem, Platform } from "./types";
 import { newId } from "./ids";
 
-// Fields Reship can fill from a spreadsheet. Each one is matched to a column by name,
+// Fields SellSync can fill from a spreadsheet. Each one is matched to a column by name,
 // and the person can change any match before importing.
 export const CSV_FIELDS = [
   { key: "orderId", label: "Order number", required: true },

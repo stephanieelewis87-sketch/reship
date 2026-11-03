@@ -7,12 +7,12 @@ import { AppShell } from "./components/shell/AppShell";
 import { AuthScreen } from "./components/AuthScreen";
 
 const demoStore = new LocalStore();
-// reship…/?demo opens the demo with sample orders even where accounts are set up, for showing
-// Reship to people without signing in.
+// sellsync…/?demo opens the demo with sample orders even where accounts are set up, for showing
+// SellSync to people without signing in.
 const demoRequested = new URLSearchParams(window.location.search).has("demo");
 
 export default function App() {
-  if (!supabase || demoRequested) return <ReshipApp store={demoStore} email={null} demoMode onSignOut={() => {}} />;
+  if (!supabase || demoRequested) return <SellSyncApp store={demoStore} email={null} demoMode onSignOut={() => {}} />;
   return <SignedInGate />;
 }
 
@@ -36,10 +36,10 @@ function SignedInGate() {
   if (session === undefined) return null;
   if (recovering && session) return <AuthScreen recovery onRecovered={() => setRecovering(false)} />;
   if (!session || !store) return <AuthScreen />;
-  return <ReshipApp key={userId} store={store} email={session.user.email ?? null} demoMode={false} onSignOut={() => supabase!.auth.signOut()} />;
+  return <SellSyncApp key={userId} store={store} email={session.user.email ?? null} demoMode={false} onSignOut={() => supabase!.auth.signOut()} />;
 }
 
-function ReshipApp({
+function SellSyncApp({
   store,
   email,
   demoMode,
