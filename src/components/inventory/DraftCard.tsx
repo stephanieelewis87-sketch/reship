@@ -37,14 +37,14 @@ export function DraftCard({
           <span className="truncate">{d.label}</span>
         </div>
         <div className="aspect-square rounded-lg overflow-hidden border border-border bg-muted relative">
-          <img src={d.cover} alt="" className="w-full h-full object-contain" />
+          <img src={d.cover} alt="" loading="lazy" decoding="async" className="w-full h-full object-contain" />
           {d.cover === d.aiPhoto && <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-white/90 text-[10px] font-medium flex items-center gap-1"><Sparkles className="w-3 h-3 text-[#B5607A]" /> AI photo</span>}
         </div>
         <div className="flex gap-1.5 flex-wrap">
           {photos.map((p, i) => (
             <div key={i} className={`relative w-12 h-12 rounded-md overflow-hidden border group ${p === d.cover ? "border-[#B5607A] ring-1 ring-[#B5607A]" : "border-border"}`}>
               <button type="button" onClick={() => patch({ cover: p })} aria-label="Use as cover photo" className="w-full h-full">
-                <img src={p} alt="" className="w-full h-full object-cover" />
+                <img src={p} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
               </button>
               {p === d.aiPhoto && <Sparkles className="absolute bottom-0.5 left-0.5 w-3 h-3 text-white drop-shadow" />}
               {p !== d.cover && (

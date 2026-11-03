@@ -32,7 +32,7 @@ export function QuickEdit({
       <aside role="dialog" aria-modal="true" aria-label="Quick edit" className="bg-card w-full sm:max-w-sm h-full flex flex-col shadow-2xl border-l border-border">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-3 min-w-0">
-            {item.photo ? <img src={item.photo} alt="" className="w-10 h-10 rounded-md object-cover" /> : <div className="w-10 h-10 rounded-md bg-muted" />}
+            {item.photo ? <img src={item.photo} alt="" loading="lazy" decoding="async" className="w-10 h-10 rounded-md object-cover" /> : <div className="w-10 h-10 rounded-md bg-muted" />}
             <div className="min-w-0">
               <h2 className="font-display text-sm font-semibold text-foreground">Quick edit</h2>
               <p className="font-mono text-[11px] text-muted-foreground">{item.sku}</p>

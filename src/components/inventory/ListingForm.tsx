@@ -137,7 +137,7 @@ export function ListingForm({
             <div className="flex gap-2 flex-wrap">
               {photos.map((p, i) => (
                 <div key={p + i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
-                  <img src={p} alt="" className="w-full h-full object-cover" />
+                  <img src={p} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   {i === 0 && <span className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[9px] text-center">Cover</span>}
                   <button
                     type="button"

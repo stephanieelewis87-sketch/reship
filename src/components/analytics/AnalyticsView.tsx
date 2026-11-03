@@ -622,7 +622,7 @@ function InventoryPage({ ctx }: { ctx: Ctx }) {
               label: "Item",
               render: (s) => (
                 <div className="flex items-center gap-2 min-w-[180px]">
-                  {s.item.photo ? <img src={s.item.photo} alt="" className="w-8 h-8 rounded object-cover shrink-0" /> : <div className="w-8 h-8 rounded bg-muted shrink-0" />}
+                  {s.item.photo ? <img src={s.item.photo} alt="" loading="lazy" decoding="async" className="w-8 h-8 rounded object-cover shrink-0" /> : <div className="w-8 h-8 rounded bg-muted shrink-0" />}
                   <div className="min-w-0">
                     <p className="text-xs font-medium text-foreground truncate max-w-[220px]">{s.item.title}</p>
                     <p className="font-mono text-[10px] text-muted-foreground">{s.item.sku}</p>
