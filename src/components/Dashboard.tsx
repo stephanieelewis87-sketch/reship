@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { AlertCircle, AlertTriangle, ArrowRight, CheckCircle2, FileUp, LayoutGrid, List, Plus, Printer, RotateCcw, Search, Truck, X } from "lucide-react";
 import type { LabelStatus, Order, OrderItem, Platform, PrintOptions } from "@/lib/types";
 import { isAddressComplete } from "@/lib/types";
@@ -19,6 +19,8 @@ import { Pills } from "./analytics/parts";
 type Data = ReturnType<typeof useReshipData>;
 
 const RECENT_PRINTED = 5;
+// Long order lists draw this many rows at a time, so a year of history doesn't slow the page.
+const ROWS_AT_A_TIME = 100;
 // Overview is the shipping dashboard; the others are lists of orders in one status, or all of them.
 type View = "home" | LabelStatus | "all";
 const VIEWS: View[] = ["home", "pending", "printed", "shipped", "all"];
@@ -54,6 +56,8 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
   const [view, setView] = useState<View>("home");
   const [activePlatforms, setActivePlatforms] = useState<Set<Platform>>(new Set());
   const [search, setSearch] = useState("");
+  const query = useDeferredValue(search);
+  const [rowLimit, setRowLimit] = useState(ROWS_AT_A_TIME);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [printOrders, setPrintOrders] = useState<Order[] | null>(null);
@@ -76,7 +80,7 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
 
   // Platform and search filters apply everywhere; the view picks the status.
   const matching = useMemo(() => {
-    const q = search.toLowerCase();
+    const q = query.toLowerCase();
     return orders.filter(
       (o) =>
         (activePlatforms.size === 0 || activePlatforms.has(o.platform)) &&
@@ -85,7 +89,8 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
           o.buyer.toLowerCase().includes(q) ||
           o.orderId.toLowerCase().includes(q)),
     );
-  }, [orders, activePlatforms, search]);
+  }, [orders, activePlatforms, query]);
+  useEffect(() => setRowLimit(ROWS_AT_A_TIME), [view, query, activePlatforms]);
 
   const toPrint = matching.filter((o) => o.status === "pending");
   const recentPrinted = matching.filter((o) => o.status === "printed").sort(byPrintedAt);
@@ -328,9 +333,18 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
               </>
             ) : (
               listBody(
-                listed,
+                listed.slice(0, rowLimit),
                 view === "printed" ? "No printed labels waiting to ship." : view === "shipped" ? "Nothing shipped yet." : view === "pending" ? "Nothing waiting to print." : "No orders found.",
               )
+            )}
+            {view !== "home" && listed.length > rowLimit && (
+              <button
+                type="button"
+                onClick={() => setRowLimit((n) => n + ROWS_AT_A_TIME)}
+                className="self-center px-4 py-2 rounded-lg border border-border text-sm hover:bg-muted"
+              >
+                Show more ({listed.length - rowLimit} left)
+              </button>
             )}
             {view === "shipped" && listed.length > 0 && (
               <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">

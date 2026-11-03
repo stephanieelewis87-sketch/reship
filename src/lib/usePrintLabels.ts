@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { Order, PrintOptions } from "./types";
 import type { useReshipData } from "./useReshipData";
-import { buildPrintJob } from "./printJob";
 
 export type PrintNotice = { text: string; ok: boolean };
 
@@ -18,7 +17,8 @@ export function usePrintLabels(data: ReturnType<typeof useReshipData>, onNotice:
     const win = window.open("", "_blank");
     setPrinting(true);
     try {
-      const labels = await loadLabels(chosen);
+      // The PDF library is big, so it loads the first time someone prints instead of with the app.
+      const [labels, { buildPrintJob }] = await Promise.all([loadLabels(chosen), import("./printJob")]);
       const job = await buildPrintJob({ orders: chosen, labels, skuOnLabel: opts.skuOnLabel, packingSlip: opts.packingSlip, settings });
       if (job.pageCount === 0) {
         win?.close();

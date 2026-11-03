@@ -173,7 +173,7 @@ function Photo({ src, className }: { src?: string; className: string }) {
         <Package className="w-1/3 h-1/3 max-w-8 max-h-8 text-muted-foreground/60" />
       </div>
     );
-  return <img src={src} alt="" className={`${className} object-cover`} />;
+  return <img src={src} alt="" loading="lazy" decoding="async" className={`${className} object-cover`} />;
 }
 
 export function PhotoCollage({ photos, size = "sm" }: { photos: (string | undefined)[]; size?: "sm" | "lg" }) {

@@ -188,7 +188,7 @@ export function SalesTable({ lines, onOpenOrder, limit = 10 }: { lines: SaleLine
           label: "Item",
           render: (l) => (
             <div className="flex items-center gap-2 min-w-[180px]">
-              {l.photo ? <img src={l.photo} alt="" className="w-8 h-8 rounded object-cover shrink-0" /> : <div className="w-8 h-8 rounded bg-muted shrink-0" />}
+              {l.photo ? <img src={l.photo} alt="" loading="lazy" decoding="async" className="w-8 h-8 rounded object-cover shrink-0" /> : <div className="w-8 h-8 rounded bg-muted shrink-0" />}
               <div className="min-w-0">
                 <p className="text-xs font-medium text-foreground truncate max-w-[220px]">{l.name}</p>
                 <p className="text-[11px] text-muted-foreground flex items-center gap-1">

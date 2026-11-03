@@ -76,6 +76,36 @@ const EXPENSES_KEY = "reship.expenses.v1";
 const FEEDBACK_KEY = "reship.feedback.v1";
 
 // Keeps a list of records by id in memory and in this browser's storage.
+// Supabase sends at most 1,000 rows per request, so bigger lists are read in pages and saved in chunks.
+const PAGE_ROWS = 1000;
+const SAVE_CHUNK = 500;
+
+type RangeQuery<R> = { range(from: number, to: number): PromiseLike<{ data: R[] | null; error: { message: string } | null }> };
+
+export async function fetchAllRows<R>(query: () => RangeQuery<R>, pageRows = PAGE_ROWS): Promise<R[]> {
+  const all: R[] = [];
+  for (let from = 0; ; from += pageRows) {
+    const { data, error } = await query().range(from, from + pageRows - 1);
+    if (error) throw error;
+    all.push(...(data ?? []));
+    if (!data || data.length < pageRows) return all;
+  }
+}
+
+export function chunks<T>(items: T[], size = SAVE_CHUNK): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+// New records first, then the existing ones with any changes applied. Linear, so big lists stay quick.
+export function mergeById<T extends { id: string }>(current: T[], changed: T[]): T[] {
+  const byId = new Map(changed.map((i) => [i.id, i]));
+  const existing = new Set(current.map((c) => c.id));
+  const fresh = changed.filter((i) => !existing.has(i.id));
+  return [...fresh, ...current.map((c) => byId.get(c.id) ?? c)];
+}
+
 class LocalList<T extends { id: string }> {
   private mem: T[] | null = null;
   constructor(
@@ -87,14 +117,12 @@ class LocalList<T extends { id: string }> {
     return this.mem;
   }
   async save(items: T[]) {
-    const current = await this.list();
-    const byId = new Map(items.map((i) => [i.id, i]));
-    const fresh = items.filter((i) => !current.some((c) => c.id === i.id));
-    this.mem = [...fresh, ...current.map((c) => byId.get(c.id) ?? c)];
+    this.mem = mergeById(await this.list(), items);
     writeJson(this.key, this.mem);
   }
   async remove(ids: string[]) {
-    this.mem = (await this.list()).filter((i) => !ids.includes(i.id));
+    const gone = new Set(ids);
+    this.mem = (await this.list()).filter((i) => !gone.has(i.id));
     writeJson(this.key, this.mem);
   }
   reset() {
@@ -175,18 +203,14 @@ export class LocalStore implements Store {
   }
 
   async saveOrders(orders: Order[]) {
-    const current = await this.listOrders();
-    const byId = new Map(current.map((o) => [o.id, o]));
-    orders.forEach((o) => byId.set(o.id, o));
     // New orders first, matching the newest-first sort the dashboard uses.
-    const fresh = orders.filter((o) => !current.some((c) => c.id === o.id));
-    this.memOrders = [...fresh, ...current.map((o) => byId.get(o.id)!)];
+    this.memOrders = mergeById(await this.listOrders(), orders);
     writeJson(ORDERS_KEY, this.memOrders);
   }
 
   async deleteOrders(ids: string[]) {
-    const current = await this.listOrders();
-    this.memOrders = current.filter((o) => !ids.includes(o.id));
+    const gone = new Set(ids);
+    this.memOrders = (await this.listOrders()).filter((o) => !gone.has(o.id));
     writeJson(ORDERS_KEY, this.memOrders);
   }
 
@@ -358,14 +382,17 @@ export class SupabaseStore implements Store {
   }
 
   async listOrders() {
-    const { data, error } = await this.db.from("orders").select("*").order("order_date", { ascending: false });
-    if (error) throw error;
-    return (data as OrderRow[]).map(fromRow);
+    // The id tiebreak keeps paging stable when many orders share a date.
+    const rows = await fetchAllRows<OrderRow>(() => this.db.from("orders").select("*").order("order_date", { ascending: false }).order("id"));
+    return rows.map(fromRow);
   }
 
   async saveOrders(orders: Order[]) {
     if (!orders.length) return;
-    const rows = orders.map((o) => toRow(o, this.userId));
+    for (const part of chunks(orders)) await this.upsertOrders(part.map((o) => toRow(o, this.userId)));
+  }
+
+  private async upsertOrders(rows: ReturnType<typeof toRow>[]) {
     const { error } = await this.db.from("orders").upsert(rows);
     if (error && NEWER_COLUMNS.some((c) => error.message.includes(c))) {
       const older = rows.map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => !(NEWER_COLUMNS as readonly string[]).includes(k))));
@@ -375,8 +402,10 @@ export class SupabaseStore implements Store {
   }
 
   async deleteOrders(ids: string[]) {
-    const { error } = await this.db.from("orders").delete().in("id", ids);
-    if (error) throw error;
+    for (const part of chunks(ids, 200)) {
+      const { error } = await this.db.from("orders").delete().in("id", part);
+      if (error) throw error;
+    }
   }
 
   async getSettings() {
@@ -415,25 +444,36 @@ export class SupabaseStore implements Store {
 
   // Before migration 0004 there's no inventory table; analytics then works from orders alone.
   async listInventory() {
-    const { data, error } = await this.db.from("inventory_items").select("*");
-    if (error) return [];
-    return (data as InventoryRow[]).map(inventoryFromRow);
+    try {
+      const rows = await fetchAllRows<InventoryRow>(() => this.db.from("inventory_items").select("*").order("id"));
+      return rows.map(inventoryFromRow);
+    } catch {
+      return [];
+    }
   }
 
   async saveInventory(items: InventoryItem[]) {
     if (!items.length) return;
-    const { error } = await this.db.from("inventory_items").upsert(items.map((i) => inventoryToRow(i, this.userId)));
-    if (error) throw error;
+    for (const part of chunks(items)) {
+      const { error } = await this.db.from("inventory_items").upsert(part.map((i) => inventoryToRow(i, this.userId)));
+      if (error) throw error;
+    }
   }
 
   async deleteInventory(ids: string[]) {
-    const { error } = await this.db.from("inventory_items").delete().in("id", ids);
-    if (error) throw error;
+    for (const part of chunks(ids, 200)) {
+      const { error } = await this.db.from("inventory_items").delete().in("id", part);
+      if (error) throw error;
+    }
   }
 
   async listExpenses() {
-    const { data, error } = await this.db.from("expenses").select("*").order("expense_date", { ascending: false });
-    if (error) return [];
+    let data: unknown[];
+    try {
+      data = await fetchAllRows(() => this.db.from("expenses").select("*").order("expense_date", { ascending: false }).order("id"));
+    } catch {
+      return [];
+    }
     return (data as { id: string; expense_date: string; category: string; amount: number; note: string | null; miles: number | null }[]).map(
       (r): Expense => ({ id: r.id, date: r.expense_date, category: r.category, amount: Number(r.amount), note: r.note ?? undefined, miles: r.miles ?? undefined }),
     );
