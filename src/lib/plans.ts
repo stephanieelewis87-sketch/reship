@@ -129,3 +129,20 @@ export const nextPlanFor = (plan: PlanId, limit: "listingsPerDay" | "marketplace
   const now = PLANS[plan][limit];
   return PLAN_IDS.slice(planRank(plan) + 1).find((p) => { const v = PLANS[p][limit]; return v === null || (now !== null && v > now); }) ?? null;
 };
+
+// "Your marketplaces" for Crosslist to all: the ones with a live listing now, or, if nothing is live,
+// any you've listed on before, or your primary marketplace. Capped by what the plan allows.
+export function yourMarketplaces(plan: PlanId, inventory: InventoryItem[], all: Platform[], primary?: Platform): Platform[] {
+  let mine = marketplacesInUse(inventory);
+  if (!mine.size) for (const i of inventory) for (const l of i.listings) mine.add(l.platform);
+  if (!mine.size && primary) mine.add(primary);
+  const { allowed } = allowedMarketplaces(plan, inventory, all);
+  return all.filter((p) => mine.has(p) && allowed.has(p));
+}
+
+// Where Crosslist to all would put this item: your marketplaces it isn't live on yet. Sold items go nowhere.
+export function crosslistTargets(item: InventoryItem, mine: Platform[]): Platform[] {
+  if (item.status === "sold") return [];
+  const live = new Set(item.listings.filter((l) => l.status === "active").map((l) => l.platform));
+  return mine.filter((p) => !live.has(p));
+}
