@@ -63,6 +63,24 @@ Inventory > **Guardian** keeps the master record of every item safe. Run `supaba
 - **Change history**: every edit, sale, bulk change, merge and restore is recorded per item (open an item, then History), and the latest changes show on the Guardian page.
 - **Sync protection**: a change that would delete, delist, mark sold or overwrite 10 or more items at once (adjustable) is paused with a banner. Review it, drop it, or back up and apply it.
 
+## Research (multi-platform comps)
+
+Research (in the sidebar under Tools, or Find comps from any item's menu) shows what an item sells for and what it's listed at, side by side across marketplaces, with a suggested price range (the middle half of sold prices, or of asking prices when there are fewer than three sales). It only uses sources each marketplace allows:
+
+- **Your own sales** in SellSync, always.
+- **eBay**: active listings from eBay's official Browse API. Sold prices come from eBay's Marketplace Insights API, which eBay only opens to approved apps; until then the eBay card links to eBay's own sold search.
+- **Etsy**: active listings from Etsy's official Open API. Etsy doesn't share other shops' sold prices.
+- **Poshmark, Mercari, Depop, Vinted, Whatnot, Facebook Marketplace, ThredUp**: none of them offer an API for this, and SellSync doesn't scrape them, so each gets buttons that open the marketplace's own sold or for-sale search in a new tab. Add a comp you find there by hand and it counts toward the range.
+
+Save comps to keep them with a search; saved research is stored with your settings. Demo mode shows sample eBay and Etsy results, marked as samples.
+
+To turn on live comps:
+
+1. Run `supabase/migrations/0012_research_comps.sql` (adds the daily cap).
+2. Create an app at [developer.ebay.com](https://developer.ebay.com) (production keys) and at [etsy.com/developers](https://www.etsy.com/developers).
+3. `supabase secrets set EBAY_CLIENT_ID=... EBAY_CLIENT_SECRET=... ETSY_API_KEY=... ETSY_SHARED_SECRET=...` (optional: `COMPS_DAILY_SEARCHES`, default 200 per user per day). After eBay grants Marketplace Insights access, also set `EBAY_SOLD_COMPS=on`.
+4. `supabase functions deploy comps-search`.
+
 ## Browser extension (marketplace sync)
 
 Marketplaces don't offer label APIs, so the extension in `extension/` reads sold orders and labels using the seller's own logged-in browser session. It never asks for or stores marketplace passwords, and it shows an at-your-own-risk notice before it turns on.

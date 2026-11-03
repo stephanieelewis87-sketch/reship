@@ -1,5 +1,5 @@
 import { type ComponentType, useEffect, useState } from "react";
-import { AlertCircle, BarChart3, Gift, Heart, Home, MessageSquare, MoreHorizontal, Settings as SettingsIcon, Shirt, Truck, X, Zap } from "lucide-react";
+import { AlertCircle, BarChart3, Gift, Heart, Home, MessageSquare, MoreHorizontal, Search, Settings as SettingsIcon, Shirt, Truck, X, Zap } from "lucide-react";
 import type { useReshipData } from "@/lib/useReshipData";
 import { isPartiallyDelisted } from "@/lib/inventory";
 import { OrdersPage } from "../Dashboard";
@@ -11,6 +11,7 @@ import { AutomationsPage } from "../automations/AutomationsPage";
 import { SettingsPage } from "../settings/SettingsPage";
 import { FeedbackPage } from "../feedback/FeedbackPage";
 import { AffiliatesPage } from "../affiliates/AffiliatesPage";
+import { ResearchPage } from "../research/ResearchPage";
 import { type Section, go, useRoute } from "./route";
 import { Logo } from "../brand/Logo";
 import { ThemeToggle } from "../brand/ThemeToggle";
@@ -48,6 +49,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     items: [
       { section: "automations", label: "Automations", icon: Zap },
       { section: "analytics", label: "Analytics", icon: BarChart3 },
+      { section: "research", label: "Research", icon: Search },
       { section: "affiliates", label: "Affiliates", icon: Gift },
     ],
   },
@@ -171,6 +173,7 @@ export function AppShell({
                 />
               )}
               {route.section === "affiliates" && <AffiliatesPage key={route.params.get("tab") ?? ""} data={data} email={email} tab={route.params.get("tab")} />}
+              {route.section === "research" && <ResearchPage key={route.params.get("q") ?? ""} data={data} initialQuery={route.params.get("q") ?? ""} />}
               {route.section === "feedback" && <FeedbackPage key={route.params.get("tab") ?? ""} data={data} tab={route.params.get("tab")} />}
               {route.section === "settings" && (
                 <SettingsPage data={data} email={email} demoMode={demoMode} onSignOut={onSignOut} tab={route.params.get("tab")} need={route.params.get("need")} />

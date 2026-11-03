@@ -1,5 +1,6 @@
 import { DEFAULT_PLAN, type PlanId } from "./plans";
 import type { MessagingSettings } from "./messaging";
+import type { SavedResearch } from "./comps";
 export type Platform = "Poshmark" | "Vinted" | "Depop" | "Mercari" | "WhatNot" | "Etsy" | "eBay" | "Facebook" | "ThredUp" | "Other";
 export type LabelStatus = "pending" | "printed" | "shipped";
 export type OrderSource = "manual" | "csv" | "sample" | "sync";
@@ -224,6 +225,8 @@ export interface Settings {
   // Buyer message templates and who was messaged when. Missing in settings saved before messages
   // existed; read it through messagingOf().
   messaging?: MessagingSettings;
+  // Research: saved searches with the comps the seller chose to keep.
+  research: SavedResearch[];
 }
 
 export interface SkuFormat {
@@ -301,6 +304,7 @@ export const DEFAULT_SETTINGS: Settings = {
   gettingStartedDone: [],
   skuFormat: { prefix: "RS", digits: 4, counters: { RS: 1000 } },
   guardian: { protect: true, threshold: 10, dailyBackup: true },
+  research: [],
 };
 
 export const emptyAddress = (): Address => ({ name: "", street1: "", street2: "", city: "", state: "", zip: "", country: "US", phone: "" });
