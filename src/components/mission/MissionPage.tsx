@@ -1,7 +1,7 @@
 import type { ComponentType, ReactNode } from "react";
 import { ArrowRight, Award, Hammer, LayoutGrid, Package, Recycle, Store } from "lucide-react";
 import { Logo } from "../brand/Logo";
-import { minPriceLabel } from "@/lib/minPrice";
+import { freeGiftTip, minPriceLabel } from "@/lib/minPrice";
 
 // The public page with SellSync's mission and philosophy (sellsync…/?mission), for anyone,
 // signed in or not.
@@ -83,6 +83,7 @@ export function MissionPage() {
             <li>Every item you list, crosslist or import through SellSync is priced at {minPriceLabel} or more, on every marketplace.</li>
             <li>Price suggestions never start below {minPriceLabel}.</li>
             <li>Have smaller items? Bundle a few similar ones into a single listing. Buyers love a good bundle, and your time is paid for.</li>
+            <li>{freeGiftTip}</li>
           </ul>
           <a
             href="/"

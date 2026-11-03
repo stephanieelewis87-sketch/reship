@@ -10,6 +10,9 @@ export const underMinimum = (price: number | null | undefined) => price != null 
 // The short, friendly lines shown wherever a price is too low.
 export const minPriceMessage = `SellSync lists items priced ${minPriceLabel} and up.`;
 export const minPriceTip = "Bundling a few small items into one listing is a great way to sell them.";
+// Items under the floor can also go out as a free gift with another item, with a cover banner.
+export const freeGiftTip = `If you have items you wanted to price under ${minPriceLabel}, consider adding them as free gifts with other items in your closet, and add our FREE GIFT WITH ORDER banner to the cover photo in the listing editor.`;
+export const freeGiftShort = "Or offer it as a free gift with another item, and add a FREE GIFT WITH ORDER banner to that item's cover photo.";
 
 // Raises an AI-suggested price to the floor, so a suggestion never starts below it.
 export const atLeastMinimum = (price: number) => Math.max(MIN_PRICE, price);
