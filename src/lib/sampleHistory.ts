@@ -204,7 +204,7 @@ function sampleExpenses(today: string, r: () => number): Expense[] {
   const out: Expense[] = [];
   for (let m = 0; m < 12; m++) {
     const monthStart = addDays(today, -30 * m - 29);
-    out.push({ id: `sample-exp-sub-${m}`, date: monthStart, category: "Software and subscriptions", amount: 16.99, note: "Reship" });
+    out.push({ id: `sample-exp-sub-${m}`, date: monthStart, category: "Software and subscriptions", amount: 16.99, note: "SellSync" });
     out.push({ id: `sample-exp-sup-${m}`, date: addDays(monthStart, 6), category: "Shipping supplies", amount: cents(18 + r() * 30), note: "Poly mailers and tape" });
     for (let t = 0; t < 3; t++) {
       const miles = Math.round(12 + r() * 30);

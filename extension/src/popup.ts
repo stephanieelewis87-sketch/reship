@@ -108,7 +108,7 @@ $("capture").addEventListener("click", async () => {
     const host = new URL(tab.url ?? "https://page").hostname.replace(/^www\./, "");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([JSON.stringify(result)], { type: "application/json" }));
-    a.download = `reship-capture-${host}-${Date.now()}.json`;
+    a.download = `sellsync-capture-${host}-${Date.now()}.json`;
     a.click();
     status.textContent = "Saved to your Downloads folder. Send that file to Claude.";
   } catch (e) {

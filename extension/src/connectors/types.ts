@@ -15,7 +15,7 @@ export interface ImportedOrder {
 }
 
 // One per marketplace. Each runs inside the seller's browser and uses the session they are
-// already logged in with, so Reship never sees or stores marketplace passwords.
+// already logged in with, so SellSync never sees or stores marketplace passwords.
 export interface Connector {
   platform: Platform;
   // Site the seller must be logged in to; shown in the popup as a link.

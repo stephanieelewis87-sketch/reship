@@ -32,17 +32,17 @@ export function DraftCard({
     <div className={`rounded-xl border p-3 sm:p-4 flex flex-col md:flex-row gap-4 ${d.include ? "border-border" : "border-dashed border-border opacity-60"}`}>
       <div className="md:w-64 shrink-0 space-y-2">
         <div className="flex items-center gap-2 text-xs">
-          <input type="checkbox" checked={d.include} onChange={() => patch({ include: !d.include })} aria-label={`Include item ${n}`} className="accent-[#B5607A]" />
+          <input type="checkbox" checked={d.include} onChange={() => patch({ include: !d.include })} aria-label={`Include item ${n}`} className="accent-accent" />
           <span className="font-mono text-muted-foreground">#{n}</span>
           <span className="truncate">{d.label}</span>
         </div>
         <div className="aspect-square rounded-lg overflow-hidden border border-border bg-muted relative">
           <img src={d.cover} alt="" className="w-full h-full object-contain" />
-          {d.cover === d.aiPhoto && <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-white/90 text-[10px] font-medium flex items-center gap-1"><Sparkles className="w-3 h-3 text-[#B5607A]" /> AI photo</span>}
+          {d.cover === d.aiPhoto && <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-card/90 text-[10px] font-medium flex items-center gap-1"><Sparkles className="w-3 h-3 text-accent" /> AI photo</span>}
         </div>
         <div className="flex gap-1.5 flex-wrap">
           {photos.map((p, i) => (
-            <div key={i} className={`relative w-12 h-12 rounded-md overflow-hidden border group ${p === d.cover ? "border-[#B5607A] ring-1 ring-[#B5607A]" : "border-border"}`}>
+            <div key={i} className={`relative w-12 h-12 rounded-md overflow-hidden border group ${p === d.cover ? "border-accent ring-1 ring-accent" : "border-border"}`}>
               <button type="button" onClick={() => patch({ cover: p })} aria-label="Use as cover photo" className="w-full h-full">
                 <img src={p} alt="" className="w-full h-full object-cover" />
               </button>
@@ -52,7 +52,7 @@ export function DraftCard({
                   type="button"
                   aria-label="Remove photo"
                   onClick={() => patch(p === d.aiPhoto ? { aiPhoto: undefined } : { snips: d.snips.filter((s) => s !== p) })}
-                  className="absolute top-0 right-0 p-0.5 rounded-bl bg-white/90 opacity-0 group-hover:opacity-100"
+                  className="absolute top-0 right-0 p-0.5 rounded-bl bg-card/90 opacity-0 group-hover:opacity-100"
                 >
                   <Trash2 className="w-2.5 h-2.5" />
                 </button>
@@ -61,11 +61,11 @@ export function DraftCard({
           ))}
           {d.aiPhotoState === "making" && (
             <div className="w-12 h-12 rounded-md border border-dashed border-border flex items-center justify-center" title="Making a clean AI photo">
-              <Loader2 className="w-4 h-4 animate-spin text-[#B5607A]" />
+              <Loader2 className="w-4 h-4 animate-spin text-accent" />
             </div>
           )}
           {canAi && !photosOff && !d.aiPhoto && d.aiPhotoState !== "making" && (
-            <button type="button" onClick={remakePhoto} title={d.aiPhotoState === "failed" ? "The AI photo failed. Try again." : "Make a clean AI photo"} className="w-12 h-12 rounded-md border border-dashed border-border flex items-center justify-center text-muted-foreground hover:text-[#B5607A]">
+            <button type="button" onClick={remakePhoto} title={d.aiPhotoState === "failed" ? "The AI photo failed. Try again." : "Make a clean AI photo"} className="w-12 h-12 rounded-md border border-dashed border-border flex items-center justify-center text-muted-foreground hover:text-accent">
               {d.aiPhotoState === "failed" ? <ImageOff className="w-4 h-4" /> : <Wand2 className="w-4 h-4" />}
             </button>
           )}
@@ -77,7 +77,7 @@ export function DraftCard({
 
       <div className="flex-1 min-w-0 space-y-2">
         {writing && (
-          <p className="text-xs text-[#B5607A] flex items-center gap-1.5">
+          <p className="text-xs text-accent flex items-center gap-1.5">
             <Loader2 className="w-3.5 h-3.5 animate-spin" /> {d.state === "writing" ? "Writing the listing…" : "Waiting its turn…"}
           </p>
         )}

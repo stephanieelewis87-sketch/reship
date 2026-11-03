@@ -76,7 +76,7 @@ export function AffiliatesPage({ data, email, tab: initialTab }: { data: Data; e
               type="button"
               onClick={() => setTab(t.key)}
               aria-current={shown === t.key ? "page" : undefined}
-              className={`py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px ${shown === t.key ? "border-[#B5607A] text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              className={`py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px ${shown === t.key ? "border-accent text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
             >
               {t.label}
             </button>
@@ -129,7 +129,7 @@ function JoinProgram({ data, email, program, onJoined }: { data: Data; email: st
           }}
         >
           <h2 className="font-display text-sm font-semibold text-foreground flex items-center gap-2">
-            <Gift className="w-4 h-4 text-[#B5607A]" /> Join the program
+            <Gift className="w-4 h-4 text-accent" /> Join the program
           </h2>
           <Field label="Your referral code">
             <input className={inputClass} value={code} onChange={(e) => setCode(normalizeCode(e.target.value))} aria-invalid={!valid} />
@@ -139,7 +139,7 @@ function JoinProgram({ data, email, program, onJoined }: { data: Data; email: st
           </p>
           <PayoutFields method={method} payTo={payTo} onMethod={setMethod} onPayTo={setPayTo} />
           <label className="flex items-start gap-2 text-xs text-muted-foreground">
-            <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 accent-[#B5607A]" />
+            <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 accent-[var(--accent)]" />
             <span>I agree to the program terms below.</span>
           </label>
           {message && <p className="text-xs text-rose-700">{message}</p>}
@@ -201,7 +201,7 @@ function CopyLink({ code }: { code: string }) {
           <button
             type="button"
             className={secondaryButton}
-            onClick={() => navigator.share({ title: "Reship", text: "I ship all my sales from one place with Reship. Try it with my link:", url: link }).catch(() => undefined)}
+            onClick={() => navigator.share({ title: "SellSync", text: "I ship all my sales from one place with SellSync. Try it with my link:", url: link }).catch(() => undefined)}
           >
             <Share2 className="w-4 h-4" /> Share
           </button>
@@ -254,7 +254,7 @@ function Overview({
         <Kpi label="Sign-ups" value={referrals.length.toLocaleString()} hint={me.clicks ? `${conversion}% of visits` : undefined} onClick={() => onTab("referrals")} />
         <Kpi label="Paying" value={paying.length.toLocaleString()} hint={referrals.length ? `${Math.round((paying.length / referrals.length) * 100)}% of sign-ups` : undefined} onClick={() => onTab("referrals")} />
       </div>
-      <Card title="Recent earnings" right={<button type="button" className="text-xs text-[#B5607A] hover:underline" onClick={() => onTab("earnings")}>See all</button>}>
+      <Card title="Recent earnings" right={<button type="button" className="text-xs text-accent hover:underline" onClick={() => onTab("earnings")}>See all</button>}>
         <CommissionList commissions={commissions.slice(0, 6)} referrals={referrals} empty="Nothing yet. You earn when a seller you referred pays for a plan." />
       </Card>
     </>
@@ -264,7 +264,7 @@ function Overview({
 function StatusPill({ c }: { c: Commission }) {
   if (c.status === "paid") return <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800">Paid</span>;
   if (c.status === "void") return <span className="text-[11px] px-2 py-0.5 rounded-full bg-rose-50 text-rose-800">Refunded</span>;
-  if (new Date(c.availableAt) <= new Date()) return <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#B5607A]/10 text-[#B5607A]">Ready</span>;
+  if (new Date(c.availableAt) <= new Date()) return <span className="text-[11px] px-2 py-0.5 rounded-full bg-accent/10 text-accent">Ready</span>;
   return <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">Ready {day(c.availableAt)}</span>;
 }
 
@@ -479,7 +479,7 @@ function AdminPayouts({ data, program, onChanged }: { data: Data; program: Affil
                   <td className="py-2.5 text-right font-mono tabular-nums text-foreground">{formatCents(r.availableCents, true)}</td>
                   <td className="py-2.5 text-right font-mono tabular-nums text-muted-foreground">{formatCents(r.paidCents, true)}</td>
                   <td className="px-4 md:px-5 py-2.5 text-right">
-                    <button type="button" className="text-xs text-[#B5607A] hover:underline disabled:opacity-40 disabled:no-underline" disabled={r.availableCents <= 0} onClick={() => setPaying(r)}>
+                    <button type="button" className="text-xs text-accent hover:underline disabled:opacity-40 disabled:no-underline" disabled={r.availableCents <= 0} onClick={() => setPaying(r)}>
                       Mark paid
                     </button>
                   </td>
@@ -507,7 +507,7 @@ function AdminPayouts({ data, program, onChanged }: { data: Data; program: Affil
                 </p>
               </div>
               <span className={`text-[11px] px-2 py-0.5 rounded-full ${STATUS_LABEL[r.status].tone}`}>{STATUS_LABEL[r.status].text}</span>
-              <button type="button" className="text-xs text-[#B5607A] hover:underline" onClick={() => setRecording(r)}>
+              <button type="button" className="text-xs text-accent hover:underline" onClick={() => setRecording(r)}>
                 Record payment
               </button>
             </div>

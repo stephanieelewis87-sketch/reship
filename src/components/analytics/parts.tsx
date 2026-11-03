@@ -53,7 +53,7 @@ export function Kpi({
     <Tag
       type={onClick ? "button" : undefined}
       onClick={onClick}
-      className={`text-left bg-card border border-border rounded-xl px-4 py-3 min-w-0 ${onClick ? "hover:border-[#B5607A]/40 hover:shadow-sm transition-all" : ""}`}
+      className={`text-left bg-card border border-border rounded-xl px-4 py-3 min-w-0 ${onClick ? "hover:border-accent/40 hover:shadow-sm transition-all" : ""}`}
     >
       <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground truncate">{label}</p>
       <div className="flex items-end justify-between gap-2 mt-1">
@@ -164,7 +164,7 @@ export function SortTable<T>({
         </tbody>
       </table>
       {limit && sorted.length > limit && (
-        <button type="button" onClick={() => setShowAll((v) => !v)} className="mt-2 text-xs text-[#B5607A] hover:underline">
+        <button type="button" onClick={() => setShowAll((v) => !v)} className="mt-2 text-xs text-accent hover:underline">
           {showAll ? "Show fewer" : `Show all ${sorted.length}`}
         </button>
       )}

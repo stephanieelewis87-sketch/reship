@@ -71,6 +71,7 @@ async function labelTx<T>(mode: IDBTransactionMode, run: (s: IDBObjectStore) => 
   });
 }
 
+// Storage names keep the app's old name (reship) so data already saved in a browser still loads.
 // v3 added a year of sold orders behind the samples, for analytics.
 const ORDERS_KEY = "reship.orders.v3";
 // v2 tracks each marketplace listing separately.

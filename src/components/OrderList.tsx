@@ -28,7 +28,7 @@ function RowAction({ order, onPrint }: { order: Order; onPrint: (o: Order) => vo
           e.stopPropagation();
           onPrint(order);
         }}
-        className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[#B5607A] text-white text-[11px] font-medium hover:bg-[#9E4D6A]"
+        className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-accent text-accent-foreground text-[11px] font-medium hover:bg-accent-hover"
       >
         <Printer className="w-3 h-3" /> Print
       </button>
@@ -54,7 +54,7 @@ function RowAction({ order, onPrint }: { order: Order; onPrint: (o: Order) => vo
           target="_blank"
           rel="noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="inline-flex items-center gap-0.5 text-[11px] text-[#B5607A] hover:underline"
+          className="inline-flex items-center gap-0.5 text-[11px] text-accent hover:underline"
         >
           Track <ExternalLink className="w-3 h-3" />
         </a>
@@ -83,7 +83,7 @@ export function OrderList({ orders, viewMode, selectedIds, onToggle, onToggleAll
             <div
               key={order.id}
               onClick={() => onToggle(order.id)}
-              className={`bg-card border rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-all ${isSelected ? "border-[#B5607A] ring-1 ring-[#B5607A]/30" : "border-border"}`}
+              className={`bg-card border rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-all ${isSelected ? "border-accent ring-1 ring-accent/30" : "border-border"}`}
             >
               <div className="relative h-44 bg-muted overflow-hidden">
                 <PhotoCollage photos={order.items.map((i) => i.photo)} size="lg" />
@@ -102,7 +102,7 @@ export function OrderList({ orders, viewMode, selectedIds, onToggle, onToggleAll
                     e.stopPropagation();
                     onOpen(order);
                   }}
-                  className="text-left text-sm font-medium text-foreground leading-snug mb-1 hover:text-[#B5607A] hover:underline"
+                  className="text-left text-sm font-medium text-foreground leading-snug mb-1 hover:text-accent hover:underline"
                 >
                   {orderTitle(order)}
                 </button>
@@ -189,7 +189,7 @@ export function OrderList({ orders, viewMode, selectedIds, onToggle, onToggleAll
                 <button
                   type="button"
                   onClick={() => onOpen(order)}
-                  className="block max-w-full text-left text-sm text-foreground truncate hover:text-[#B5607A] hover:underline"
+                  className="block max-w-full text-left text-sm text-foreground truncate hover:text-accent hover:underline"
                 >
                   {orderTitle(order)}
                 </button>
@@ -203,7 +203,7 @@ export function OrderList({ orders, viewMode, selectedIds, onToggle, onToggleAll
                     <button
                       type="button"
                       onClick={() => toggleExpanded(order.id)}
-                      className="inline-flex items-center gap-0.5 text-[11px] text-[#B5607A] hover:underline"
+                      className="inline-flex items-center gap-0.5 text-[11px] text-accent hover:underline"
                     >
                       {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                       {expanded ? "Hide items" : "Show items"}

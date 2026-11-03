@@ -147,10 +147,10 @@ export function OrderDrawer({
             <SectionLabel>Shipping label</SectionLabel>
             {currentLabelName ? (
               <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-2">
-                <FileText className="w-4 h-4 text-[#B5607A] shrink-0" />
+                <FileText className="w-4 h-4 text-accent shrink-0" />
                 <p className="text-sm text-foreground truncate flex-1">{currentLabelName}</p>
                 {!labelFile && order.label && (
-                  <button type="button" onClick={() => onViewLabel(order)} className="text-xs text-[#B5607A] hover:underline flex items-center gap-1">
+                  <button type="button" onClick={() => onViewLabel(order)} className="text-xs text-accent hover:underline flex items-center gap-1">
                     View <ExternalLink className="w-3 h-3" />
                   </button>
                 )}
@@ -170,7 +170,7 @@ export function OrderDrawer({
               <p className="text-xs text-muted-foreground">Upload the label PDF the marketplace gave you for this order.</p>
             )}
             <div className="flex items-center gap-3 flex-wrap">
-              <label className="text-xs text-[#B5607A] hover:underline flex items-center gap-1 cursor-pointer">
+              <label className="text-xs text-accent hover:underline flex items-center gap-1 cursor-pointer">
                 <Upload className="w-3 h-3" /> {currentLabelName ? "Replace label PDF" : "Upload label PDF"}
                 <input
                   type="file"
@@ -250,7 +250,7 @@ export function OrderDrawer({
             <button
               type="button"
               onClick={() => setDraft((d) => ({ ...d, items: [...d.items, { name: "" }] }))}
-              className="text-xs text-[#B5607A] hover:underline flex items-center gap-1"
+              className="text-xs text-accent hover:underline flex items-center gap-1"
             >
               <Plus className="w-3 h-3" /> Add another item (bundle)
             </button>
@@ -317,7 +317,7 @@ export function OrderDrawer({
         <div className="px-5 py-3 border-t border-border flex items-center gap-2 shrink-0">
           {!isNew &&
             (confirmDelete ? (
-              <button type="button" onClick={() => onDelete(order.id)} className="px-3 py-2 rounded-md bg-destructive text-white text-sm font-medium">
+              <button type="button" onClick={() => onDelete(order.id)} className="px-3 py-2 rounded-md bg-destructive text-destructive-foreground text-sm font-medium">
                 Confirm delete
               </button>
             ) : (

@@ -45,7 +45,7 @@ export function PhotoListing({ data, onClose, onSaved }: { data: Data; onClose: 
     // Take them in the order they were shot; past the cap, the latest ones are left for the next batch.
     const ordered = photoOrder(files.map((f) => ({ name: f.name, time: f.lastModified }))).map((i) => files[i]);
     const batch = ordered.slice(0, MAX_PHOTOS);
-    if (ordered.length > MAX_PHOTOS) notes.push(`You picked ${ordered.length} photos. Reship took the first ${MAX_PHOTOS}; add the other ${ordered.length - MAX_PHOTOS} in your next batch.`);
+    if (ordered.length > MAX_PHOTOS) notes.push(`You picked ${ordered.length} photos. SellSync took the first ${MAX_PHOTOS}; add the other ${ordered.length - MAX_PHOTOS} in your next batch.`);
 
     try {
       setStep({ kind: "working", label: "Reading your photos", progress: 0 });
@@ -74,13 +74,13 @@ export function PhotoListing({ data, onClose, onSaved }: { data: Data; onClose: 
           found = cleanGroups(await ai.group(small), read.length);
           if (!found.groups.length) {
             found = null;
-            notes.push("The AI didn't spot any items, so Reship grouped your photos by when they were taken.");
+            notes.push("The AI didn't spot any items, so SellSync grouped your photos by when they were taken.");
           }
         } catch (e) {
-          notes.push(`${(e as Error).message} Reship grouped your photos by when they were taken instead.`);
+          notes.push(`${(e as Error).message} SellSync grouped your photos by when they were taken instead.`);
         }
       } else {
-        notes.push("AI is off in demo mode, so Reship grouped your photos by when they were taken. With your Reship account, AI sorts them by item, then names, describes and prices each one.");
+        notes.push("AI is off in demo mode, so SellSync grouped your photos by when they were taken. With your SellSync account, AI sorts them by item, then names, describes and prices each one.");
       }
       if (!found) {
         const g = groupByShoot(samples);
@@ -148,11 +148,11 @@ export function PhotoListing({ data, onClose, onSaved }: { data: Data; onClose: 
       ? `${s(images.length, "photo")} sorted into ${s(groups.length, "item")}. Fix anything that's in the wrong place, then write the listings.`
       : step.kind === "review"
         ? `${s(drafts.length, "item")}. Check each one, then save them as drafts.`
-        : `Upload photos of up to ${MAX_ITEMS} items at once. Reship sorts them by item and writes each listing.`;
+        : `Upload photos of up to ${MAX_ITEMS} items at once. SellSync sorts them by item and writes each listing.`;
 
   return (
     <Modal onClose={canClose ? close : () => {}} maxWidth="max-w-5xl" label="List from photos">
-      <ModalHeader title="List from photos" subtitle={subtitle} onClose={close} icon={<Images className="w-5 h-5 text-[#B5607A]" />} />
+      <ModalHeader title="List from photos" subtitle={subtitle} onClose={close} icon={<Images className="w-5 h-5 text-accent" />} />
       <div className="overflow-y-auto flex-1 p-5 sm:p-6 space-y-4">
         {error && (
           <div className="flex gap-2 p-3 rounded-lg bg-rose-50 border border-rose-200 text-sm text-rose-900">
@@ -174,9 +174,9 @@ export function PhotoListing({ data, onClose, onSaved }: { data: Data; onClose: 
                 setDragging(false);
                 void start(e.dataTransfer.files);
               }}
-              className={`flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:border-[#B5607A] hover:bg-rose-50/30 ${dragging ? "border-[#B5607A] bg-rose-50/40" : "border-border"}`}
+              className={`flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:border-accent hover:bg-rose-50/30 ${dragging ? "border-accent bg-rose-50/40" : "border-border"}`}
             >
-              <Upload className="w-8 h-8 text-[#B5607A]" />
+              <Upload className="w-8 h-8 text-accent" />
               <span className="font-medium text-sm">Choose photos, or drop them here</span>
               <span className="text-xs text-muted-foreground">
                 Up to {MAX_PHOTOS} photos of up to {MAX_ITEMS} items. Pick them all at once from your camera roll.
@@ -217,11 +217,11 @@ export function PhotoListing({ data, onClose, onSaved }: { data: Data; onClose: 
 
         {(step.kind === "working" || step.kind === "saving") && (
           <div className="py-16 flex flex-col items-center gap-3 text-sm">
-            <Loader2 className="w-6 h-6 animate-spin text-[#B5607A]" />
+            <Loader2 className="w-6 h-6 animate-spin text-accent" />
             <p>{step.kind === "saving" ? `Saving drafts… ${step.done} of ${step.total}` : `${step.label}…`}</p>
             {step.kind === "working" && step.progress != null && (
               <div className="w-64 h-1.5 rounded-full bg-muted overflow-hidden">
-                <div className="h-full bg-[#B5607A] transition-all" style={{ width: `${Math.round(step.progress * 100)}%` }} />
+                <div className="h-full bg-accent transition-all" style={{ width: `${Math.round(step.progress * 100)}%` }} />
               </div>
             )}
           </div>
@@ -238,7 +238,7 @@ export function PhotoListing({ data, onClose, onSaved }: { data: Data; onClose: 
                     aria-label={`Name of item ${gi + 1}`}
                     value={g.label}
                     onChange={(e) => setGroups(groups.map((x, i) => (i === gi ? { ...x, label: e.target.value } : x)))}
-                    className="flex-1 min-w-0 bg-transparent font-medium focus:outline-none focus:ring-1 focus:ring-[#B5607A] rounded px-1"
+                    className="flex-1 min-w-0 bg-transparent font-medium focus:outline-none focus:ring-1 focus:ring-accent rounded px-1"
                   />
                   <span className="text-xs text-muted-foreground shrink-0">{s(g.photos.length, "photo")}</span>
                 </div>
@@ -250,7 +250,7 @@ export function PhotoListing({ data, onClose, onSaved }: { data: Data; onClose: 
                     <button
                       type="button"
                       onClick={() => apply(movePhotos(groups, selected, gi))}
-                      className="w-20 h-20 rounded-lg border-2 border-dashed border-[#B5607A] text-[#B5607A] text-[11px] font-medium flex flex-col items-center justify-center gap-1 hover:bg-rose-50"
+                      className="w-20 h-20 rounded-lg border-2 border-dashed border-accent text-accent text-[11px] font-medium flex flex-col items-center justify-center gap-1 hover:bg-rose-50"
                     >
                       <FolderInput className="w-4 h-4" /> Move here
                     </button>
@@ -333,12 +333,12 @@ export function PhotoListing({ data, onClose, onSaved }: { data: Data; onClose: 
 
 function Thumb({ src, selected, cover, onToggle, onCover }: { src: string; selected: boolean; cover?: boolean; onToggle: () => void; onCover?: () => void }) {
   return (
-    <div className={`relative w-20 h-20 rounded-lg overflow-hidden border-2 group ${selected ? "border-[#B5607A]" : "border-transparent"}`}>
+    <div className={`relative w-20 h-20 rounded-lg overflow-hidden border-2 group ${selected ? "border-accent" : "border-transparent"}`}>
       <button type="button" onClick={onToggle} aria-pressed={selected} aria-label={selected ? "Unselect photo" : "Select photo"} className="w-full h-full">
         <img src={src} alt="" className={`w-full h-full object-cover ${selected ? "opacity-70" : ""}`} />
       </button>
       {selected && (
-        <span className="absolute top-1 left-1 w-4 h-4 rounded-full bg-[#B5607A] text-white flex items-center justify-center pointer-events-none">
+        <span className="absolute top-1 left-1 w-4 h-4 rounded-full bg-accent text-accent-foreground flex items-center justify-center pointer-events-none">
           <Check className="w-3 h-3" />
         </span>
       )}
@@ -348,7 +348,7 @@ function Thumb({ src, selected, cover, onToggle, onCover }: { src: string; selec
           onClick={onCover}
           aria-label={cover ? "Cover photo" : "Make this the cover"}
           title={cover ? "Cover photo" : "Make this the cover"}
-          className={`absolute bottom-1 right-1 p-0.5 rounded bg-white/90 ${cover ? "" : "opacity-70 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"}`}
+          className={`absolute bottom-1 right-1 p-0.5 rounded bg-card/90 ${cover ? "" : "opacity-70 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"}`}
         >
           <Star className={`w-3 h-3 ${cover ? "fill-amber-400 text-amber-500" : "text-muted-foreground"}`} />
         </button>
