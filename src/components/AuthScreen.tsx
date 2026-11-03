@@ -112,7 +112,7 @@ export function AuthScreen({
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+            <div className="flex items-center gap-3 text-[12px] text-muted-foreground">
               <span className="h-px flex-1 bg-border" />
               or use email
               <span className="h-px flex-1 bg-border" />

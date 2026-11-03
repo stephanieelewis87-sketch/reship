@@ -113,7 +113,7 @@ export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: 
             </label>
             <div className="space-y-3 text-sm">
               <p className="font-medium">For the best results</p>
-              <ul className="space-y-1.5 text-muted-foreground text-[13px] list-disc pl-5">
+              <ul className="space-y-1.5 text-muted-foreground text-[14px] list-disc pl-5">
                 <li>Show one item at a time, for 2 to 3 seconds each.</li>
                 <li>Turn it to show the brand tag, size tag and any flaws.</li>
                 <li>Good light and a plain background help a lot.</li>
@@ -123,7 +123,7 @@ export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: 
                 <label className="flex items-center justify-between gap-3 pt-2">
                   <span>
                     Make clean AI photos
-                    <span className="block text-[11px] text-muted-foreground">A studio-style photo from the best snip. Your real snips are always kept too.</span>
+                    <span className="block text-[12px] text-muted-foreground">A studio-style photo from the best snip. Your real snips are always kept too.</span>
                   </span>
                   <Toggle label="Make clean AI photos" checked={makePhotos} onChange={() => setMakePhotos(!makePhotos)} />
                 </label>

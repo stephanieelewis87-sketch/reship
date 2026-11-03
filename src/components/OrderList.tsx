@@ -28,7 +28,7 @@ function RowAction({ order, onPrint }: { order: Order; onPrint: (o: Order) => vo
           e.stopPropagation();
           onPrint(order);
         }}
-        className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-accent text-accent-foreground text-[11px] font-medium hover:bg-accent-hover"
+        className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-accent text-accent-foreground text-[12px] font-medium hover:bg-accent-hover"
       >
         <Printer className="w-3 h-3" /> Print
       </button>
@@ -42,7 +42,7 @@ function RowAction({ order, onPrint }: { order: Order; onPrint: (o: Order) => vo
             e.stopPropagation();
             onPrint(order);
           }}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-border text-[11px] font-medium text-foreground hover:bg-muted"
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-border text-[12px] font-medium text-foreground hover:bg-muted"
           title="Print this label again"
         >
           <RotateCcw className="w-3 h-3" /> Reprint
@@ -54,7 +54,7 @@ function RowAction({ order, onPrint }: { order: Order; onPrint: (o: Order) => vo
           target="_blank"
           rel="noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="inline-flex items-center gap-0.5 text-[11px] text-accent hover:underline"
+          className="inline-flex items-center gap-0.5 text-[12px] text-accent hover:underline"
         >
           Track <ExternalLink className="w-3 h-3" />
         </a>
@@ -106,7 +106,7 @@ export function OrderList({ orders, viewMode, selectedIds, onToggle, onToggleAll
                 >
                   {orderTitle(order)}
                 </button>
-                <p className="font-mono text-[11px] text-muted-foreground mb-2">
+                <p className="font-mono text-[12px] text-muted-foreground mb-2">
                   {order.orderId} · @{order.buyer}
                 </p>
                 {bundle ? (
@@ -116,7 +116,7 @@ export function OrderList({ orders, viewMode, selectedIds, onToggle, onToggleAll
                         <div className="w-6 h-6 rounded overflow-hidden shrink-0">
                           <PhotoCollage photos={[item.photo]} size="sm" />
                         </div>
-                        <p className="text-[11px] text-foreground truncate flex-1">{item.name}</p>
+                        <p className="text-[12px] text-foreground truncate flex-1">{item.name}</p>
                         <SkuCell sku={item.sku} onSave={(val) => onSku(order, i, val)} />
                       </div>
                     ))}
@@ -151,7 +151,7 @@ export function OrderList({ orders, viewMode, selectedIds, onToggle, onToggleAll
         </div>
         <div />
         {["Item / Bundle", "Platform", "Buyer", "Carrier", "Status", ""].map((h, i) => (
-          <span key={i} className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+          <span key={i} className="font-mono text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
             {h}
           </span>
         ))}
@@ -194,7 +194,7 @@ export function OrderList({ orders, viewMode, selectedIds, onToggle, onToggleAll
                   {orderTitle(order)}
                 </button>
                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <p className="font-mono text-[11px] text-muted-foreground">{order.orderId}</p>
+                  <p className="font-mono text-[12px] text-muted-foreground">{order.orderId}</p>
                   <span className="md:hidden">
                     <PlatformBadge platform={order.platform} />
                   </span>
@@ -203,14 +203,14 @@ export function OrderList({ orders, viewMode, selectedIds, onToggle, onToggleAll
                     <button
                       type="button"
                       onClick={() => toggleExpanded(order.id)}
-                      className="inline-flex items-center gap-0.5 text-[11px] text-accent hover:underline"
+                      className="inline-flex items-center gap-0.5 text-[12px] text-accent hover:underline"
                     >
                       {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                       {expanded ? "Hide items" : "Show items"}
                     </button>
                   )}
                   {needsLabel && (
-                    <button type="button" onClick={() => onOpen(order)} className="inline-flex items-center gap-0.5 text-[11px] text-amber-700 hover:underline">
+                    <button type="button" onClick={() => onOpen(order)} className="inline-flex items-center gap-0.5 text-[12px] text-amber-700 hover:underline">
                       <Upload className="w-3 h-3" />
                       No label yet
                     </button>

@@ -126,7 +126,7 @@ export function GuardianPage({ data, onOpenItem }: { data: Data; onOpenItem: (it
               ))}
             </div>
           )}
-          <p className="text-[11px] text-muted-foreground">Restoring puts SellSync's records back. It doesn't change, relist or delete anything on your marketplaces.</p>
+          <p className="text-[12px] text-muted-foreground">Restoring puts SellSync's records back. It doesn't change, relist or delete anything on your marketplaces.</p>
         </section>
 
         <section className="space-y-2">
@@ -360,7 +360,7 @@ function RestoreDialog({ backup, data, onClose, onDone }: { backup: InventoryBac
             </div>
           )}
           {plan && plan.added.length > 0 && <p className="text-xs text-muted-foreground">{plan.added.length} item{plan.added.length > 1 ? "s" : ""} added since this backup stay as they are.</p>}
-          <p className="text-[11px] text-muted-foreground">This only changes SellSync's records. Your marketplace listings stay as they are; relist or edit them there if needed.</p>
+          <p className="text-[12px] text-muted-foreground">This only changes SellSync's records. Your marketplace listings stay as they are; relist or edit them there if needed.</p>
         </div>
         <div className="px-5 py-3 border-t border-border flex justify-end gap-2">
           <button type="button" className={secondaryButton} onClick={onClose}>

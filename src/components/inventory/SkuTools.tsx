@@ -64,7 +64,7 @@ export function SkuLabelsModal({ items, onClose }: { items: InventoryItem[]; onC
         <div className="mx-auto w-56 border border-border rounded-md bg-white text-black p-2 text-center">
           <Barcode value={first.sku.trim()} className="w-full h-10" />
           <div className="font-mono font-bold text-xs mt-1">{first.sku}</div>
-          <div className="text-[9px] truncate">{first.title}</div>
+          <div className="text-[10px] truncate">{first.title}</div>
         </div>
       )}
       <label className="block text-xs space-y-1">
@@ -81,7 +81,7 @@ export function SkuLabelsModal({ items, onClose }: { items: InventoryItem[]; onC
         <input type="checkbox" checked={perUnit} onChange={(e) => setPerUnit(e.target.checked)} />
         One label for each one in stock
       </label>
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-[12px] text-muted-foreground">
         {labels.length} label{labels.length !== 1 ? "s" : ""}
         {skipped ? `. ${skipped} item${skipped > 1 ? "s" : ""} skipped: no SKU, or characters a barcode can't hold.` : "."} Any barcode scanner, or a phone camera, can read them back in Scan.
       </p>
@@ -187,7 +187,7 @@ export function ScanModal({ inventory, onClose, onOpen, onMove }: { inventory: I
       </form>
       {camera === "on" && <video ref={video} className="w-full rounded-lg bg-black aspect-video object-cover" muted playsInline />}
       {camera === "unsupported" && <p className="text-xs text-muted-foreground">The camera didn't open. Allow camera access, or use a barcode scanner.</p>}
-      {!cameraSupported && <p className="text-[11px] text-muted-foreground">Plug in any USB or Bluetooth barcode scanner and scan; it types the code for you. Camera scanning works in Chrome on Android and desktop.</p>}
+      {!cameraSupported && <p className="text-[12px] text-muted-foreground">Plug in any USB or Bluetooth barcode scanner and scan; it types the code for you. Camera scanning works in Chrome on Android and desktop.</p>}
 
       {miss && <p className="text-sm text-amber-800 bg-amber-50 rounded-md px-3 py-2">Nothing in Inventory has the code {miss}.</p>}
       {found && (

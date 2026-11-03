@@ -29,12 +29,12 @@ export function HomePage({ data }: { data: Data }) {
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0"
-          style={{ background: "radial-gradient(60% 120% at 0% 0%, rgba(217,155,122,0.16), transparent 60%), radial-gradient(40% 90% at 100% 0%, rgba(185,115,79,0.10), transparent 70%)" }}
+          style={{ background: "radial-gradient(60% 120% at 0% 0%, color-mix(in oklab, var(--chart-profit) 16%, transparent), transparent 60%), radial-gradient(40% 90% at 100% 0%, color-mix(in oklab, var(--chart-profit) 10%, transparent), transparent 70%)" }}
         />
         <div className="relative flex items-center justify-between gap-4 flex-wrap">
           <div className="min-w-0">
-            <p className="text-xs text-muted-foreground">{new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</p>
-            <h1 className="font-display text-2xl md:text-3xl font-semibold text-metal mt-1">
+            <p className="text-sm text-muted-foreground">{new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</p>
+            <h1 className="font-serif text-3xl md:text-4xl font-medium tracking-tight text-metal mt-1">
               {greeting}
               {data.settings.displayName ? `, ${data.settings.displayName}` : ""}
             </h1>
@@ -141,7 +141,7 @@ function GettingStarted({ data }: { data: Data }) {
               strokeDasharray={`${((steps.length - left) / steps.length) * 94.2} 94.2`}
             />
           </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-[10px] font-mono text-foreground">
+          <span className="absolute inset-0 flex items-center justify-center text-[11px] font-mono text-foreground">
             {steps.length - left}/{steps.length}
           </span>
         </div>
@@ -192,7 +192,7 @@ function TodaySummary({ data, today }: { data: Data; today: string }) {
         </span>
       </span>
       <p className="font-display text-2xl md:text-[1.7rem] font-semibold text-foreground mt-2 tabular-nums">{value}</p>
-      {hint && <p className="text-[11px] text-muted-foreground mt-0.5">{hint}</p>}
+      {hint && <p className="text-[12px] text-muted-foreground mt-0.5">{hint}</p>}
     </a>
   );
   return (
@@ -347,7 +347,7 @@ function NeedsAttention({ data, today }: { data: Data; today: string }) {
                 <p className="text-sm font-medium text-foreground truncate group-hover:text-accent">{i.title}</p>
                 <p className="text-xs text-muted-foreground truncate">{i.detail}</p>
               </a>
-              <button type="button" onClick={() => toggle(i.id)} className="text-[11px] text-muted-foreground hover:text-foreground shrink-0 mt-1">
+              <button type="button" onClick={() => toggle(i.id)} className="text-[12px] text-muted-foreground hover:text-foreground shrink-0 mt-1">
                 {tab === "open" ? "Dismiss" : "Restore"}
               </button>
             </li>
@@ -453,7 +453,7 @@ function Goals({ data, today }: { data: Data; today: string }) {
                     <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${Math.min(1, p.share) * 100}%`, background: CHART.profit }} />
                     {g.metric !== "sellThrough" && <div className="absolute top-0 bottom-0 w-px bg-foreground/50" style={{ left: `${p.expected * 100}%` }} />}
                   </div>
-                  <p className={`text-[11px] mt-1 ${ahead ? "text-emerald-700" : "text-amber-700"}`}>
+                  <p className={`text-[12px] mt-1 ${ahead ? "text-emerald-700" : "text-amber-700"}`}>
                     {p.share >= 1 ? "Goal reached." : g.metric === "sellThrough" ? "Below target so far." : ahead ? "Ahead of pace." : "Behind pace. The line marks where an even pace would be today."}
                   </p>
                 </li>
@@ -494,7 +494,7 @@ function WhatsNew({ onClose }: { onClose: () => void }) {
         {RELEASES.map((r, i) => (
           <li key={r.date} className="relative pl-5">
             <span className={`absolute left-0 top-1.5 w-2 h-2 rounded-full ${i === 0 ? "bg-accent" : "bg-muted-foreground/40"}`} />
-            <p className="text-[11px] text-muted-foreground">{r.date}</p>
+            <p className="text-[12px] text-muted-foreground">{r.date}</p>
             <p className="text-sm text-foreground mt-0.5">{r.text}</p>
           </li>
         ))}
@@ -511,7 +511,7 @@ function AffiliatesCard() {
     <a
       href="#/affiliates"
       className="relative overflow-hidden flex items-center gap-4 flex-wrap rounded-2xl border border-accent/30 px-5 py-4 hover:border-accent/60 transition-colors"
-      style={{ background: "linear-gradient(110deg, rgba(217,155,122,0.14), rgba(22,18,17,0.6) 60%)" }}
+      style={{ background: "linear-gradient(110deg, var(--accent-soft), var(--card) 60%)" }}
     >
       <span className="w-10 h-10 rounded-xl bg-accent/20 text-accent flex items-center justify-center shrink-0">
         <Gift className="w-5 h-5" />

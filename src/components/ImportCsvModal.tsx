@@ -75,7 +75,7 @@ export function ImportCsvModal({
           <div className="space-y-3">
             <div>
               <SectionLabel>Match columns</SectionLabel>
-              <p className="text-[11px] text-muted-foreground mt-1">We matched what we could. Rows with the same order number become one bundle.</p>
+              <p className="text-[12px] text-muted-foreground mt-1">We matched what we could. Rows with the same order number become one bundle.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
               {CSV_FIELDS.map((f) => (

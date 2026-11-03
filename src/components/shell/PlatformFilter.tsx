@@ -26,7 +26,7 @@ export function PlatformFilter({
           onClick={() => onToggle(p)}
           aria-pressed={active.has(p)}
           title={p}
-          className={`flex items-center gap-1 px-2 py-1 rounded-md border text-[11px] whitespace-nowrap transition-colors ${active.has(p) ? "border-accent bg-rose-50/60 text-accent" : "border-border text-muted-foreground hover:bg-muted"}`}
+          className={`flex items-center gap-1 px-2 py-1 rounded-md border text-[12px] whitespace-nowrap transition-colors ${active.has(p) ? "border-accent bg-rose-50/60 text-accent" : "border-border text-muted-foreground hover:bg-muted"}`}
         >
           <PlatformIcon platform={p} />
           <span className="hidden xl:inline">{p}</span>

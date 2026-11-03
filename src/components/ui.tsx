@@ -81,7 +81,7 @@ export function SkuCell({ sku, onSave }: { sku?: string; onSave: (val: string) =
             setEditing(false);
           }
         }}
-        className="w-full font-mono text-[11px] px-1.5 py-0.5 rounded border border-accent bg-background text-foreground focus:outline-none"
+        className="w-full font-mono text-[12px] px-1.5 py-0.5 rounded border border-accent bg-background text-foreground focus:outline-none"
         placeholder="e.g. LV-JEAN-28"
       />
     );
@@ -94,7 +94,7 @@ export function SkuCell({ sku, onSave }: { sku?: string; onSave: (val: string) =
           setDraft(sku);
           setEditing(true);
         }}
-        className="inline-flex items-center gap-1 font-mono text-[11px] text-muted-foreground hover:text-foreground transition-colors group"
+        className="inline-flex items-center gap-1 font-mono text-[12px] text-muted-foreground hover:text-foreground transition-colors group"
         title="Click to edit SKU"
       >
         <Tag className="w-2.5 h-2.5 opacity-60 group-hover:opacity-100" />
@@ -109,7 +109,7 @@ export function SkuCell({ sku, onSave }: { sku?: string; onSave: (val: string) =
         setDraft("");
         setEditing(true);
       }}
-      className="text-[11px] text-muted-foreground/50 hover:text-accent transition-colors"
+      className="text-[12px] text-muted-foreground/50 hover:text-accent transition-colors"
       title="Add SKU"
     >
       + SKU
@@ -152,7 +152,7 @@ export function OrderStatusCell({ order }: { order: Order }) {
         <StatusBadge status={order.status} />
       )}
       {urgency !== "ok" && (
-        <span className={`text-[10px] font-medium ${urgency === "late" ? "text-rose-700" : "text-amber-700"}`}>{urgency === "late" ? "Late to ship" : "Ship today"}</span>
+        <span className={`text-[11px] font-medium ${urgency === "late" ? "text-rose-700" : "text-amber-700"}`}>{urgency === "late" ? "Late to ship" : "Ship today"}</span>
       )}
     </div>
   );
@@ -209,7 +209,7 @@ export function PhotoCollage({ photos, size = "sm" }: { photos: (string | undefi
 }
 
 export function SectionLabel({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <p className={`font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground ${className}`}>{children}</p>;
+  return <p className={`font-mono text-[11px] font-medium uppercase tracking-widest text-muted-foreground ${className}`}>{children}</p>;
 }
 
 export function Modal({
@@ -275,7 +275,7 @@ export const secondaryButton =
 export function Field({ label, children, className = "" }: { label: string; children: ReactNode; className?: string }) {
   return (
     <label className={`block ${className}`}>
-      <span className="block text-[11px] font-medium text-muted-foreground mb-1">{label}</span>
+      <span className="block text-[12px] font-medium text-muted-foreground mb-1">{label}</span>
       {children}
     </label>
   );

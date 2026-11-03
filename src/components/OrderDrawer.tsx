@@ -100,7 +100,7 @@ export function OrderDrawer({
             {!isNew && <PhotoCollage photos={draft.items.map((i) => i.photo)} size="sm" />}
             <div className="min-w-0">
               <h2 className="font-display text-sm font-semibold text-foreground">{isNew ? "Add Order" : "Order Details"}</h2>
-              {!isNew && <p className="font-mono text-[11px] text-muted-foreground truncate">{order.orderId}</p>}
+              {!isNew && <p className="font-mono text-[12px] text-muted-foreground truncate">{order.orderId}</p>}
             </div>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 rounded-md hover:bg-muted transition-colors">
@@ -278,7 +278,7 @@ export function OrderDrawer({
                 />
               </Field>
             </div>
-            <p className="text-[11px] text-muted-foreground">Left blank, fees are estimated from {draft.platform}'s fee schedule for analytics.</p>
+            <p className="text-[12px] text-muted-foreground">Left blank, fees are estimated from {draft.platform}'s fee schedule for analytics.</p>
           </section>
 
           <section className="space-y-3">

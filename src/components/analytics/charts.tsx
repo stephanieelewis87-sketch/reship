@@ -4,14 +4,15 @@ import type { ReactNode } from "react";
 // Small hand-drawn SVG charts in SellSync's style: thin marks, hairline grid, a tooltip on hover.
 // Each one is one measure in dollars or counts on one axis.
 
+// Colors come from the theme (theme.css), so charts follow the light and dark looks.
 export const CHART = {
-  revenue: "#5598e7",
-  profit: "#D99B7A",
-  grid: "#2A2321",
-  axis: "#3D3330",
-  muted: "#A8968C",
-  ink: "#F3E7DF",
-  loss: "#E5605A",
+  revenue: "var(--chart-revenue)",
+  profit: "var(--chart-profit)",
+  grid: "var(--chart-grid)",
+  axis: "var(--chart-axis)",
+  muted: "var(--chart-muted)",
+  ink: "var(--chart-ink)",
+  loss: "var(--chart-loss)",
 };
 
 export const fmtMoney = (n: number, cents = false) =>
@@ -120,14 +121,14 @@ export function TrendChart({
         {ticks.map((t) => (
           <g key={t}>
             <line x1={pad.l} x2={width - pad.r} y1={y(t)} y2={y(t)} stroke={t === 0 ? CHART.axis : CHART.grid} strokeWidth={1} />
-            <text x={pad.l - 8} y={y(t)} dy="0.32em" textAnchor="end" fontSize={10} fill={CHART.muted} className="tabular-nums">
+            <text x={pad.l - 8} y={y(t)} dy="0.32em" textAnchor="end" fontSize={11} fill={CHART.muted} className="tabular-nums">
               {axisFormat(t)}
             </text>
           </g>
         ))}
         {labels.map((l, i) =>
           i % every === 0 ? (
-            <text key={i} x={x(i)} y={height - 6} textAnchor="middle" fontSize={10} fill={CHART.muted}>
+            <text key={i} x={x(i)} y={height - 6} textAnchor="middle" fontSize={11} fill={CHART.muted}>
               {l}
             </text>
           ) : null,
@@ -140,7 +141,7 @@ export function TrendChart({
               {s.wash && <path d={`${d}L${x(n - 1)},${y(Math.max(lo, 0))}L${x(0)},${y(Math.max(lo, 0))}Z`} fill={s.color} opacity={0.1} />}
               <path d={d} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
               {n <= 1 && <circle cx={x(0)} cy={y(s.values[0] ?? 0)} r={4} fill={s.color} />}
-              {active != null && <circle cx={x(active)} cy={y(s.values[active])} r={4.5} fill={s.color} stroke="#fff" strokeWidth={2} />}
+              {active != null && <circle cx={x(active)} cy={y(s.values[active])} r={4.5} fill={s.color} stroke="var(--card)" strokeWidth={2} />}
             </g>
           );
         })}
@@ -157,7 +158,7 @@ export function TrendChart({
               <span className="tabular-nums text-foreground">{format(s.values[active])}</span>
             </p>
           ))}
-          {onSelect && <p className="text-[10px] text-muted-foreground mt-1">Click to see these sales</p>}
+          {onSelect && <p className="text-[11px] text-muted-foreground mt-1">Click to see these sales</p>}
         </Tooltip>
       )}
     </div>
@@ -226,10 +227,10 @@ export function ColumnChart({
                 fill={colorAt(i)}
                 opacity={dim ? 0.35 : hover === i ? 0.85 : 1}
               />
-              <text x={cx} y={pad.t + h - bh - 6} textAnchor="middle" fontSize={10} fill={CHART.ink} className="tabular-nums">
+              <text x={cx} y={pad.t + h - bh - 6} textAnchor="middle" fontSize={11} fill={CHART.ink} className="tabular-nums">
                 {format(d.value)}
               </text>
-              <text x={cx} y={height - 6} textAnchor="middle" fontSize={10} fill={CHART.muted}>
+              <text x={cx} y={height - 6} textAnchor="middle" fontSize={11} fill={CHART.muted}>
                 {d.label}
               </text>
             </g>
@@ -280,10 +281,10 @@ export function Waterfall({ steps, height = 220 }: { steps: { label: string; val
             <g key={b.label} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
               {i > 0 && <line x1={cx - band + bw / 2} x2={cx - bw / 2} y1={y(b.from)} y2={y(b.from)} stroke={CHART.axis} />}
               <rect x={cx - bw / 2} y={top} width={bw} height={bh} rx={3} fill={fill} opacity={hover === i ? 0.85 : 1} />
-              <text x={cx} y={top - 6} textAnchor="middle" fontSize={10} fill={CHART.ink} className="tabular-nums">
+              <text x={cx} y={top - 6} textAnchor="middle" fontSize={11} fill={CHART.ink} className="tabular-nums">
                 {b.total ? fmtCompactMoney(b.value) : `-${fmtCompactMoney(b.value)}`}
               </text>
-              <text x={cx} y={height - 18} textAnchor="middle" fontSize={10} fill={CHART.muted}>
+              <text x={cx} y={height - 18} textAnchor="middle" fontSize={11} fill={CHART.muted}>
                 {b.label}
               </text>
             </g>
@@ -295,7 +296,7 @@ export function Waterfall({ steps, height = 220 }: { steps: { label: string; val
           <p className="font-medium text-foreground">{bars[hover].label}</p>
           <p className="tabular-nums text-muted-foreground">{fmtMoney(bars[hover].total ? bars[hover].value : -bars[hover].value, true)}</p>
           {!bars[hover].total && bars[0].value > 0 && (
-            <p className="text-[10px] text-muted-foreground">{fmtPct(bars[hover].value / bars[0].value)} of gross sales</p>
+            <p className="text-[11px] text-muted-foreground">{fmtPct(bars[hover].value / bars[0].value)} of gross sales</p>
           )}
         </Tooltip>
       )}

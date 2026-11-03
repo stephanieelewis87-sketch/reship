@@ -134,7 +134,7 @@ function JoinProgram({ data, email, program, onJoined }: { data: Data; email: st
           <Field label="Your referral code">
             <input className={inputClass} value={code} onChange={(e) => setCode(normalizeCode(e.target.value))} aria-invalid={!valid} />
           </Field>
-          <p className="text-[11px] text-muted-foreground -mt-1 break-all">
+          <p className="text-[12px] text-muted-foreground -mt-1 break-all">
             Your link: <span className="font-mono text-foreground">{valid ? referralLink(code) : "3 to 24 letters, numbers or dashes"}</span>
           </p>
           <PayoutFields method={method} payTo={payTo} onMethod={setMethod} onPayTo={setPayTo} />
@@ -262,10 +262,10 @@ function Overview({
 }
 
 function StatusPill({ c }: { c: Commission }) {
-  if (c.status === "paid") return <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800">Paid</span>;
-  if (c.status === "void") return <span className="text-[11px] px-2 py-0.5 rounded-full bg-rose-50 text-rose-800">Refunded</span>;
-  if (new Date(c.availableAt) <= new Date()) return <span className="text-[11px] px-2 py-0.5 rounded-full bg-accent/10 text-accent">Ready</span>;
-  return <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">Ready {day(c.availableAt)}</span>;
+  if (c.status === "paid") return <span className="text-[12px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800">Paid</span>;
+  if (c.status === "void") return <span className="text-[12px] px-2 py-0.5 rounded-full bg-rose-50 text-rose-800">Refunded</span>;
+  if (new Date(c.availableAt) <= new Date()) return <span className="text-[12px] px-2 py-0.5 rounded-full bg-accent/10 text-accent">Ready</span>;
+  return <span className="text-[12px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">Ready {day(c.availableAt)}</span>;
 }
 
 function CommissionList({ commissions, referrals, empty }: { commissions: Commission[]; referrals: Referral[]; empty: string }) {
@@ -281,7 +281,7 @@ function CommissionList({ commissions, referrals, empty }: { commissions: Commis
               <p className="text-foreground truncate">
                 {c.kind === "bonus" ? "Sign-up bonus" : `${r?.plan ? PLANS[r.plan].name : "Plan"} payment of ${formatCents(c.paymentCents, true)}`}
               </p>
-              <p className="text-[11px] text-muted-foreground truncate">
+              <p className="text-[12px] text-muted-foreground truncate">
                 {r?.label ?? "A seller"} · {day(c.createdAt)}
               </p>
             </div>
@@ -307,7 +307,7 @@ function Referrals({ referrals, commissions, program }: { referrals: Referral[];
       <div className="overflow-x-auto -mx-4 md:-mx-5">
         <table className="w-full text-sm min-w-[560px]">
           <thead>
-            <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <tr className="text-left font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
               <th className="font-medium px-4 md:px-5 py-2">Seller</th>
               <th className="font-medium py-2">Signed up</th>
               <th className="font-medium py-2">Plan</th>
@@ -323,7 +323,7 @@ function Referrals({ referrals, commissions, program }: { referrals: Referral[];
                 <td className="py-2.5 text-muted-foreground whitespace-nowrap">{day(r.createdAt)}</td>
                 <td className="py-2.5 text-foreground">{r.plan ? PLANS[r.plan].name : <span className="text-muted-foreground">None yet</span>}</td>
                 <td className="py-2.5">
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full ${STATUS_LABEL[r.status].tone}`}>{STATUS_LABEL[r.status].text}</span>
+                  <span className={`text-[12px] px-2 py-0.5 rounded-full ${STATUS_LABEL[r.status].tone}`}>{STATUS_LABEL[r.status].text}</span>
                 </td>
                 <td className="py-2.5 text-xs">{r.bonusEarned ? <span className="text-emerald-700">Earned</span> : <span className="text-muted-foreground">Not yet</span>}</td>
                 <td className="py-2.5 px-4 md:px-5 text-right font-mono tabular-nums text-foreground">{formatCents(earned(r.id), true)}</td>
@@ -357,7 +357,7 @@ function Earnings({ commissions, payouts, referrals, program }: { commissions: C
                 <div key={p.id} className="py-2 flex justify-between text-sm gap-3">
                   <div className="min-w-0">
                     <p className="text-foreground">{day(p.createdAt)}</p>
-                    <p className="text-[11px] text-muted-foreground truncate">
+                    <p className="text-[12px] text-muted-foreground truncate">
                       {p.method}
                       {p.reference ? ` · ${p.reference}` : ""}
                     </p>
@@ -397,7 +397,7 @@ function PayoutDetails({ data, me, onSaved }: { data: Data; me: Affiliate; onSav
         <Field label="Referral code">
           <input className={inputClass} value={code} onChange={(e) => setCode(normalizeCode(e.target.value))} />
         </Field>
-        {code !== me.code && <p className="text-[11px] text-amber-800 -mt-1">Links you've already shared with the old code stop working when you change it.</p>}
+        {code !== me.code && <p className="text-[12px] text-amber-800 -mt-1">Links you've already shared with the old code stop working when you change it.</p>}
         <PayoutFields method={method} payTo={payTo} onMethod={setMethod} onPayTo={setPayTo} />
         {state.text && <p className={`text-xs ${state.ok ? "text-emerald-700" : "text-rose-700"}`}>{state.text}</p>}
         <button type="button" className={primaryButton} disabled={!valid || !dirty || state.busy} onClick={save}>
@@ -446,7 +446,7 @@ function AdminPayouts({ data, program, onChanged }: { data: Data; program: Affil
         <div className="overflow-x-auto -mx-4 md:-mx-5">
           <table className="w-full text-sm min-w-[720px]">
             <thead>
-              <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              <tr className="text-left font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
                 <th className="font-medium px-4 md:px-5 py-2">Affiliate</th>
                 <th className="font-medium py-2">Pay to</th>
                 <th className="font-medium py-2 text-right">Visits</th>
@@ -462,7 +462,7 @@ function AdminPayouts({ data, program, onChanged }: { data: Data; program: Affil
                 <tr key={r.affiliateId}>
                   <td className="px-4 md:px-5 py-2.5">
                     <p className="text-foreground">{r.email}</p>
-                    <p className="text-[11px] text-muted-foreground font-mono">
+                    <p className="text-[12px] text-muted-foreground font-mono">
                       {r.code}
                       {r.status !== "active" ? ` · ${r.status}` : ""}
                     </p>
@@ -502,11 +502,11 @@ function AdminPayouts({ data, program, onChanged }: { data: Data; program: Affil
             <div key={r.id} className="py-2.5 flex items-center gap-3 text-sm">
               <div className="flex-1 min-w-0">
                 <p className="text-foreground truncate">{r.label}</p>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[12px] text-muted-foreground">
                   via <span className="font-mono">{r.affiliateCode}</span> · {r.plan ? PLANS[r.plan].name : "No plan"} · paid {formatCents(r.totalPaidCents, true)}
                 </p>
               </div>
-              <span className={`text-[11px] px-2 py-0.5 rounded-full ${STATUS_LABEL[r.status].tone}`}>{STATUS_LABEL[r.status].text}</span>
+              <span className={`text-[12px] px-2 py-0.5 rounded-full ${STATUS_LABEL[r.status].tone}`}>{STATUS_LABEL[r.status].text}</span>
               <button type="button" className="text-xs text-accent hover:underline" onClick={() => setRecording(r)}>
                 Record payment
               </button>

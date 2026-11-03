@@ -35,7 +35,7 @@ export function QuickEdit({
             {item.photo ? <img src={item.photo} alt="" className="w-10 h-10 rounded-md object-cover" /> : <div className="w-10 h-10 rounded-md bg-muted" />}
             <div className="min-w-0">
               <h2 className="font-display text-sm font-semibold text-foreground">Quick edit</h2>
-              <p className="font-mono text-[11px] text-muted-foreground">{item.sku}</p>
+              <p className="font-mono text-[12px] text-muted-foreground">{item.sku}</p>
             </div>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 rounded-md hover:bg-muted">

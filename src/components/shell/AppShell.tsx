@@ -13,6 +13,7 @@ import { FeedbackPage } from "../feedback/FeedbackPage";
 import { AffiliatesPage } from "../affiliates/AffiliatesPage";
 import { type Section, go, useRoute } from "./route";
 import { Logo } from "../brand/Logo";
+import { ThemeToggle } from "../brand/ThemeToggle";
 import { LockedSection, PlanTag, currentPlan } from "../plans/PlanGate";
 import { type Feature, hasFeature, type PlanId } from "@/lib/plans";
 
@@ -82,14 +83,14 @@ export function AppShell({
 
   return (
     <div className="h-screen bg-background flex overflow-hidden">
-      <aside className="hidden md:flex w-52 shrink-0 bg-card border-r border-border flex-col">
+      <aside className="hidden md:flex w-56 shrink-0 bg-sidebar border-r border-border flex-col">
         <button type="button" onClick={() => go("home")} className="px-5 py-5 border-b border-border flex items-center gap-2.5 text-left">
           <Logo />
         </button>
         <nav className="px-3 py-4 flex flex-col gap-5">
           {NAV_GROUPS.map((group) => (
             <div key={group.title} className="flex flex-col gap-0.5">
-              <p className="px-2.5 pb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">{group.title}</p>
+              <p className="px-2.5 pb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">{group.title}</p>
               {group.items.map((item) => (
                 <SideLink key={item.section} item={item} active={route.section === item.section} badge={badge[item.section]} locked={lockedFeature(plan, item.section)} />
               ))}
@@ -99,21 +100,22 @@ export function AppShell({
         <div className="mt-auto px-3 pb-2 flex flex-col gap-0.5">
           <SideLink item={{ section: "settings", label: "Settings", icon: SettingsIcon }} active={route.section === "settings"} quiet />
           <SideLink item={{ section: "feedback", label: "Feedback", icon: MessageSquare }} active={route.section === "feedback"} quiet />
+          <ThemeToggle className="mt-2" />
         </div>
         <a href="#/settings?tab=account" className=" border-t border-border px-4 py-3 flex items-center gap-2 hover:bg-muted">
           <div className="w-6 h-6 rounded-full bg-accent/15 flex items-center justify-center shrink-0">
-            <span className="font-display text-[11px] font-semibold text-accent">{(data.settings.displayName || "S").charAt(0).toUpperCase()}</span>
+            <span className="font-display text-[12px] font-semibold text-accent">{(data.settings.displayName || "S").charAt(0).toUpperCase()}</span>
           </div>
           <div className="min-w-0">
             <p className="text-xs font-medium text-foreground truncate leading-none">{data.settings.displayName || "Your shop"}</p>
-            <p className="text-[10px] text-muted-foreground truncate mt-0.5">{demoMode ? "Demo mode" : (email ?? "")}</p>
+            <p className="text-[11px] text-muted-foreground truncate mt-0.5">{demoMode ? "Demo mode" : (email ?? "")}</p>
           </div>
         </a>
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {demoMode && (
-          <div className="px-4 md:px-8 py-1.5 bg-amber-50 border-b border-amber-200 text-[11px] text-amber-900 flex items-center gap-3">
+          <div className="px-4 md:px-8 py-1.5 bg-amber-50 border-b border-amber-200 text-[12px] text-amber-900 flex items-center gap-3">
             <span className="flex-1">Demo mode: sample data, saved in this browser only.</span>
             {onResetDemo && (
               <button type="button" onClick={onResetDemo} className="underline hover:no-underline">
@@ -194,10 +196,10 @@ function SideLink({ item, active, badge, quiet, locked }: { item: NavItem; activ
         <Icon className="w-4 h-4" /> {label}
       </span>
       {locked && <PlanTag feature={locked} />}
-      {earn && !active && <span className="px-1.5 py-0.5 rounded-full bg-accent/15 text-accent text-[10px] font-medium">Earn</span>}
+      {earn && !active && <span className="px-1.5 py-0.5 rounded-full bg-accent/15 text-accent text-[11px] font-medium">Earn</span>}
       {!!badge && !locked && (
         <span
-          className={`min-w-5 h-5 px-1.5 rounded-full font-mono text-[11px] tabular-nums flex items-center justify-center ${
+          className={`min-w-5 h-5 px-1.5 rounded-full font-mono text-[12px] tabular-nums flex items-center justify-center ${
             "bg-accent/15 text-accent"
           }`}
         >
@@ -235,6 +237,7 @@ function PhoneNav({ route, badge }: { route: Section; badge: Partial<Record<Sect
                 <Icon className="w-4 h-4" /> {label}
               </a>
             ))}
+            <ThemeToggle className="m-1 mt-2" />
           </div>
         </div>
       )}
@@ -246,7 +249,7 @@ function PhoneNav({ route, badge }: { route: Section; badge: Partial<Record<Sect
               key={section}
               href={`#/${section}`}
               aria-current={active ? "page" : undefined}
-              className={`relative flex flex-col items-center gap-0.5 py-2 text-[11px] ${active ? "text-accent font-medium" : "text-muted-foreground"}`}
+              className={`relative flex flex-col items-center gap-0.5 py-2 text-[12px] ${active ? "text-accent font-medium" : "text-muted-foreground"}`}
             >
               <Icon className="w-5 h-5" />
               {label}
@@ -258,7 +261,7 @@ function PhoneNav({ route, badge }: { route: Section; badge: Partial<Record<Sect
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          className={`flex flex-col items-center gap-0.5 py-2 text-[11px] ${moreActive || open ? "text-accent font-medium" : "text-muted-foreground"}`}
+          className={`flex flex-col items-center gap-0.5 py-2 text-[12px] ${moreActive || open ? "text-accent font-medium" : "text-muted-foreground"}`}
         >
           <MoreHorizontal className="w-5 h-5" />
           More

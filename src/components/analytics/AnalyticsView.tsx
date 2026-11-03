@@ -379,7 +379,7 @@ function ProfitAndLoss({ ctx }: { ctx: Ctx }) {
             </div>
           </dl>
           {(m.missingCost > 0 || m.estimatedFees > 0) && (
-            <p className="mt-3 text-[11px] text-amber-800 bg-amber-50 rounded-md px-2.5 py-2">
+            <p className="mt-3 text-[12px] text-amber-800 bg-amber-50 rounded-md px-2.5 py-2">
               {m.missingCost > 0 && `${m.missingCost} sale${m.missingCost !== 1 ? "s have" : " has"} no item cost, so profit counts them as free. `}
               {m.estimatedFees > 0 && `Fees on ${m.estimatedFees} sale${m.estimatedFees !== 1 ? "s are" : " is"} estimated from each marketplace's fee schedule.`}
             </p>
@@ -625,7 +625,7 @@ function InventoryPage({ ctx }: { ctx: Ctx }) {
                   {s.item.photo ? <img src={s.item.photo} alt="" className="w-8 h-8 rounded object-cover shrink-0" /> : <div className="w-8 h-8 rounded bg-muted shrink-0" />}
                   <div className="min-w-0">
                     <p className="text-xs font-medium text-foreground truncate max-w-[220px]">{s.item.title}</p>
-                    <p className="font-mono text-[10px] text-muted-foreground">{s.item.sku}</p>
+                    <p className="font-mono text-[11px] text-muted-foreground">{s.item.sku}</p>
                   </div>
                 </div>
               ),
@@ -647,7 +647,7 @@ function InventoryPage({ ctx }: { ctx: Ctx }) {
               label: "",
               render: (s) =>
                 s.suggestedPrice == null ? null : applied.has(s.item.id) ? (
-                  <span className="text-[11px] text-emerald-700 whitespace-nowrap">Saved</span>
+                  <span className="text-[12px] text-emerald-700 whitespace-nowrap">Saved</span>
                 ) : (
                   <button
                     type="button"
@@ -656,7 +656,7 @@ function InventoryPage({ ctx }: { ctx: Ctx }) {
                       ctx.saveInventory([{ ...s.item, listPrice: s.suggestedPrice! }]);
                       setApplied((a) => new Set(a).add(s.item.id));
                     }}
-                    className="text-[11px] px-2 py-1 rounded-md border border-border hover:bg-muted whitespace-nowrap"
+                    className="text-[12px] px-2 py-1 rounded-md border border-border hover:bg-muted whitespace-nowrap"
                     title="Saves the new price in SellSync. Change it on the marketplace too."
                   >
                     Use price
@@ -841,7 +841,7 @@ function ExpensesPage({ ctx }: { ctx: Ctx }) {
               <Plus className="w-3.5 h-3.5" /> Add
             </button>
           </form>
-          {mileage && <p className="text-[11px] text-muted-foreground mt-2">Mileage counts at ${MILEAGE_RATE.toFixed(2)} a mile, the IRS standard rate.</p>}
+          {mileage && <p className="text-[12px] text-muted-foreground mt-2">Mileage counts at ${MILEAGE_RATE.toFixed(2)} a mile, the IRS standard rate.</p>}
         </Card>
         <Card title="By category" subtitle={`${fmtMoney(total)} total, ${rangeText(ctx.range)}`}>
           {cats.length === 0 ? (
@@ -1001,7 +1001,7 @@ function Exports({ ctx }: { ctx: Ctx }) {
           </div>
         ))}
       </div>
-      <p className="mt-3 text-[11px] text-muted-foreground">
+      <p className="mt-3 text-[12px] text-muted-foreground">
         Includes sales you added by hand or imported, so in-person sales count too. {fmtCompactMoney(metrics(lines, null).revenue)} in sales across {lines.length} items in this period.
       </p>
     </Card>
