@@ -20,7 +20,7 @@ export interface AffiliateProgram {
 
 // Matches the defaults in 0009_affiliates.sql; the live terms come from the affiliate_program table.
 export const DEFAULT_PROGRAM: AffiliateProgram = {
-  bonusCents: 10000,
+  bonusCents: 9500,
   bonusMatchesPayment: true,
   rate: 0.05,
   holdDays: 30,

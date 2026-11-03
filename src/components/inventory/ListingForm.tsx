@@ -13,8 +13,8 @@ import type { ListingSuggestion } from "@/lib/videoListing";
 import { splitDataUrl } from "@/lib/videoFrames";
 import { Field, PlatformIcon, SectionLabel, Toggle, inputClass, primaryButton, secondaryButton } from "../ui";
 import { LabelChips } from "./LabelChips";
-import { PLANS, type PlanId, listingRoom, marketplacesInUse } from "@/lib/plans";
-import { PlanTag, upgradeFor } from "../plans/PlanGate";
+import { PLANS, type PlanId, listingRoom, marketplacesInUse, nextPlanFor } from "@/lib/plans";
+import { PlanTag, upgradeFor, upgradeTo } from "../plans/PlanGate";
 
 const num = (s: string) => (s.trim() === "" ? undefined : parseFloat(s) || 0);
 
@@ -143,6 +143,8 @@ export function ListingForm({
   const room = listingRoom(plan, others, isoDay(new Date()));
   const firstListing = !item.listedAt && !item.listings.some((l) => l.status === "active");
   const dailyFull = firstListing && room.left <= 0;
+  const moreMarkets = nextPlanFor(plan, "marketplaces");
+  const moreListings = nextPlanFor(plan, "listingsPerDay");
 
   return (
     <div className="fixed inset-0 z-50 flex justify-center bg-black/30 backdrop-blur-sm overflow-y-auto" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -293,7 +295,7 @@ export function ListingForm({
                     <button
                       type="button"
                       disabled={sold || blocked}
-                      title={blocked ? `${PLANS[plan].name} lists on up to ${marketLimit} marketplaces. Grow lifts the limit.` : undefined}
+                      title={blocked ? `${PLANS[plan].name} lists on up to ${marketLimit} marketplaces.${moreMarkets ? ` ${PLANS[moreMarkets].name} allows more.` : ""}` : undefined}
                       aria-pressed={on}
                       onClick={() => setChosen((c) => {
                         const n = new Set(c);
@@ -323,9 +325,11 @@ export function ListingForm({
             {marketFull && (
               <p className="text-[11px] text-muted-foreground">
                 {PLANS[plan].name} lists on up to {marketLimit} marketplaces ({[...inUse].join(", ")}).{" "}
-                <button type="button" className="text-accent hover:underline" onClick={() => upgradeFor("crosslisting")}>
-                  Grow lists everywhere.
-                </button>
+                {moreMarkets && (
+                  <button type="button" className="text-accent hover:underline" onClick={() => upgradeTo(moreMarkets)}>
+                    {PLANS[moreMarkets].marketplaces === null ? `${PLANS[moreMarkets].name} lists everywhere.` : `${PLANS[moreMarkets].name} lists on up to ${PLANS[moreMarkets].marketplaces}.`}
+                  </button>
+                )}
               </p>
             )}
             {item.listings.length > 0 && (
@@ -396,10 +400,15 @@ export function ListingForm({
             ))}
           {dailyFull && (
             <p className="text-[11px] text-muted-foreground">
-              You've listed {room.cap} new items today, {PLANS[plan].name}'s daily limit. Save it as a draft, or{" "}
-              <button type="button" className="text-accent hover:underline" onClick={() => upgradeFor("crosslisting")}>
-                go unlimited on Grow
-              </button>
+              You've listed {room.cap} new items today, {PLANS[plan].name}'s daily limit. Save it as a draft
+              {moreListings && (
+                <>
+                  , or{" "}
+                  <button type="button" className="text-accent hover:underline" onClick={() => upgradeTo(moreListings)}>
+                    {PLANS[moreListings].listingsPerDay === null ? `go unlimited on ${PLANS[moreListings].name}` : `list ${PLANS[moreListings].listingsPerDay} a day on ${PLANS[moreListings].name}`}
+                  </button>
+                </>
+              )}
               .
             </p>
           )}

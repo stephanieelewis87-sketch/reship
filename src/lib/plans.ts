@@ -1,4 +1,4 @@
-// SellSync's plans (Sell $12, Ship $25, Sync $35, Grow $50, Flow $100), in one place: names, monthly prices, what each one includes, and the checks
+// SellSync's plans (Sell $15, Ship $25, Sync $50, Grow $65, Flow $95), in one place: names, monthly prices, what each one includes, and the checks
 // the app uses to lock features. Each plan includes everything in the plans before it.
 // The homepage, the Subscription settings, the upgrade prompts and the affiliate math all read this.
 
@@ -21,11 +21,11 @@ export interface Plan {
 export const PLANS: Record<PlanId, Plan> = {
   sell: {
     name: "Sell",
-    cents: 1200,
-    pitch: "Your inventory in one place, listed on up to two marketplaces.",
-    adds: ["Inventory manager", "20 new listings a day", "Up to 2 marketplaces"],
+    cents: 1500,
+    pitch: "Your inventory in one place, on up to three marketplaces.",
+    adds: ["Inventory manager", "20 new listings a day", "Up to 3 marketplaces", "Delisting when an item sells"],
     listingsPerDay: 20,
-    marketplaces: 2,
+    marketplaces: 3,
   },
   ship: {
     name: "Ship",
@@ -33,30 +33,29 @@ export const PLANS: Record<PlanId, Plan> = {
     pitch: "Everything in Sell, plus your shipping labels.",
     adds: ["Print every marketplace's labels in one batch", "Compare and buy labels", "Packing slips and SKU on labels"],
     listingsPerDay: 20,
-    marketplaces: 2,
+    marketplaces: 3,
   },
-  // PLACEHOLDER: Sync's price and what it adds are waiting on a decision. Change them here.
   sync: {
     name: "Sync",
-    cents: 3500,
-    pitch: "Everything in Ship, kept in step across more marketplaces.",
-    adds: ["Up to 4 marketplaces", "50 new listings a day", "Quantities adjust everywhere after a sale"],
-    listingsPerDay: 50,
-    marketplaces: 4,
+    cents: 5000,
+    pitch: "List once, and crosslist to five marketplaces.",
+    adds: ["Crosslisting", "Up to 5 marketplaces", "30 new listings a day", "Quantities adjust everywhere after a sale"],
+    listingsPerDay: 30,
+    marketplaces: 5,
   },
   grow: {
     name: "Grow",
-    cents: 5000,
-    pitch: "List everywhere at once, and delist the moment it sells.",
-    adds: ["Crosslisting to every marketplace", "Delisting everywhere when an item sells", "Unlimited listings and marketplaces"],
-    listingsPerDay: null,
-    marketplaces: null,
+    cents: 6500,
+    pitch: "More listings, with automations doing the busywork.",
+    adds: ["Automations", "40 new listings a day"],
+    listingsPerDay: 40,
+    marketplaces: 5,
   },
   flow: {
     name: "Flow",
-    cents: 10000,
-    pitch: "Everything, running on its own.",
-    adds: ["Automations", "Video listings", "Backups and restore", "Full AI: listings from photos, and AI writing in your style"],
+    cents: 9500,
+    pitch: "Unlimited everything.",
+    adds: ["Unlimited listings and marketplaces", "Video listings", "Full AI: listings from photos, and AI writing in your style", "Backups and restore"],
     listingsPerDay: null,
     marketplaces: null,
   },
@@ -69,9 +68,9 @@ export const FEATURE_PLAN: Record<Feature, PlanId> = {
   inventory: "sell",
   labels: "ship",
   quantitySync: "sync",
-  crosslisting: "grow",
-  delisting: "grow",
-  automations: "flow",
+  crosslisting: "sync",
+  delisting: "sell",
+  automations: "grow",
   videoListing: "flow",
   backups: "flow",
   ai: "flow",
@@ -124,3 +123,9 @@ export function listingRoom(plan: PlanId, inventory: InventoryItem[], today: str
   if (cap === null) return { cap, left: Infinity };
   return { cap, left: Math.max(0, cap - listedToday(inventory, today)) };
 }
+
+// The cheapest plan above this one that raises a limit, for "upgrade for more" links.
+export const nextPlanFor = (plan: PlanId, limit: "listingsPerDay" | "marketplaces"): PlanId | null => {
+  const now = PLANS[plan][limit];
+  return PLAN_IDS.slice(planRank(plan) + 1).find((p) => { const v = PLANS[p][limit]; return v === null || (now !== null && v > now); }) ?? null;
+};

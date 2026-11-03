@@ -131,7 +131,7 @@ A public page about the program, for sharing, is at `https://your-app/?affiliate
 
 How referrals are tracked: a visit with `?ref=code` is counted and the code is remembered in that browser for 60 days. When that visitor signs up, they're credited to the affiliate. Self-referrals and accounts older than 7 days don't count, and a seller can only be referred once.
 
-Setup: run `supabase/migrations/0009_affiliates.sql`. The terms live in the one-row `affiliate_program` table (bonus amount or cap, rate, refund hold, which plans earn the bonus, an optional "after they've paid this much" threshold, link memory, minimum payout); change them there and the app follows. By default the bonus equals the referred seller's first payment (one month of their plan), capped at $100 (one month of Flow), on any plan. Run `0011_plans.sql` too if you ran an older 0009. Set `bonus_matches_payment` to false for a flat `bonus_cents` instead.
+Setup: run `supabase/migrations/0009_affiliates.sql`. The terms live in the one-row `affiliate_program` table (bonus amount or cap, rate, refund hold, which plans earn the bonus, an optional "after they've paid this much" threshold, link memory, minimum payout); change them there and the app follows. By default the bonus equals the referred seller's first payment (one month of their plan), capped at $95 (one month of Flow), on any plan. Run `0011_plans.sql` too if you ran an older 0009. Set `bonus_matches_payment` to false for a flat `bonus_cents` instead.
 
 When billing is built, its webhook calls these with the service role key: `record_subscription_payment(user_id, plan, amount_cents, invoice_id)` on every paid invoice (safe to repeat), `record_subscription_refund(invoice_id)` on a refund, and `record_subscription_canceled(user_id)` on a cancellation.
 
@@ -151,10 +151,10 @@ Combining with Listy (video to listings) into one app: an inventory page, return
 
 | Plan | Price | Adds |
 | --- | --- | --- |
-| Sell | $12/mo | Inventory manager, 20 new listings a day, up to 2 marketplaces |
+| Sell | $15/mo | Inventory manager, delisting, 20 new listings a day on up to 3 marketplaces (no AI) |
 | Ship | $25/mo | Shipping labels (print, compare and buy, packing slips) |
-| Sync | $35/mo | Up to 4 marketplaces, 50 listings a day, quantity sync after a sale (placeholder) |
-| Grow | $50/mo | Crosslisting, delisting everywhere, no listing or marketplace limits |
-| Flow | $100/mo | Automations, video listing, backup and restore, full AI |
+| Sync | $50/mo | Crosslisting, up to 5 marketplaces, 30 listings a day, quantity sync after a sale |
+| Grow | $65/mo | Automations, 40 listings a day |
+| Flow | $95/mo | Unlimited listings and marketplaces, video listing, full AI, backup and restore |
 
 Each plan includes the ones before it. Prices, features and limits live in `src/lib/plans.ts`; the homepage, Settings > Subscription, the upgrade prompts and the affiliate bonus all read from it. There's no billing yet: a seller picks a plan in Settings > Subscription, and everyone starts on Flow during early access.

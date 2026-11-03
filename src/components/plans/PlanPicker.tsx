@@ -1,18 +1,22 @@
 import { Check } from "lucide-react";
-import { FEATURE_NAMES, FEATURE_PLAN, PLANS, PLAN_IDS, type Feature, type PlanId, planRank, priceLabel } from "@/lib/plans";
+import { FEATURE_NAMES, FEATURE_PLAN, PLANS, PLAN_IDS, type Feature, type PlanId, isPlanId, planRank, priceLabel } from "@/lib/plans";
 
 const isFeature = (v: unknown): v is Feature => typeof v === "string" && v in FEATURE_PLAN;
 
 // The five plans side by side, for Settings > Subscription. `need` is a feature the seller just
 // tried to use; the plan that has it is highlighted.
 export function PlanPicker({ current, need, onChoose }: { current: PlanId; need?: string | null; onChoose: (plan: PlanId) => void }) {
-  const wanted = isFeature(need) ? FEATURE_PLAN[need] : null;
-  const showNeed = isFeature(need) && planRank(current) < planRank(FEATURE_PLAN[need]);
+  // `need` is a feature, or a plan picked for its higher limits.
+  const wanted = isFeature(need) ? FEATURE_PLAN[need] : isPlanId(need) ? need : null;
+  const showNeed = wanted !== null && planRank(current) < planRank(wanted);
   return (
     <div className="space-y-3">
       {showNeed && (
         <div className="rounded-lg border border-accent/40 bg-accent/10 text-xs px-3 py-2.5">
-          {FEATURE_NAMES[need]} {FEATURE_PLAN[need] === "flow" ? "comes with Flow" : `starts on ${PLANS[FEATURE_PLAN[need]].name}`}. You're on {PLANS[current].name}.
+          {isFeature(need)
+            ? `${FEATURE_NAMES[need]} ${wanted === "flow" ? "comes with Flow" : `starts on ${PLANS[wanted].name}`}.`
+            : `${PLANS[wanted].name} raises your listing and marketplace limits.`}{" "}
+          You're on {PLANS[current].name}.
         </div>
       )}
       <div className="grid sm:grid-cols-2 gap-3">

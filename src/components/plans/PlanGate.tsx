@@ -9,6 +9,8 @@ export const currentPlan = (settings: Pick<Settings, "plan">): PlanId => planOf(
 
 // Opens Subscription in Settings, pointing at the plan that has this feature.
 export const upgradeFor = (feature: Feature) => go("settings", { tab: "subscription", need: feature });
+// Opens Subscription with this plan highlighted.
+export const upgradeTo = (plan: PlanId) => go("settings", { tab: "subscription", need: plan });
 
 // A small "Grow" chip with a lock, next to something the current plan doesn't include.
 export function PlanTag({ feature, className = "" }: { feature: Feature; className?: string }) {

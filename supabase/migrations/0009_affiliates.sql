@@ -3,9 +3,9 @@
 -- Safe to run more than once. Needs 0006 (app_admins and is_app_admin).
 
 -- The program's terms, one row. Change them here; the app reads them from this table.
---   bonus_cents             the one-time bonus per referred seller, or its cap (10000 = $100)
+--   bonus_cents             the one-time bonus per referred seller, or its cap (9500 = $95)
 --   bonus_matches_payment   true: the bonus is the payment that earns it (one month of their plan:
---                           Sell $12, Ship $25, Sync $35, Grow $50, Flow $100), up to bonus_cents. false: always bonus_cents
+--                           Sell $15, Ship $25, Sync $50, Grow $65, Flow $95), up to bonus_cents. false: always bonus_cents
 --   rate                    share of every subscription payment, for life (0.05 = 5%)
 --   hold_days               days a commission waits before it can be paid, so refunds can be taken back
 --   bonus_plans             plans whose payment earns the bonus (sell, ship, sync, grow, flow)
@@ -14,7 +14,7 @@
 --   min_payout_cents        smallest balance paid out
 create table if not exists public.affiliate_program (
   id boolean primary key default true check (id),
-  bonus_cents integer not null default 10000 check (bonus_cents >= 0),
+  bonus_cents integer not null default 9500 check (bonus_cents >= 0),
   bonus_matches_payment boolean not null default true,
   rate numeric(5, 4) not null default 0.05 check (rate >= 0 and rate <= 1),
   hold_days integer not null default 30 check (hold_days >= 0),
