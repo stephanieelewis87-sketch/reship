@@ -1,4 +1,3 @@
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import type { InventoryItem, SkuFormat } from "./types";
 import { DEFAULT_SETTINGS } from "./types";
 
@@ -72,6 +71,8 @@ export function labelsFor(items: InventoryItem[], perUnit: boolean): InventoryIt
 }
 
 export async function skuLabelsPdf(items: InventoryItem[], size: SkuLabelSize): Promise<Uint8Array> {
+  // Loaded on first use so the PDF library isn't part of the app's first download.
+  const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
