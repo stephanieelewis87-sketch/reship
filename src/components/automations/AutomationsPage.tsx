@@ -3,7 +3,7 @@ import { Info, Puzzle } from "lucide-react";
 import type { AutomationKind, AutomationSetting, Automations, Platform } from "@/lib/types";
 import { relistState } from "@/lib/inventory";
 import type { useReshipData } from "@/lib/useReshipData";
-import { PlatformIcon, Toggle, inputClass, primaryButton, secondaryButton } from "../ui";
+import { PlatformIcon, Toggle, inputClass, primaryButton } from "../ui";
 import { PageHeader } from "../shell/PageHeader";
 
 type Data = ReturnType<typeof useReshipData>;
@@ -50,9 +50,6 @@ export function AutomationsPage({ data }: { data: Data }) {
     <div>
       <PageHeader title="Automations" subtitle="Keep listings fresh on every marketplace without doing it by hand">
         <div className="flex gap-2">
-          <a href="#how-it-works" className={secondaryButton}>
-            How it works
-          </a>
           <button
             type="button"
             disabled={saved}
@@ -67,13 +64,12 @@ export function AutomationsPage({ data }: { data: Data }) {
         </div>
       </PageHeader>
       <div className="px-4 md:px-8 py-4 space-y-4">
-        <div className="rounded-lg border border-amber-200 bg-amber-50 text-amber-900 text-xs px-3 py-2.5 flex gap-2">
-          <Puzzle className="w-4 h-4 shrink-0" />
-          <p>
-            Automations run through the SellSync browser extension while you're signed in to each marketplace. Settings save here now, and the extension picks them up
-            once it's installed. {anyOn ? "Nothing runs until the extension is connected." : ""}
-          </p>
-        </div>
+        <p className="text-xs text-muted-foreground flex gap-2">
+          <Puzzle className="w-4 h-4 shrink-0 text-accent" />
+          <span>
+            Automations run through the SellSync browser extension while you're signed in to each marketplace. {anyOn ? "Nothing runs until the extension is connected." : "Your choices save here, and the extension picks them up."}
+          </span>
+        </p>
         <div className="flex gap-1.5 overflow-x-auto max-w-full">
           {platforms.map((p) => {
             const on = Object.values(draft[p] ?? {}).filter((s) => s?.enabled).length;
@@ -104,35 +100,49 @@ export function AutomationsPage({ data }: { data: Data }) {
                   </div>
                   <Toggle label={`${meta.label} on ${platform}`} checked={s.enabled} onChange={() => set(k, { enabled: !s.enabled })} />
                 </div>
+                {!s.enabled && <p className="text-[11px] text-muted-foreground">{summaryOf(k, s)}. Turn it on to change these.</p>}
+                {s.enabled && (
                 <div className="grid grid-cols-2 gap-2">
                   <NumberField label={k === "shares" ? "Closet shares a day" : "Most a day"} value={s.perDay} onChange={(v) => set(k, { perDay: v })} />
                   {k === "relists" && <NumberField label="Listed at least (days)" value={s.minAgeDays ?? 60} onChange={(v) => set(k, { minAgeDays: v })} />}
                   {k === "offers" && <NumberField label="Discount (%)" value={s.discountPct ?? 10} onChange={(v) => set(k, { discountPct: Math.min(80, v) })} />}
                   {k === "offers" && <NumberField label="Follow-up offers" value={s.followUps ?? 0} onChange={(v) => set(k, { followUps: Math.min(3, v) })} />}
                 </div>
+                )}
                 {k === "relists" && (
                   <p className="text-[11px] text-muted-foreground">
                     {stale} item{stale !== 1 ? "s" : ""} on {platform} haven't been relisted in over 60 days.
                   </p>
                 )}
-                {k === "offers" && s.followUps ? (
+                {k === "offers" && s.enabled && s.followUps ? (
                   <p className="text-[11px] text-muted-foreground">Each follow-up takes off another {s.discountPct ?? 10}%, a day apart.</p>
                 ) : null}
               </section>
             );
           })}
         </div>
-        <section id="how-it-works" className="rounded-xl border border-border bg-card p-4 text-xs text-muted-foreground space-y-1.5">
-          <h2 className="font-display text-sm font-semibold text-foreground flex items-center gap-1.5">
-            <Info className="w-4 h-4" /> How it works
-          </h2>
-          <p>Each automation runs in small batches spread through the day, staying under the daily cap you set, so it looks like normal activity.</p>
-          <p>Relists only touch items that have been listed at least as long as you choose, and never items that sold or are in drafts.</p>
-          <p>Offers go to people who liked or watched an item, at the discount you set. Marketplaces may require a minimum discount.</p>
-        </section>
+        <details className="group rounded-xl border border-border bg-card px-4 py-3 text-xs text-muted-foreground">
+          <summary className="cursor-pointer list-none font-display text-sm font-semibold text-foreground flex items-center gap-1.5">
+            <Info className="w-4 h-4" /> How automations work
+            <span className="ml-auto text-[11px] font-sans font-normal text-muted-foreground group-open:hidden">Show</span>
+          </summary>
+          <div className="space-y-1.5 mt-2">
+            <p>Each automation runs in small batches spread through the day, staying under the daily cap you set, so it looks like normal activity.</p>
+            <p>Relists only touch items that have been listed at least as long as you choose, and never items that sold or are in drafts.</p>
+            <p>Offers go to people who liked or watched an item, at the discount you set. Marketplaces may require a minimum discount.</p>
+          </div>
+        </details>
       </div>
     </div>
   );
+}
+
+// What an automation would do, in one line, while it's off.
+function summaryOf(k: AutomationKind, s: AutomationSetting) {
+  if (k === "shares") return `Up to ${s.perDay} closet shares a day`;
+  if (k === "relists") return `Up to ${s.perDay} a day, for items listed ${s.minAgeDays ?? 60}+ days`;
+  if (k === "offers") return `Up to ${s.perDay} a day at ${s.discountPct ?? 10}% off`;
+  return `Up to ${s.perDay} a day`;
 }
 
 function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {

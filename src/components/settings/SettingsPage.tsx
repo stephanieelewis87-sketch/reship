@@ -12,18 +12,40 @@ import { cleanPrefix, nextSku } from "@/lib/sku";
 type Data = ReturnType<typeof useReshipData>;
 
 export type SettingsTab = "connections" | "sale" | "guardian" | "labels" | "marketplaces" | "pricing" | "shipping" | "ai" | "subscription" | "account";
-const TABS: { key: SettingsTab; label: string }[] = [
-  { key: "connections", label: "Connections" },
-  { key: "sale", label: "Sale detection" },
-  { key: "guardian", label: "SKUs and backups" },
-  { key: "labels", label: "Labels" },
-  { key: "marketplaces", label: "Marketplaces" },
-  { key: "pricing", label: "Pricing rules" },
-  { key: "shipping", label: "Shipping" },
-  { key: "ai", label: "AI generation" },
-  { key: "subscription", label: "Subscription" },
-  { key: "account", label: "Account" },
+// Ten sections in four groups, so the list reads as a few topics instead of a long row of tabs.
+const GROUPS: { title: string; tabs: { key: SettingsTab; label: string }[] }[] = [
+  {
+    title: "Marketplaces",
+    tabs: [
+      { key: "connections", label: "Connections" },
+      { key: "marketplaces", label: "Marketplaces" },
+      { key: "sale", label: "Sale detection" },
+      { key: "pricing", label: "Pricing rules" },
+    ],
+  },
+  {
+    title: "Shipping",
+    tabs: [
+      { key: "shipping", label: "Shipping" },
+      { key: "labels", label: "Labels" },
+    ],
+  },
+  {
+    title: "Inventory",
+    tabs: [
+      { key: "guardian", label: "SKUs and backups" },
+      { key: "ai", label: "AI generation" },
+    ],
+  },
+  {
+    title: "You",
+    tabs: [
+      { key: "account", label: "Account" },
+      { key: "subscription", label: "Subscription" },
+    ],
+  },
 ];
+const TABS = GROUPS.flatMap((g) => g.tabs);
 
 const LABEL_COLORS = ["#d03b3b", "#eda100", "#2a78d6", "#1f9d6b", "#7a4fd0", "#D99B7A", "#5d6b7a"];
 
@@ -60,21 +82,35 @@ export function SettingsPage({
         </div>
       </PageHeader>
       <div className="md:flex">
-        <nav className="md:w-48 shrink-0 md:border-r border-b md:border-b-0 border-border px-4 md:px-3 py-2 md:py-4 flex md:flex-col gap-1 overflow-x-auto" aria-label="Settings sections">
-          {TABS.map((t) => (
-            <a
-              key={t.key}
-              href={`#/settings?tab=${t.key}`}
-              aria-current={tab === t.key ? "page" : undefined}
-              className={`px-2.5 py-1.5 rounded-md text-sm whitespace-nowrap ${tab === t.key ? "bg-muted text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              {t.label}
-            </a>
+        <div className="md:hidden px-4 py-3 border-b border-border">
+          <select className={`${selectClass} w-full`} value={tab} onChange={(e) => go("settings", { tab: e.target.value })} aria-label="Settings section">
+            {GROUPS.map((g) => (
+              <optgroup key={g.title} label={g.title}>
+                {g.tabs.map((t) => (
+                  <option key={t.key} value={t.key}>
+                    {t.label}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </div>
+        <nav className="hidden md:flex md:w-48 shrink-0 border-r border-border px-3 py-4 flex-col gap-4" aria-label="Settings sections">
+          {GROUPS.map((g) => (
+            <div key={g.title} className="flex flex-col gap-0.5">
+              <p className="px-2.5 pb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">{g.title}</p>
+              {g.tabs.map((t) => (
+                <a
+                  key={t.key}
+                  href={`#/settings?tab=${t.key}`}
+                  aria-current={tab === t.key ? "page" : undefined}
+                  className={`px-2.5 py-1.5 rounded-md text-sm whitespace-nowrap ${tab === t.key ? "bg-muted text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  {t.label}
+                </a>
+              ))}
+            </div>
           ))}
-          {/* Affiliates has no room in the phone's bottom bar, so phones reach it from here. */}
-          <a href="#/affiliates" className="md:hidden px-2.5 py-1.5 rounded-md text-sm whitespace-nowrap text-accent font-medium">
-            Affiliates
-          </a>
         </nav>
         <div className="flex-1 min-w-0 px-4 md:px-8 py-5 max-w-2xl space-y-6">
           {tab === "connections" && <Connections />}
@@ -322,7 +358,7 @@ function Connections() {
     <Section title="Connections" text="SellSync works with your marketplace accounts through its browser extension, using the sign-ins you already have.">
       <div className="rounded-lg border border-amber-200 bg-amber-50 text-amber-900 text-xs px-3 py-2.5 flex gap-2">
         <Puzzle className="w-4 h-4 shrink-0" />
-        <p>The extension isn't connected yet. Until it is, add orders with Import CSV or Add order on the Orders page, and add inventory by hand.</p>
+        <p>The extension isn't connected yet. Until it is, use Add orders on the Orders page to add them by hand or from a CSV file, and add inventory by hand.</p>
       </div>
       {ALL_PLATFORMS.map((p) => (
         <Row key={p} title={<PlatformName p={p} />}>

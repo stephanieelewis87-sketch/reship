@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   Clapperboard,
   Images,
@@ -20,6 +21,7 @@ import {
   ScanLine,
   Search,
   ShieldCheck,
+  Shirt,
   Tag,
   Trash2,
   X,
@@ -34,7 +36,7 @@ import { salesHints } from "@/lib/videoListing";
 import { Pills } from "../analytics/parts";
 import { PageHeader } from "../shell/PageHeader";
 import { go, type Route } from "../shell/route";
-import { PlatformIcon, inputClass, selectClass } from "../ui";
+import { EmptyState, Menu, MenuItem, PlatformIcon, inputClass, selectClass } from "../ui";
 import { LabelDots } from "./LabelChips";
 import { ListingForm } from "./ListingForm";
 import { QuickEdit } from "./QuickEdit";
@@ -68,30 +70,18 @@ const ISSUES: { key: Issue; label: string }[] = [
 ];
 
 // A small menu that closes when you click elsewhere.
-function Menu({ button, children, align = "left" }: { button: (toggle: () => void) => ReactNode; children: (close: () => void) => ReactNode; align?: "left" | "right" }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const on = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
-    document.addEventListener("mousedown", on);
-    return () => document.removeEventListener("mousedown", on);
-  }, [open]);
+function AddOption({ icon: Icon, title, hint, onClick }: { icon: typeof Plus; title: string; hint: string; onClick: () => void }) {
   return (
-    <div ref={ref} className="relative">
-      {button(() => setOpen((o) => !o))}
-      {open && (
-        <div className={`absolute z-30 mt-1 min-w-44 rounded-lg border border-border bg-card shadow-lg py-1 text-sm ${align === "right" ? "right-0" : "left-0"}`}>{children(() => setOpen(false))}</div>
-      )}
-    </div>
+    <button type="button" onClick={onClick} className="w-full flex items-start gap-3 px-3 py-2 text-left hover:bg-muted">
+      <Icon className="w-4 h-4 mt-0.5 text-accent shrink-0" />
+      <span>
+        <span className="block text-sm text-foreground">{title}</span>
+        <span className="block text-[11px] text-muted-foreground">{hint}</span>
+      </span>
+    </button>
   );
 }
 
-const MenuItem = ({ onClick, children, danger }: { onClick: () => void; children: ReactNode; danger?: boolean }) => (
-  <button type="button" onClick={onClick} className={`w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-muted ${danger ? "text-destructive" : "text-foreground"}`}>
-    {children}
-  </button>
-);
 
 export function InventoryPage({ data, route }: { data: Data; route: Route }) {
   const { inventory, settings, saveInventory, deleteInventory } = data;
@@ -272,6 +262,26 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
   );
   const skuLabelsModal = skuLabels && <SkuLabelsModal items={skuLabels} onClose={() => setSkuLabels(null)} />;
 
+  const clearFilters = () => {
+    setStatus("all");
+    setIssue("");
+    setSearch("");
+    setLocation("");
+    setLabelIn([]);
+    setLabelOut([]);
+  };
+  const emptyInventory =
+    inventory.length === 0 ? (
+      <EmptyState
+        icon={Shirt}
+        title="No items yet"
+        text="Add your first item, list a pile at once from photos or a video, or sync your marketplaces with the SellSync extension."
+        action={{ label: "Add an item", onClick: () => setForm({ item: blank(), isNew: true }) }}
+      />
+    ) : (
+      <EmptyState icon={Search} title="No items match" text="Try a different search, or clear the filters." action={{ label: "Clear filters", onClick: clearFilters }} />
+    );
+
   if (route.params.has("guardian"))
     return (
       <>
@@ -284,12 +294,21 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
   return (
     <div>
       <PageHeader title="Inventory" subtitle={`${counts.listed} listed · ${counts.draft} drafts · ${counts.sold} sold`}>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => go("inventory", { guardian: "" })}
+            title="Inventory Guardian: backups, recovery, listing checks and change history"
+            className="relative flex items-center gap-1.5 px-3 py-2 rounded-md border border-border text-sm hover:bg-muted"
+          >
+            <ShieldCheck className="w-4 h-4" /> <span className="hidden sm:inline">Guardian</span>
+            {guardianAlerts > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-rose-600 text-white text-[10px] leading-4 text-center">{guardianAlerts}</span>}
+          </button>
           <Menu
             align="right"
             button={(toggle) => (
-              <button type="button" onClick={toggle} className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-border text-sm hover:bg-muted">
-                <RefreshCw className="w-4 h-4" /> Resync
+              <button type="button" onClick={toggle} aria-label="Sync" title="Sync with your marketplaces" className="flex items-center gap-1.5 px-2.5 py-2 rounded-md border border-border text-sm hover:bg-muted">
+                <RefreshCw className="w-4 h-4" />
               </button>
             )}
           >
@@ -317,37 +336,34 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
           </Menu>
           <button
             type="button"
-            onClick={() => go("inventory", { guardian: "" })}
-            title="Inventory Guardian: backups, recovery, listing checks and change history"
-            className="relative flex items-center gap-1.5 px-3 py-2 rounded-md border border-border text-sm hover:bg-muted"
-          >
-            <ShieldCheck className="w-4 h-4" /> Guardian
-            {guardianAlerts > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-rose-600 text-white text-[10px] leading-4 text-center">{guardianAlerts}</span>}
-          </button>
-          <button type="button" onClick={() => setScan(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-border text-sm hover:bg-muted">
-            <ScanLine className="w-4 h-4" /> Scan
-          </button>
-          <button
-            type="button"
             onClick={() => setVideo(true)}
             className="flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-lg bg-amber-400 text-amber-950 text-sm font-bold shadow-md shadow-amber-400/30 ring-2 ring-amber-300 hover:bg-amber-300 hover:shadow-lg transition"
           >
-            <Clapperboard className="w-4 h-4" /> List with a video
+            <Clapperboard className="w-4 h-4" />
+            <span className="hidden sm:inline">List with a video</span>
+            <span className="sm:hidden">Video</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setPhotoUpload(true)}
-            className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-md border border-accent text-accent text-sm font-medium hover:bg-rose-50"
+          <Menu
+            align="right"
+            button={(toggle) => (
+              <button
+                type="button"
+                onClick={toggle}
+                className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-md bg-accent text-accent-foreground text-sm font-medium hover:bg-accent-hover"
+              >
+                <Plus className="w-4 h-4" /> Add <ChevronDown className="w-3.5 h-3.5 -mr-0.5" />
+              </button>
+            )}
           >
-            <Images className="w-4 h-4" /> List from photos
-          </button>
-          <button
-            type="button"
-            onClick={() => setForm({ item: blank(), isNew: true })}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-accent text-accent-foreground text-sm font-medium hover:bg-accent-hover"
-          >
-            <Plus className="w-4 h-4" /> Add item
-          </button>
+            {(close) => (
+              <div className="min-w-56">
+                <AddOption icon={Plus} title="One item" hint="Fill in the details yourself" onClick={() => (close(), setForm({ item: blank(), isNew: true }))} />
+                <AddOption icon={Images} title="From photos" hint="Up to 25 items, one listing each" onClick={() => (close(), setPhotoUpload(true))} />
+                <AddOption icon={Clapperboard} title="From a video" hint="Film your pile, get drafts" onClick={() => (close(), setVideo(true))} />
+                <AddOption icon={ScanLine} title="Scan a barcode" hint="Find or add an item by its SKU" onClick={() => (close(), setScan(true))} />
+              </div>
+            )}
+          </Menu>
         </div>
       </PageHeader>
 
@@ -486,9 +502,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
               Select this page
             </label>
             {shown.length === 0 ? (
-              <p className="bg-card border border-border rounded-xl text-center text-sm text-muted-foreground py-12">
-                {inventory.length === 0 ? "No items yet. Add one, or sync your marketplaces with the SellSync extension." : "No items match."}
-              </p>
+              <div className="bg-card border border-border rounded-xl">{emptyInventory}</div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {shown.map((item) => (
@@ -537,9 +551,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
               <tbody>
                 {shown.length === 0 && (
                   <tr>
-                    <td colSpan={2 + ALL_PLATFORMS.length} className="text-center text-sm text-muted-foreground py-12">
-                      {inventory.length === 0 ? "No items yet. Add one, or sync your marketplaces with the SellSync extension." : "No items match."}
-                    </td>
+                    <td colSpan={2 + ALL_PLATFORMS.length}>{emptyInventory}</td>
                   </tr>
                 )}
                 {shown.map((item) => (

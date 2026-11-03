@@ -103,7 +103,7 @@ export function PrintModal({
         {withoutLabel > 0 && (
           <p className="text-[11px] text-amber-800 bg-amber-50 rounded-md px-2.5 py-1.5">
             {withoutLabel} selected order{withoutLabel !== 1 ? "s have" : " has"} no marketplace label yet.
-            {opts.packingSlip ? " Their packing slips will print, and they'll stay in To Print." : " They'll stay in To Print."}
+            {opts.packingSlip ? " Their packing slips will print, and they'll stay in To print." : " They'll stay in To print."}
           </p>
         )}
       </div>

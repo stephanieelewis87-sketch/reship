@@ -36,7 +36,7 @@ export function usePrintLabels(data: ReturnType<typeof useReshipData>, onNotice:
       onNotice(
         job.unreadableLabelIds.length
           ? { text: `${job.unreadableLabelIds.length} label file${job.unreadableLabelIds.length !== 1 ? "s" : ""} couldn't be read. Try uploading ${job.unreadableLabelIds.length !== 1 ? "them" : "it"} again.`, ok: false }
-          : { text: `${verb} ${job.printedOrderIds.length} label${job.printedOrderIds.length !== 1 ? "s" : ""}${skipped ? `; ${skipped} order${skipped !== 1 ? "s" : ""} without a label stayed in To Print` : ""}.`, ok: true },
+          : { text: `${verb} ${job.printedOrderIds.length} label${job.printedOrderIds.length !== 1 ? "s" : ""}${skipped ? `; ${skipped} order${skipped !== 1 ? "s" : ""} without a label stayed in To print` : ""}.`, ok: true },
       );
       return true;
     } catch (e) {

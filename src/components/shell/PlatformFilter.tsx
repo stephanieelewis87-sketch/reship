@@ -29,6 +29,7 @@ export function PlatformFilter({
           className={`flex items-center gap-1 px-2 py-1 rounded-md border text-[11px] whitespace-nowrap transition-colors ${active.has(p) ? "border-accent bg-rose-50/60 text-accent" : "border-border text-muted-foreground hover:bg-muted"}`}
         >
           <PlatformIcon platform={p} />
+          <span className="hidden xl:inline">{p}</span>
           <span className="tabular-nums">{counts[p]}</span>
         </button>
       ))}

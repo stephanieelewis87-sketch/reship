@@ -1,5 +1,5 @@
-import type { ComponentType } from "react";
-import { AlertCircle, BarChart3, Gift, Home, MessageSquare, Settings as SettingsIcon, Shirt, Truck, X, Zap } from "lucide-react";
+import { type ComponentType, useEffect, useState } from "react";
+import { AlertCircle, BarChart3, Gift, Home, MessageSquare, MoreHorizontal, Settings as SettingsIcon, Shirt, Truck, X, Zap } from "lucide-react";
 import type { useReshipData } from "@/lib/useReshipData";
 import { isPartiallyDelisted } from "@/lib/inventory";
 import { OrdersPage } from "../Dashboard";
@@ -16,15 +16,39 @@ import { Logo } from "../brand/Logo";
 
 type Data = ReturnType<typeof useReshipData>;
 
-// mobile: false keeps an entry out of the phone's bottom bar, which fits six.
-const NAV: { section: Section; label: string; icon: ComponentType<{ className?: string }>; mobile?: false }[] = [
-  { section: "home", label: "Home", icon: Home },
-  { section: "inventory", label: "Inventory", icon: Shirt },
-  { section: "automations", label: "Automations", icon: Zap },
-  { section: "orders", label: "Orders", icon: Truck },
-  { section: "analytics", label: "Analytics", icon: BarChart3 },
-  { section: "affiliates", label: "Affiliates", icon: Gift, mobile: false },
+interface NavItem {
+  section: Section;
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+}
+
+// The sidebar in two groups: the everyday work first, then the tools that grow the shop.
+const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
+  {
+    title: "Sell",
+    items: [
+      { section: "home", label: "Home", icon: Home },
+      { section: "inventory", label: "Inventory", icon: Shirt },
+      { section: "orders", label: "Orders", icon: Truck },
+    ],
+  },
+  {
+    title: "Grow",
+    items: [
+      { section: "automations", label: "Automations", icon: Zap },
+      { section: "analytics", label: "Analytics", icon: BarChart3 },
+      { section: "affiliates", label: "Affiliates", icon: Gift },
+    ],
+  },
+];
+const NAV = NAV_GROUPS.flatMap((g) => g.items);
+
+// The phone's bottom bar keeps the four most used sections; the rest sit under More.
+const PHONE_TABS: Section[] = ["home", "inventory", "orders", "analytics"];
+const MORE: NavItem[] = [
+  ...NAV.filter((n) => !PHONE_TABS.includes(n.section)),
   { section: "settings", label: "Settings", icon: SettingsIcon },
+  { section: "feedback", label: "Send feedback", icon: MessageSquare },
 ];
 
 // The frame around every section: a sidebar on computers and a bottom bar on phones.
@@ -52,33 +76,20 @@ export function AppShell({
         <button type="button" onClick={() => go("home")} className="px-5 py-5 border-b border-border flex items-center gap-2.5 text-left">
           <Logo />
         </button>
-        <nav className="px-3 py-4 flex flex-col gap-0.5">
-          {NAV.map(({ section, label, icon: Icon }) => {
-            const active = route.section === section;
-            return (
-              <a
-                key={section}
-                href={`#/${section}`}
-                aria-current={active ? "page" : undefined}
-                className={`flex items-center justify-between px-2.5 py-2 rounded-md text-sm transition-colors ${active ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-muted"}`}
-              >
-                <span className="flex items-center gap-2.5">
-                  <Icon className="w-4 h-4" /> {label}
-                </span>
-                {!!badge[section] && (
-                  <span className={`font-mono text-[11px] tabular-nums ${active ? "text-accent-foreground/70" : "text-muted-foreground"}`}>{badge[section]}</span>
-                )}
-              </a>
-            );
-          })}
+        <nav className="px-3 py-4 flex flex-col gap-5">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.title} className="flex flex-col gap-0.5">
+              <p className="px-2.5 pb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">{group.title}</p>
+              {group.items.map((item) => (
+                <SideLink key={item.section} item={item} active={route.section === item.section} badge={badge[item.section]} />
+              ))}
+            </div>
+          ))}
         </nav>
-        <a
-          href="#/feedback"
-          aria-current={route.section === "feedback" ? "page" : undefined}
-          className={`mt-auto mx-3 mb-2 flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm ${route.section === "feedback" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
-        >
-          <MessageSquare className="w-4 h-4" /> Feedback
-        </a>
+        <div className="mt-auto px-3 pb-2 flex flex-col gap-0.5">
+          <SideLink item={{ section: "settings", label: "Settings", icon: SettingsIcon }} active={route.section === "settings"} quiet />
+          <SideLink item={{ section: "feedback", label: "Feedback", icon: MessageSquare }} active={route.section === "feedback"} quiet />
+        </div>
         <a href="#/settings?tab=account" className=" border-t border-border px-4 py-3 flex items-center gap-2 hover:bg-muted">
           <div className="w-6 h-6 rounded-full bg-accent/15 flex items-center justify-center shrink-0">
             <span className="font-display text-[11px] font-semibold text-accent">{(data.settings.displayName || "S").charAt(0).toUpperCase()}</span>
@@ -145,26 +156,93 @@ export function AppShell({
         </div>
       </main>
 
-      <a href="#/feedback" aria-label="Send feedback" className="md:hidden fixed right-3 bottom-[4.5rem] z-30 w-10 h-10 rounded-full bg-card border border-border shadow-md flex items-center justify-center text-accent">
-        <MessageSquare className="w-4 h-4" />
-      </a>
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-card border-t border-border grid grid-cols-6">
-        {NAV.filter((n) => n.mobile !== false).map(({ section, label, icon: Icon }) => {
-          const active = route.section === section;
+      <PhoneNav route={route.section} badge={badge} />
+    </div>
+  );
+}
+
+function SideLink({ item, active, badge, quiet }: { item: NavItem; active: boolean; badge?: number; quiet?: boolean }) {
+  const { section, label, icon: Icon } = item;
+  return (
+    <a
+      href={`#/${section}`}
+      aria-current={active ? "page" : undefined}
+      className={`flex items-center justify-between px-2.5 py-2 rounded-md text-sm transition-colors ${
+        active ? "bg-accent text-accent-foreground" : quiet ? "text-muted-foreground hover:bg-muted hover:text-foreground" : "text-foreground hover:bg-muted"
+      }`}
+    >
+      <span className="flex items-center gap-2.5">
+        <Icon className="w-4 h-4" /> {label}
+      </span>
+      {!!badge && (
+        <span
+          className={`min-w-5 h-5 px-1.5 rounded-full font-mono text-[11px] tabular-nums flex items-center justify-center ${
+            active ? "bg-accent-foreground/15 text-accent-foreground" : "bg-accent/15 text-accent"
+          }`}
+        >
+          {badge}
+        </span>
+      )}
+    </a>
+  );
+}
+
+// Phones: four tabs and a More sheet with everything else.
+function PhoneNav({ route, badge }: { route: Section; badge: Partial<Record<Section, number>> }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => setOpen(false), [route]);
+  const moreActive = MORE.some((m) => m.section === route);
+  return (
+    <>
+      {open && (
+        <div className="md:hidden fixed inset-0 z-40" onClick={() => setOpen(false)}>
+          <div className="absolute inset-0 bg-black/50" />
+          <div
+            role="dialog"
+            aria-label="More"
+            className="absolute bottom-16 inset-x-3 rounded-xl bg-popover border border-border shadow-2xl p-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {MORE.map(({ section, label, icon: Icon }) => (
+              <a
+                key={section}
+                href={`#/${section}`}
+                onClick={() => setOpen(false)}
+                aria-current={route === section ? "page" : undefined}
+                className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm ${route === section ? "bg-accent/15 text-accent font-medium" : "text-foreground"}`}
+              >
+                <Icon className="w-4 h-4" /> {label}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-card border-t border-border grid grid-cols-5">
+        {NAV.filter((n) => PHONE_TABS.includes(n.section)).map(({ section, label, icon: Icon }) => {
+          const active = route === section;
           return (
             <a
               key={section}
               href={`#/${section}`}
               aria-current={active ? "page" : undefined}
-              className={`relative flex flex-col items-center gap-0.5 py-2 text-[10px] ${active ? "text-accent font-medium" : "text-muted-foreground"}`}
+              className={`relative flex flex-col items-center gap-0.5 py-2 text-[11px] ${active ? "text-accent font-medium" : "text-muted-foreground"}`}
             >
               <Icon className="w-5 h-5" />
-              {label === "Automations" ? "Auto" : label}
-              {!!badge[section] && <span className="absolute top-1 right-[22%] w-1.5 h-1.5 rounded-full bg-accent" />}
+              {label}
+              {!!badge[section] && <span className="absolute top-1 right-[26%] w-1.5 h-1.5 rounded-full bg-accent" />}
             </a>
           );
         })}
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className={`flex flex-col items-center gap-0.5 py-2 text-[11px] ${moreActive || open ? "text-accent font-medium" : "text-muted-foreground"}`}
+        >
+          <MoreHorizontal className="w-5 h-5" />
+          More
+        </button>
       </nav>
-    </div>
+    </>
   );
 }

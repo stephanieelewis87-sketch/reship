@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { AlertTriangle, CheckCircle2, Circle, Clock, Copy, PackageX, Plus, Printer, Sparkles, Tag, Trash2, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Circle, Clock, Copy, PackageX, Plus, Printer, Sparkles, Tag, Target, Trash2, X, Zap } from "lucide-react";
 import type { Goal, GoalMetric, GoalPeriod } from "@/lib/types";
 import type { useReshipData } from "@/lib/useReshipData";
 import { isoDay, linesIn, metrics, saleLines } from "@/lib/analytics";
@@ -15,7 +15,7 @@ import { CHART, fmtMoney } from "../analytics/charts";
 import { PageHeader } from "../shell/PageHeader";
 import { go } from "../shell/route";
 import { WithdrawShortcuts } from "../WithdrawShortcuts";
-import { inputClass, orderTitle, selectClass } from "../ui";
+import { EmptyState, inputClass, orderTitle, selectClass } from "../ui";
 
 type Data = ReturnType<typeof useReshipData>;
 
@@ -98,31 +98,58 @@ function GettingStarted({ data }: { data: Data }) {
     { id: "expense", label: "Log a business expense", done: data.expenses.length > 0, href: "#/analytics?tab=expenses" },
   ].map((s) => ({ ...s, done: s.done || settings.gettingStartedDone.includes(s.id) }));
   const left = steps.filter((s) => !s.done).length;
+  const [expanded, setExpanded] = useState(false);
   if (left === 0 || settings.gettingStartedDone.includes("hidden")) return null;
+  const next = steps.find((s) => !s.done)!;
+  const hide = () => saveSettings({ ...settings, gettingStartedDone: [...settings.gettingStartedDone, "hidden"] });
   return (
-    <Card
-      title="Getting started"
-      subtitle={`${steps.length - left} of ${steps.length} done`}
-      right={
-        <button type="button" onClick={() => saveSettings({ ...settings, gettingStartedDone: [...settings.gettingStartedDone, "hidden"] })} className="text-xs text-muted-foreground hover:text-foreground">
-          Hide
+    <section className="bg-card border border-border rounded-xl px-4 md:px-5 py-3.5">
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative w-9 h-9 shrink-0" aria-hidden>
+          <svg viewBox="0 0 36 36" className="w-9 h-9 -rotate-90">
+            <circle cx="18" cy="18" r="15" fill="none" strokeWidth="3.5" className="stroke-muted" />
+            <circle
+              cx="18"
+              cy="18"
+              r="15"
+              fill="none"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+              stroke={CHART.profit}
+              strokeDasharray={`${((steps.length - left) / steps.length) * 94.2} 94.2`}
+            />
+          </svg>
+          <span className="absolute inset-0 flex items-center justify-center text-[10px] font-mono text-foreground">
+            {steps.length - left}/{steps.length}
+          </span>
+        </div>
+        <div className="min-w-0 flex-1 basis-[calc(100%-3.5rem)] sm:basis-0">
+          <p className="text-sm font-medium text-foreground">Getting started</p>
+          <p className="text-xs text-muted-foreground truncate">Next: {next.label}</p>
+        </div>
+        <a href={next.href} className="px-3 py-1.5 rounded-md bg-accent text-accent-foreground text-xs font-medium hover:bg-accent-hover">
+          Do this next
+        </a>
+        <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-xs text-muted-foreground hover:text-foreground">
+          {expanded ? "Show less" : "All steps"}
         </button>
-      }
-    >
-      <div className="h-1.5 rounded-full bg-muted overflow-hidden mb-3">
-        <div className="h-full rounded-full" style={{ width: `${((steps.length - left) / steps.length) * 100}%`, background: CHART.profit }} />
+        <button type="button" onClick={hide} aria-label="Hide getting started" className="text-muted-foreground hover:text-foreground">
+          <X className="w-3.5 h-3.5" />
+        </button>
       </div>
-      <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1.5">
-        {steps.map((s) => (
-          <li key={s.id}>
-            <a href={s.done ? undefined : s.href} className={`flex items-center gap-2 text-sm ${s.done ? "text-muted-foreground line-through" : "text-foreground hover:text-accent"}`}>
-              {s.done ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <Circle className="w-4 h-4 text-muted-foreground shrink-0" />}
-              {s.label}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </Card>
+      {expanded && (
+        <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 mt-3 pt-3 border-t border-border">
+          {steps.map((s) => (
+            <li key={s.id}>
+              <a href={s.done ? undefined : s.href} className={`flex items-center gap-2 text-sm ${s.done ? "text-muted-foreground line-through" : "text-foreground hover:text-accent"}`}>
+                {s.done ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <Circle className="w-4 h-4 text-muted-foreground shrink-0" />}
+                {s.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -151,7 +178,10 @@ function TodaySummary({ data, today }: { data: Data; today: string }) {
         <Stat label="Revenue" value={fmtMoney(m.revenue)} href="#/analytics" />
         <Stat label="Profit" value={fmtMoney(m.profit)} hint="after fees and cost" href="#/analytics" />
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+      <a href="#/automations" className="mt-3 flex items-center gap-3 flex-wrap bg-card border border-border rounded-xl px-4 py-2.5 text-sm hover:border-accent/40">
+        <span className="flex items-center gap-1.5 text-foreground font-medium">
+          <Zap className="w-3.5 h-3.5 text-accent" /> Automations
+        </span>
         {(
           [
             ["Shares", "shares", null],
@@ -159,13 +189,17 @@ function TodaySummary({ data, today }: { data: Data; today: string }) {
             ["Offers", "offers", null],
             ["Follows", "follows", null],
           ] as const
-        ).map(([label, kind, n]) => (
-          <a key={kind} href="#/automations" className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-2.5 hover:border-accent/40">
-            <span className="text-sm text-foreground">{label}</span>
-            <span className="text-sm tabular-nums text-muted-foreground">{n != null ? n : on(kind) ? "On" : "Off"}</span>
-          </a>
-        ))}
-      </div>
+        ).map(([label, kind, n]) => {
+          const isOn = on(kind);
+          return (
+            <span key={kind} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className={`w-1.5 h-1.5 rounded-full ${isOn ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
+              {label} {isOn ? (n != null ? `· ${n} today` : "on") : "off"}
+            </span>
+          );
+        })}
+        <span className="ml-auto text-xs text-accent">{Object.values(autos).some((a) => Object.values(a ?? {}).some((x) => x?.enabled)) ? "Manage" : "Turn on"}</span>
+      </a>
     </section>
   );
 }
@@ -275,7 +309,11 @@ function NeedsAttention({ data, today }: { data: Data; today: string }) {
       }
     >
       {shown.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4 text-center">{tab === "open" ? "All clear." : "Nothing dismissed."}</p>
+        tab === "open" ? (
+          <EmptyState icon={CheckCircle2} title="All clear" text="Nothing needs you right now. Problems with orders and listings show up here." />
+        ) : (
+          <p className="text-sm text-muted-foreground py-4 text-center">Nothing dismissed.</p>
+        )
       ) : (
         <ul className="divide-y divide-border">
           {shown.slice(0, 8).map((i) => (
@@ -367,7 +405,7 @@ function Goals({ data, today }: { data: Data; today: string }) {
           </form>
         )}
         {settings.goals.length === 0 && !adding ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">No goals yet. Add one to see your pace every day.</p>
+          <EmptyState icon={Target} title="No goals yet" text="Set a profit, sales or listing goal and see your pace here every day." action={{ label: "Add a goal", onClick: () => setAdding(true) }} />
         ) : (
           <ul className="space-y-4">
             {settings.goals.map((g) => {
@@ -407,6 +445,7 @@ function Goals({ data, today }: { data: Data; today: string }) {
 // --- What's new ---------------------------------------------------------------------------------
 
 const RELEASES = [
+  { date: "Nov 3, 2026", text: "A simpler look: the menu is grouped into Sell and Grow, Inventory has one Add button for every way to add items, and Settings is grouped into four sections." },
   { date: "Oct 31, 2026", text: "List from photos: upload photos of up to 25 items at once, and AI sorts them into one listing per item, then writes each one with a suggested price." },
   { date: "Oct 30, 2026", text: "List with a video: film up to 25 items, and AI finds each one, keeps snips from the video, makes a clean photo, and writes the listing with a suggested price." },
   { date: "Oct 29, 2026", text: "A new layout: Home, Inventory, Automations, Orders, Analytics and Settings, with goals and a needs-attention list here on Home." },
@@ -416,20 +455,27 @@ const RELEASES = [
 
 function WhatsNew() {
   const [open, setOpen] = useState(true);
+  const [all, setAll] = useState(false);
   if (!open) return null;
+  const shown = all ? RELEASES : RELEASES.slice(0, 1);
   return (
     <Card
       title="What's new"
       right={
-        <button type="button" aria-label="Hide what's new" onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
-          <X className="w-3.5 h-3.5" />
-        </button>
+        <span className="flex items-center gap-3">
+          <button type="button" onClick={() => setAll((v) => !v)} className="text-xs text-muted-foreground hover:text-foreground">
+            {all ? "Show less" : `All updates (${RELEASES.length})`}
+          </button>
+          <button type="button" aria-label="Hide what's new" onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </span>
       }
     >
       <ul className="space-y-2">
-        {RELEASES.map((r) => (
-          <li key={r.date} className="text-sm flex gap-3">
-            <span className="text-xs text-muted-foreground w-24 shrink-0 pt-0.5">{r.date}</span>
+        {shown.map((r) => (
+          <li key={r.date} className="text-sm flex flex-col sm:flex-row gap-0.5 sm:gap-3">
+            <span className="text-xs text-muted-foreground sm:w-24 shrink-0 pt-0.5">{r.date}</span>
             <span className="text-foreground">{r.text}</span>
           </li>
         ))}
@@ -437,4 +483,3 @@ function WhatsNew() {
     </Card>
   );
 }
-

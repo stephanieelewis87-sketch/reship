@@ -17,7 +17,7 @@ export const PLATFORM_CONFIG: Record<Platform, { color: string; bg: string; doma
 };
 
 export const STATUS_CONFIG: Record<LabelStatus, { label: string; textColor: string; dot: string; icon: ComponentType<{ className?: string }> }> = {
-  pending: { label: "To Print", textColor: "text-amber-600", dot: "bg-amber-400", icon: Clock },
+  pending: { label: "To print", textColor: "text-amber-600", dot: "bg-amber-400", icon: Clock },
   printed: { label: "Printed", textColor: "text-violet-600", dot: "bg-violet-400", icon: CheckCircle2 },
   shipped: { label: "Shipped", textColor: "text-emerald-600", dot: "bg-emerald-400", icon: Truck },
 };
@@ -276,5 +276,59 @@ export function Field({ label, children, className = "" }: { label: string; chil
       <span className="block text-[11px] font-medium text-muted-foreground mb-1">{label}</span>
       {children}
     </label>
+  );
+}
+
+// A button that opens a small menu below it, closed by clicking anywhere else.
+export function Menu({ button, children, align = "left" }: { button: (toggle: () => void) => ReactNode; children: (close: () => void) => ReactNode; align?: "left" | "right" }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const on = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
+    document.addEventListener("mousedown", on);
+    return () => document.removeEventListener("mousedown", on);
+  }, [open]);
+  return (
+    <div ref={ref} className="relative">
+      {button(() => setOpen((o) => !o))}
+      {open && (
+        <div className={`absolute z-30 mt-1 min-w-44 rounded-lg border border-border bg-card shadow-lg py-1 text-sm ${align === "right" ? "right-0" : "left-0"}`}>{children(() => setOpen(false))}</div>
+      )}
+    </div>
+  );
+}
+
+export const MenuItem = ({ onClick, children, danger }: { onClick: () => void; children: ReactNode; danger?: boolean }) => (
+  <button type="button" onClick={onClick} className={`w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-muted ${danger ? "text-destructive" : "text-foreground"}`}>
+    {children}
+  </button>
+);
+
+// What an empty list shows: an icon, one line on what belongs here, and the next thing to do.
+export function EmptyState({
+  icon: Icon,
+  title,
+  text,
+  action,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  title: string;
+  text?: string;
+  action?: { label: string; onClick: () => void };
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center text-center py-12 px-6">
+      <span className="w-10 h-10 rounded-full bg-accent/10 text-accent flex items-center justify-center mb-3">
+        <Icon className="w-5 h-5" />
+      </span>
+      <p className="text-sm font-medium text-foreground">{title}</p>
+      {text && <p className="text-xs text-muted-foreground mt-1 max-w-sm">{text}</p>}
+      {action && (
+        <button type="button" onClick={action.onClick} className="mt-4 px-3 py-1.5 rounded-md bg-accent text-accent-foreground text-xs font-medium hover:bg-accent-hover">
+          {action.label}
+        </button>
+      )}
+    </div>
   );
 }
