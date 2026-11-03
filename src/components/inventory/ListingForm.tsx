@@ -204,7 +204,7 @@ export function ListingForm({
                 title={photos.length ? "Add a brand tag and a sale banner like BOGO or 50% OFF to your cover photo." : "Add a photo first."}
                 className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border text-xs text-accent hover:bg-rose-50 disabled:text-muted-foreground disabled:opacity-60 disabled:hover:bg-transparent"
               >
-                <Tag className="w-3.5 h-3.5" /> {coverEdit ? "Edit cover" : "Customize cover"}
+                <Tag className="w-3.5 h-3.5" /> {coverEdit ? "Edit brand tag & banner" : "Brand tag & banner"}
               </button>
               <button
                 type="button"
@@ -256,6 +256,24 @@ export function ListingForm({
                 <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => (void upload(e.target.files), (e.target.value = ""))} />
               </label>
             </div>
+            <button
+              type="button"
+              onClick={() => photos.length && setCoverOpen(true)}
+              aria-disabled={!photos.length}
+              className={`w-full flex items-center gap-3 rounded-lg border border-dashed px-3 py-2.5 text-left ${photos.length ? "border-accent/50 bg-accent/5 hover:bg-accent/10" : "border-border cursor-default"}`}
+            >
+              <span className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
+                <Tag className="w-4 h-4 text-accent" />
+              </span>
+              <span className="text-sm">
+                <span className="font-medium text-foreground">{coverEdit ? "Edit your cover's brand tag and sale banner" : "Customize your cover photo"}</span>
+                <span className="block text-[12px] text-muted-foreground">
+                  {photos.length
+                    ? "Add a brand tag (100 brands, or type your own) and a sale banner like BOGO, 50% OFF or FREE GIFT WITH PURCHASE."
+                    : "Add a photo first, then put a brand tag and a sale banner like BOGO or 50% OFF on it."}
+                </span>
+              </span>
+            </button>
           </section>
 
           <section className="space-y-3">
