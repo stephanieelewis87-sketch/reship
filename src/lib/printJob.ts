@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, degrees, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { PDFDocument, StandardFonts, degrees, rgb, type PDFFont, type PDFImage, type PDFPage } from "pdf-lib";
 import type { Address, LabelFormat, Order, Settings } from "./types";
 
 const PAGE_SIZES: Record<LabelFormat, [number, number]> = {
@@ -12,6 +12,8 @@ export interface PrintJobInput {
   labels: Map<string, Blob | ArrayBuffer | Uint8Array>;
   skuOnLabel: boolean;
   packingSlip: boolean;
+  // Orders with a drop-off QR code get that instead of their label (the rest still get labels).
+  qrCodes?: boolean;
   settings: Pick<Settings, "labelFormat" | "shipFrom">;
 }
 
@@ -72,6 +74,60 @@ async function addUprightLabel(doc: PDFDocument, src: PDFPage): Promise<PDFPage>
   const y = (pageH - w * scale) / 2;
   page.drawPage(embedded, { x, y, width: w * scale, height: h * scale, rotate: degrees(90) });
   return page;
+}
+
+const QR_PER_SHEET = { cols: 2, rows: 3 };
+
+const dataUrlBytes = (dataUrl: string) => Uint8Array.from(atob(dataUrl.split(",")[1] ?? ""), (c) => c.charCodeAt(0));
+
+// One drop-off QR code with what's needed to match it to its package. On 4x6 paper each code gets
+// its own label; on letter or A4 they're laid out six to a sheet.
+async function embedQrCode(doc: PDFDocument, qr: string): Promise<PDFImage | null> {
+  try {
+    return qr.startsWith("data:image/png") ? await doc.embedPng(dataUrlBytes(qr)) : await doc.embedJpg(dataUrlBytes(qr));
+  } catch {
+    return null;
+  }
+}
+
+// Cuts text to fit one line, since the standard fonts don't wrap on their own.
+const fit = (text: string, font: PDFFont, size: number, maxWidth: number) => {
+  let t = safe(text);
+  if (font.widthOfTextAtSize(t, size) <= maxWidth) return t;
+  while (t.length > 1 && font.widthOfTextAtSize(`${t}...`, size) > maxWidth) t = t.slice(0, -1);
+  return `${t.trimEnd()}...`;
+};
+
+function drawQrCodes(doc: PDFDocument, codes: { order: Order; image: PDFImage }[], input: PrintJobInput, font: PDFFont, bold: PDFFont) {
+  const [pageW, pageH] = PAGE_SIZES[input.settings.labelFormat];
+  const perPage = input.settings.labelFormat === "4x6" ? { cols: 1, rows: 1 } : QR_PER_SHEET;
+  const margin = input.settings.labelFormat === "4x6" ? 12 : 36;
+  const cellW = (pageW - margin * 2) / perPage.cols;
+  const cellH = (pageH - margin * 2) / perPage.rows;
+  let page: PDFPage | undefined;
+  for (const [i, { order, image }] of codes.entries()) {
+    const slot = i % (perPage.cols * perPage.rows);
+    if (slot === 0) page = doc.addPage([pageW, pageH]);
+    const x = margin + (slot % perPage.cols) * cellW;
+    const top = pageH - margin - Math.floor(slot / perPage.cols) * cellH;
+    const textSize = perPage.cols === 1 ? 11 : 9;
+    const textLines = 4;
+    const size = Math.min(cellW - 16, cellH - 16 - textLines * (textSize + 4));
+    page!.drawRectangle({ x: x + 4, y: top - cellH + 4, width: cellW - 8, height: cellH - 8, borderColor: rgb(0.8, 0.8, 0.8), borderWidth: 0.75 });
+    page!.drawImage(image, { x: x + (cellW - size) / 2, y: top - 8 - size, width: size, height: size });
+    const skus = order.items.map((it) => it.sku).filter(Boolean).join(", ");
+    const lines: [string, PDFFont][] = [
+      [`${order.platform} - ${order.orderId}`, bold],
+      [order.items.length > 1 ? `${order.items[0].name} + ${order.items.length - 1} more` : (order.items[0]?.name ?? ""), font],
+      [skus ? `SKU: ${skus}` : "", bold],
+      [`${order.carrier}${order.buyer ? ` - @${order.buyer}` : ""}`, font],
+    ];
+    let y = top - 8 - size - textSize - 6;
+    for (const [text, f] of lines) {
+      if (text) page!.drawText(fit(text, f, textSize, cellW - 24), { x: x + 12, y, size: textSize, font: f });
+      y -= textSize + 4;
+    }
+  }
 }
 
 function wrap(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
@@ -144,7 +200,23 @@ export async function buildPrintJob(input: PrintJobInput): Promise<PrintJobResul
   const missingLabelIds: string[] = [];
   const unreadableLabelIds: string[] = [];
 
-  for (const order of input.orders) {
+  // QR codes go first, together, so a sheet of them isn't split up by labels. An order whose code
+  // can't be read gets its label instead.
+  const codes: { order: Order; image: PDFImage }[] = [];
+  if (input.qrCodes) {
+    for (const order of input.orders) {
+      const image = order.label?.qrCode ? await embedQrCode(doc, order.label.qrCode) : null;
+      if (image) codes.push({ order, image });
+    }
+  }
+  if (codes.length) {
+    drawQrCodes(doc, codes, input, font, bold);
+    printedOrderIds.push(...codes.map((c) => c.order.id));
+    if (input.packingSlip) codes.forEach((c) => drawSlip(doc, c.order, input, font, bold));
+  }
+  const asQr = new Set(printedOrderIds);
+
+  for (const order of input.orders.filter((o) => !asQr.has(o.id))) {
     let hasOwnSlip = false;
     const raw = input.labels.get(order.id);
     if (!raw) missingLabelIds.push(order.id);

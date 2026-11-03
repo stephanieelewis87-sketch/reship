@@ -93,4 +93,24 @@ describe("print job", () => {
     });
     expect(res.pageCount).toBe(1);
   });
+
+  it("prints drop-off QR codes instead of labels when asked", async () => {
+    const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+    const withQr = (id: string, qrCode: string): Order => ({ ...order(id), label: { fileName: `${id}.pdf`, uploadedAt: "", qrCode } });
+    const orders = [withQr("q1", png), withQr("q2", png), withQr("bad", "data:image/png;base64,AAAA"), order("plain")];
+    const labels = new Map(orders.map((o) => [o.id, new Uint8Array()] as const));
+    labels.set("bad", await fakeLabel(1));
+    labels.set("plain", await fakeLabel(1));
+
+    const sheet = await buildPrintJob({ orders, labels, skuOnLabel: false, packingSlip: false, qrCodes: true, settings: { labelFormat: "letter", shipFrom: null } });
+    // Both codes share one sheet; the unreadable code and the order without one print their labels.
+    expect(sheet.pageCount).toBe(3);
+    expect(sheet.printedOrderIds).toEqual(["q1", "q2", "bad", "plain"]);
+
+    const fourBySix = await buildPrintJob({ orders, labels, skuOnLabel: false, packingSlip: false, qrCodes: true, settings });
+    expect(fourBySix.pageCount).toBe(4);
+
+    const asLabels = await buildPrintJob({ orders: [order("plain")], labels, skuOnLabel: false, packingSlip: false, qrCodes: false, settings });
+    expect(asLabels.pageCount).toBe(1);
+  });
 });

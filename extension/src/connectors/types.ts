@@ -14,6 +14,8 @@ export interface ImportedOrder {
   labelUrl?: string;
   // The marketplace's ids for the listings that sold, so Reship can delist them elsewhere.
   listingIds?: string[];
+  // The marketplace's drop-off QR code (a PNG data URL), when it offers one instead of printing.
+  qrCode?: string;
 }
 
 // One per marketplace. Each runs inside the seller's browser and uses the session they are

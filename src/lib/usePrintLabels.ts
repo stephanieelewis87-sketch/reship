@@ -10,7 +10,7 @@ export type PrintNotice = { text: string; ok: boolean };
 export function usePrintLabels(data: ReturnType<typeof useReshipData>, onNotice: (n: PrintNotice) => void) {
   const { settings, loadLabels, patchOrders } = data;
   const [printing, setPrinting] = useState(false);
-  const defaults: PrintOptions = { skuOnLabel: settings.printSkuOnLabel, packingSlip: settings.printPackingSlip };
+  const defaults: PrintOptions = { skuOnLabel: settings.printSkuOnLabel, packingSlip: settings.printPackingSlip, qrCodes: settings.printQrCodes };
 
   const print = async (chosen: Order[], opts: PrintOptions = defaults): Promise<boolean> => {
     if (!chosen.length) return false;
@@ -19,7 +19,7 @@ export function usePrintLabels(data: ReturnType<typeof useReshipData>, onNotice:
     setPrinting(true);
     try {
       const labels = await loadLabels(chosen);
-      const job = await buildPrintJob({ orders: chosen, labels, skuOnLabel: opts.skuOnLabel, packingSlip: opts.packingSlip, settings });
+      const job = await buildPrintJob({ orders: chosen, labels, skuOnLabel: opts.skuOnLabel, packingSlip: opts.packingSlip, qrCodes: opts.qrCodes, settings });
       if (job.pageCount === 0) {
         win?.close();
         onNotice({ text: "None of those orders has a label yet.", ok: false });

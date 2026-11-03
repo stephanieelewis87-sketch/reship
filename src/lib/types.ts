@@ -190,6 +190,8 @@ export interface ShippingPreset {
 export interface LabelFile {
   fileName: string;
   uploadedAt: string;
+  // The marketplace's drop-off QR code (a PNG data URL), for printing instead of the label.
+  qrCode?: string;
 }
 
 export interface Settings {
@@ -203,6 +205,8 @@ export interface Settings {
   // Defaults for one-click printing.
   printSkuOnLabel: boolean;
   printPackingSlip: boolean;
+  // Print drop-off QR codes instead of labels for orders that have one.
+  printQrCodes: boolean;
   // Analytics goal; 0 means no goal. Kept for older saved settings; goals replaces it.
   monthlyProfitGoal: number;
   goals: Goal[];
@@ -266,6 +270,7 @@ export interface ItemChange {
 export interface PrintOptions {
   skuOnLabel: boolean;
   packingSlip: boolean;
+  qrCodes: boolean;
 }
 
 export const ALL_PLATFORMS: Platform[] = ["Poshmark", "Vinted", "Depop", "Mercari", "WhatNot", "Etsy", "eBay", "Facebook", "ThredUp"];
@@ -305,6 +310,7 @@ export const DEFAULT_SETTINGS: Settings = {
   skuFormat: { prefix: "RS", digits: 4, counters: { RS: 1000 } },
   guardian: { protect: true, threshold: 10, dailyBackup: true },
   research: [],
+  printQrCodes: false,
 };
 
 export const emptyAddress = (): Address => ({ name: "", street1: "", street2: "", city: "", state: "", zip: "", country: "US", phone: "" });
