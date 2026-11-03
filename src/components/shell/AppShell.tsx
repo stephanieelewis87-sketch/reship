@@ -13,6 +13,8 @@ import { FeedbackPage } from "../feedback/FeedbackPage";
 import { AffiliatesPage } from "../affiliates/AffiliatesPage";
 import { type Section, go, useRoute } from "./route";
 import { Logo } from "../brand/Logo";
+import { LockedSection, PlanTag, currentPlan } from "../plans/PlanGate";
+import { type Feature, hasFeature, type PlanId } from "@/lib/plans";
 
 type Data = ReturnType<typeof useReshipData>;
 
@@ -22,10 +24,17 @@ interface NavItem {
   icon: ComponentType<{ className?: string }>;
 }
 
+// Sections that need a plan above Sell.
+const SECTION_FEATURE: Partial<Record<Section, Feature>> = { orders: "labels", automations: "automations" };
+const lockedFeature = (plan: PlanId, section: Section) => {
+  const f = SECTION_FEATURE[section];
+  return f && !hasFeature(plan, f) ? f : undefined;
+};
+
 // The sidebar in two groups: the everyday work first, then the tools that grow the shop.
 const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   {
-    title: "Sell",
+    title: "Every day",
     items: [
       { section: "home", label: "Home", icon: Home },
       { section: "inventory", label: "Inventory", icon: Shirt },
@@ -33,7 +42,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
-    title: "Grow",
+    title: "Tools",
     items: [
       { section: "automations", label: "Automations", icon: Zap },
       { section: "analytics", label: "Analytics", icon: BarChart3 },
@@ -66,6 +75,7 @@ export function AppShell({
   onResetDemo?: () => void;
 }) {
   const route = useRoute();
+  const plan = currentPlan(data.settings);
   const toPrint = data.orders.filter((o) => o.status === "pending").length;
   const issues = data.inventory.filter(isPartiallyDelisted).length;
   const badge: Partial<Record<Section, number>> = { orders: toPrint, inventory: issues };
@@ -81,7 +91,7 @@ export function AppShell({
             <div key={group.title} className="flex flex-col gap-0.5">
               <p className="px-2.5 pb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">{group.title}</p>
               {group.items.map((item) => (
-                <SideLink key={item.section} item={item} active={route.section === item.section} badge={badge[item.section]} />
+                <SideLink key={item.section} item={item} active={route.section === item.section} badge={badge[item.section]} locked={lockedFeature(plan, item.section)} />
               ))}
             </div>
           ))}
@@ -129,8 +139,16 @@ export function AppShell({
             <>
               {route.section === "home" && <HomePage data={data} />}
               {route.section === "inventory" && <InventoryPage data={data} route={route} />}
-              {route.section === "automations" && <AutomationsPage data={data} />}
-              {route.section === "orders" && <OrdersPage key={route.params.get("open") ?? ""} data={data} openOrderId={route.params.get("open")} />}
+              {route.section === "automations" &&
+                (lockedFeature(plan, "automations") ? (
+                  <LockedSection feature="automations" title="Automations" text="Relists and offers that run on their own, so your closets stay fresh while you're away." />
+                ) : (
+                  <AutomationsPage data={data} />
+                ))}
+              {route.section === "orders" && lockedFeature(plan, "orders") && (
+                <LockedSection feature="labels" title="Orders" text="Print every marketplace's labels in one batch, compare and buy labels, and add packing slips." />
+              )}
+              {route.section === "orders" && !lockedFeature(plan, "orders") && <OrdersPage key={route.params.get("open") ?? ""} data={data} openOrderId={route.params.get("open")} />}
               {route.section === "analytics" && (
                 <AnalyticsView
                   key={route.params.get("tab") ?? ""}
@@ -149,7 +167,7 @@ export function AppShell({
               {route.section === "affiliates" && <AffiliatesPage key={route.params.get("tab") ?? ""} data={data} email={email} tab={route.params.get("tab")} />}
               {route.section === "feedback" && <FeedbackPage key={route.params.get("tab") ?? ""} data={data} tab={route.params.get("tab")} />}
               {route.section === "settings" && (
-                <SettingsPage data={data} email={email} demoMode={demoMode} onSignOut={onSignOut} tab={route.params.get("tab")} />
+                <SettingsPage data={data} email={email} demoMode={demoMode} onSignOut={onSignOut} tab={route.params.get("tab")} need={route.params.get("need")} />
               )}
             </>
           )}
@@ -161,7 +179,7 @@ export function AppShell({
   );
 }
 
-function SideLink({ item, active, badge, quiet }: { item: NavItem; active: boolean; badge?: number; quiet?: boolean }) {
+function SideLink({ item, active, badge, quiet, locked }: { item: NavItem; active: boolean; badge?: number; quiet?: boolean; locked?: Feature }) {
   const earn = item.section === "affiliates";
   const { section, label, icon: Icon } = item;
   return (
@@ -175,8 +193,9 @@ function SideLink({ item, active, badge, quiet }: { item: NavItem; active: boole
       <span className="flex items-center gap-2.5">
         <Icon className="w-4 h-4" /> {label}
       </span>
+      {locked && <PlanTag feature={locked} />}
       {earn && !active && <span className="px-1.5 py-0.5 rounded-full bg-accent/15 text-accent text-[10px] font-medium">Earn</span>}
-      {!!badge && (
+      {!!badge && !locked && (
         <span
           className={`min-w-5 h-5 px-1.5 rounded-full font-mono text-[11px] tabular-nums flex items-center justify-center ${
             "bg-accent/15 text-accent"

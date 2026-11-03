@@ -1,13 +1,9 @@
 // The affiliate program: types, the terms, and the money math. The database does the same math in
 // record_subscription_payment (supabase/migrations/0009_affiliates.sql); demo mode and the screens use this.
 
-export type PlanId = "ship" | "grow" | "flow";
-export const PLANS: Record<PlanId, { name: string; cents: number }> = {
-  ship: { name: "Ship", cents: 999 },
-  grow: { name: "Grow", cents: 4900 },
-  flow: { name: "Flow", cents: 10900 },
-};
-export const PLAN_IDS = Object.keys(PLANS) as PlanId[];
+// The plans and their prices live in plans.ts, so the bonus always matches what sellers pay.
+import { PLANS, PLAN_IDS, type PlanId } from "./plans";
+export { PLANS, PLAN_IDS, type PlanId };
 
 export interface AffiliateProgram {
   // The most a bonus can be. With bonusMatchesPayment, the bonus is the payment that earns it (one
@@ -24,11 +20,11 @@ export interface AffiliateProgram {
 
 // Matches the defaults in 0009_affiliates.sql; the live terms come from the affiliate_program table.
 export const DEFAULT_PROGRAM: AffiliateProgram = {
-  bonusCents: 10900,
+  bonusCents: 9500,
   bonusMatchesPayment: true,
   rate: 0.05,
   holdDays: 30,
-  bonusPlans: ["ship", "grow", "flow"],
+  bonusPlans: [...PLAN_IDS],
   bonusAfterPaidCents: 0,
   cookieDays: 60,
   minPayoutCents: 2500,

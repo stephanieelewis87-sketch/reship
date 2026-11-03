@@ -9,35 +9,39 @@ const fresh = { totalPaidCents: 0, bonusEarned: false };
 
 describe("commissionsFor", () => {
   it("pays 5% of every payment and a first-month bonus on the first payment", () => {
-    expect(commissionsFor(DEFAULT_PROGRAM, fresh, { plan: "grow", cents: 4900 })).toEqual([
-      { kind: "recurring", amountCents: 245 },
-      { kind: "bonus", amountCents: 4900 },
+    expect(commissionsFor(DEFAULT_PROGRAM, fresh, { plan: "grow", cents: 6500 })).toEqual([
+      { kind: "recurring", amountCents: 325 },
+      { kind: "bonus", amountCents: 6500 },
     ]);
-    expect(commissionsFor(DEFAULT_PROGRAM, fresh, { plan: "flow", cents: 10900 })[1]).toEqual({ kind: "bonus", amountCents: 10900 });
+    expect(commissionsFor(DEFAULT_PROGRAM, fresh, { plan: "flow", cents: 9500 })[1]).toEqual({ kind: "bonus", amountCents: 9500 });
     // A bigger payment (say, a year up front) still earns at most the cap.
-    expect(commissionsFor(DEFAULT_PROGRAM, fresh, { plan: "flow", cents: 109000 })[1]).toEqual({ kind: "bonus", amountCents: 10900 });
-    expect(commissionsFor(DEFAULT_PROGRAM, { totalPaidCents: 4900, bonusEarned: true }, { plan: "grow", cents: 4900 })).toEqual([{ kind: "recurring", amountCents: 245 }]);
+    expect(commissionsFor(DEFAULT_PROGRAM, fresh, { plan: "flow", cents: 95000 })[1]).toEqual({ kind: "bonus", amountCents: 9500 });
+    expect(commissionsFor(DEFAULT_PROGRAM, { totalPaidCents: 6500, bonusEarned: true }, { plan: "grow", cents: 6500 })).toEqual([{ kind: "recurring", amountCents: 325 }]);
   });
 
-  it("pays the bonus on any plan by default, Ship included", () => {
-    expect(commissionsFor(DEFAULT_PROGRAM, fresh, { plan: "ship", cents: 999 })).toEqual([
-      { kind: "recurring", amountCents: 50 },
-      { kind: "bonus", amountCents: 999 },
+  it("pays the bonus on any plan by default, Sell and Ship included", () => {
+    expect(commissionsFor(DEFAULT_PROGRAM, fresh, { plan: "sell", cents: 1500 })).toEqual([
+      { kind: "recurring", amountCents: 75 },
+      { kind: "bonus", amountCents: 1500 },
+    ]);
+    expect(commissionsFor(DEFAULT_PROGRAM, fresh, { plan: "ship", cents: 2500 })).toEqual([
+      { kind: "recurring", amountCents: 125 },
+      { kind: "bonus", amountCents: 2500 },
     ]);
   });
 
   it("can pay a flat bonus instead", () => {
     const flat = { ...DEFAULT_PROGRAM, bonusCents: 10000, bonusMatchesPayment: false };
-    expect(commissionsFor(flat, fresh, { plan: "ship", cents: 999 })[1]).toEqual({ kind: "bonus", amountCents: 10000 });
+    expect(commissionsFor(flat, fresh, { plan: "ship", cents: 2500 })[1]).toEqual({ kind: "bonus", amountCents: 10000 });
   });
 
   it("can limit the bonus to some plans, or wait until the seller has paid enough", () => {
     const growFlow = { ...DEFAULT_PROGRAM, bonusPlans: ["grow", "flow"] } as typeof DEFAULT_PROGRAM;
-    expect(commissionsFor(growFlow, fresh, { plan: "ship", cents: 999 })).toEqual([{ kind: "recurring", amountCents: 50 }]);
+    expect(commissionsFor(growFlow, fresh, { plan: "ship", cents: 2500 })).toEqual([{ kind: "recurring", amountCents: 125 }]);
     const anyPlan = DEFAULT_PROGRAM;
     const afterHundred = { ...anyPlan, bonusAfterPaidCents: 10000, bonusMatchesPayment: false };
-    expect(commissionsFor(afterHundred, { totalPaidCents: 8991, bonusEarned: false }, { plan: "ship", cents: 999 })).toHaveLength(1);
-    expect(commissionsFor(afterHundred, { totalPaidCents: 9990, bonusEarned: false }, { plan: "ship", cents: 999 })).toHaveLength(2);
+    expect(commissionsFor(afterHundred, { totalPaidCents: 7400, bonusEarned: false }, { plan: "ship", cents: 2500 })).toHaveLength(1);
+    expect(commissionsFor(afterHundred, { totalPaidCents: 7500, bonusEarned: false }, { plan: "ship", cents: 2500 })).toHaveLength(2);
   });
 });
 
@@ -62,9 +66,9 @@ describe("balances", () => {
 
 describe("projectEarnings", () => {
   it("adds bonuses and a year of 5%", () => {
-    const y = projectEarnings(DEFAULT_PROGRAM, { ship: 10, grow: 2 }, 12);
-    expect(y.bonusCents).toBe(10 * 999 + 2 * 4900);
-    expect(y.recurringCents).toBe(10 * 50 * 12 + 2 * 245 * 12);
+    const y = projectEarnings(DEFAULT_PROGRAM, { sell: 10, grow: 2 }, 12);
+    expect(y.bonusCents).toBe(10 * 1500 + 2 * 6500);
+    expect(y.recurringCents).toBe(10 * 75 * 12 + 2 * 325 * 12);
   });
 });
 
@@ -75,7 +79,7 @@ describe("codes and wording", () => {
     expect(suggestCode("A")).toMatch(/^seller-/);
   });
   it("describes the bonus rule", () => {
-    expect(bonusRule(DEFAULT_PROGRAM)).toBe("A one-time bonus equal to one month of the plan a seller you referred picks ($9.99 for Ship, $49 for Grow, $109 for Flow), after their first payment.");
+    expect(bonusRule(DEFAULT_PROGRAM)).toBe("A one-time bonus equal to one month of the plan a seller you referred picks ($15 for Sell, $25 for Ship, $50 for Sync, $65 for Grow, $95 for Flow), after their first payment.");
     expect(formatCents(245)).toBe("$2.45");
     expect(formatCents(10000)).toBe("$100");
   });

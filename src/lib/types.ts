@@ -1,3 +1,4 @@
+import { DEFAULT_PLAN, type PlanId } from "./plans";
 export type Platform = "Poshmark" | "Vinted" | "Depop" | "Mercari" | "WhatNot" | "Etsy" | "eBay" | "Other";
 export type LabelStatus = "pending" | "printed" | "shipped";
 export type OrderSource = "manual" | "csv" | "sample" | "sync";
@@ -190,6 +191,8 @@ export interface Settings {
   // so a SKU is never reused, even after its item is deleted.
   skuFormat: SkuFormat;
   guardian: GuardianSettings;
+  // The seller's plan. There's no billing yet, so it's picked in Settings > Subscription.
+  plan: PlanId;
 }
 
 export interface SkuFormat {
@@ -236,6 +239,7 @@ export const PACKAGE_TYPES: PackageType[] = ["Envelope", "Soft Pack", "Small Box
 export const CARRIER_SERVICES = ["USPS Ground Advantage", "USPS Priority", "USPS First Class", "UPS Ground", "FedEx Home"];
 
 export const DEFAULT_SETTINGS: Settings = {
+  plan: DEFAULT_PLAN,
   syncInterval: "30",
   labelFormat: "4x6",
   defaultCarrier: "USPS Priority",
