@@ -8,22 +8,34 @@ import { captureReferral, clearReferral, pendingReferral } from "./referralCaptu
 const fresh = { totalPaidCents: 0, bonusEarned: false };
 
 describe("commissionsFor", () => {
-  it("pays 5% of every payment and the $100 bonus on a Grow or Flow first payment", () => {
+  it("pays 5% of every payment and a first-month bonus on the first payment", () => {
     expect(commissionsFor(DEFAULT_PROGRAM, fresh, { plan: "grow", cents: 4900 })).toEqual([
       { kind: "recurring", amountCents: 245 },
-      { kind: "bonus", amountCents: 10000 },
+      { kind: "bonus", amountCents: 4900 },
     ]);
+    expect(commissionsFor(DEFAULT_PROGRAM, fresh, { plan: "flow", cents: 10900 })[1]).toEqual({ kind: "bonus", amountCents: 10900 });
+    // A bigger payment (say, a year up front) still earns at most the cap.
+    expect(commissionsFor(DEFAULT_PROGRAM, fresh, { plan: "flow", cents: 109000 })[1]).toEqual({ kind: "bonus", amountCents: 10900 });
     expect(commissionsFor(DEFAULT_PROGRAM, { totalPaidCents: 4900, bonusEarned: true }, { plan: "grow", cents: 4900 })).toEqual([{ kind: "recurring", amountCents: 245 }]);
   });
 
-  it("pays no bonus on Ship by default, only the 5%", () => {
-    expect(commissionsFor(DEFAULT_PROGRAM, fresh, { plan: "ship", cents: 999 })).toEqual([{ kind: "recurring", amountCents: 50 }]);
+  it("pays the bonus on any plan by default, Ship included", () => {
+    expect(commissionsFor(DEFAULT_PROGRAM, fresh, { plan: "ship", cents: 999 })).toEqual([
+      { kind: "recurring", amountCents: 50 },
+      { kind: "bonus", amountCents: 999 },
+    ]);
   });
 
-  it("can pay the bonus on any plan, or wait until the seller has paid enough", () => {
-    const anyPlan = { ...DEFAULT_PROGRAM, bonusPlans: ["ship", "grow", "flow"] as const } as typeof DEFAULT_PROGRAM;
-    expect(commissionsFor(anyPlan, fresh, { plan: "ship", cents: 999 })).toHaveLength(2);
-    const afterHundred = { ...anyPlan, bonusAfterPaidCents: 10000 };
+  it("can pay a flat bonus instead", () => {
+    const flat = { ...DEFAULT_PROGRAM, bonusCents: 10000, bonusMatchesPayment: false };
+    expect(commissionsFor(flat, fresh, { plan: "ship", cents: 999 })[1]).toEqual({ kind: "bonus", amountCents: 10000 });
+  });
+
+  it("can limit the bonus to some plans, or wait until the seller has paid enough", () => {
+    const growFlow = { ...DEFAULT_PROGRAM, bonusPlans: ["grow", "flow"] } as typeof DEFAULT_PROGRAM;
+    expect(commissionsFor(growFlow, fresh, { plan: "ship", cents: 999 })).toEqual([{ kind: "recurring", amountCents: 50 }]);
+    const anyPlan = DEFAULT_PROGRAM;
+    const afterHundred = { ...anyPlan, bonusAfterPaidCents: 10000, bonusMatchesPayment: false };
     expect(commissionsFor(afterHundred, { totalPaidCents: 8991, bonusEarned: false }, { plan: "ship", cents: 999 })).toHaveLength(1);
     expect(commissionsFor(afterHundred, { totalPaidCents: 9990, bonusEarned: false }, { plan: "ship", cents: 999 })).toHaveLength(2);
   });
@@ -51,7 +63,7 @@ describe("balances", () => {
 describe("projectEarnings", () => {
   it("adds bonuses and a year of 5%", () => {
     const y = projectEarnings(DEFAULT_PROGRAM, { ship: 10, grow: 2 }, 12);
-    expect(y.bonusCents).toBe(20000);
+    expect(y.bonusCents).toBe(10 * 999 + 2 * 4900);
     expect(y.recurringCents).toBe(10 * 50 * 12 + 2 * 245 * 12);
   });
 });
@@ -63,7 +75,7 @@ describe("codes and wording", () => {
     expect(suggestCode("A")).toMatch(/^seller-/);
   });
   it("describes the bonus rule", () => {
-    expect(bonusRule(DEFAULT_PROGRAM)).toBe("$100 when a seller you referred subscribes to the Grow or Flow plan, after their first payment.");
+    expect(bonusRule(DEFAULT_PROGRAM)).toBe("A one-time bonus equal to one month of the plan a seller you referred picks ($9.99 for Ship, $49 for Grow, $109 for Flow), after their first payment.");
     expect(formatCents(245)).toBe("$2.45");
     expect(formatCents(10000)).toBe("$100");
   });
@@ -76,7 +88,7 @@ describe("sample history", () => {
     expect(b.paidCents).toBeGreaterThan(0);
     expect(b.pendingCents).toBeGreaterThan(0);
     expect(h.payouts[0].amountCents).toBe(b.paidCents);
-    expect(h.referrals.filter((r) => r.bonusEarned).length).toBe(3);
+    expect(h.referrals.filter((r) => r.bonusEarned).length).toBe(5);
   });
 });
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { BadgeDollarSign, Link2, Repeat, Users } from "lucide-react";
 import type { AffiliateProgram, PlanId } from "@/lib/affiliates";
-import { PLANS, PLAN_IDS, bonusRule, formatCents, projectEarnings, ratePercent } from "@/lib/affiliates";
+import { PLANS, PLAN_IDS, bonusHeadline, bonusRule, formatCents, projectEarnings, ratePercent } from "@/lib/affiliates";
 
 // What the affiliate program pays and how it works. Shown on the public program page and to
 // sellers who haven't joined yet.
@@ -12,10 +12,10 @@ export function ProgramHero({ program, children }: { program: AffiliateProgram; 
       <div className="relative max-w-xl">
         <p className="font-mono text-[11px] uppercase tracking-widest text-accent">SellSync affiliate program</p>
         <h1 className="font-display text-3xl md:text-4xl font-semibold mt-2 leading-tight">
-          Earn {formatCents(program.bonusCents)} per seller you bring, then {ratePercent(program.rate)} for life.
+          Earn {bonusHeadline(program)}, then {ratePercent(program.rate)} for life.
         </h1>
         <p className="text-sm text-muted-foreground mt-3">
-          Share your link with the resellers you know. When they subscribe, you get a one-time bonus, plus {ratePercent(program.rate)} of every payment they make for as long as
+          Share your link with the resellers you know. When they subscribe, you get a one-time bonus{program.bonusMatchesPayment ? " equal to their first month" : ""}, plus {ratePercent(program.rate)} of every payment they make for as long as
           they stay with SellSync.
         </p>
         {children && <div className="mt-6 flex flex-wrap gap-2">{children}</div>}
@@ -28,7 +28,10 @@ export function HowItWorks({ program }: { program: AffiliateProgram }) {
   const steps = [
     { icon: Link2, title: "Share your link", text: "Join free and get a personal link and code. Post it in your closet, groups, videos or bio." },
     { icon: Users, title: "Sellers sign up", text: `Anyone who signs up within ${program.cookieDays} days of using your link is yours, for good.` },
-    { icon: BadgeDollarSign, title: `${formatCents(program.bonusCents)} bonus`, text: bonusRule(program) || "A one-time bonus per seller." },
+    { icon: BadgeDollarSign, title: program.bonusMatchesPayment ? "First month bonus" : `${formatCents(program.bonusCents)} bonus`, text: program.bonusMatchesPayment
+        ? `One month of the plan they pick: ${PLAN_IDS.filter((p) => program.bonusPlans.includes(p)).map((p) => formatCents(Math.min(PLANS[p].cents, program.bonusCents))).join(", ")}.`
+        : bonusRule(program) || "A one-time bonus per seller.",
+    },
     { icon: Repeat, title: `${ratePercent(program.rate)} for life`, text: `${ratePercent(program.rate)} of every subscription payment they make, every month, for as long as they stay.` },
   ];
   return (

@@ -256,6 +256,7 @@ export async function loadProgram(): Promise<AffiliateProgram> {
   if (error || !data) return DEFAULT_PROGRAM;
   return {
     bonusCents: data.bonus_cents,
+    bonusMatchesPayment: data.bonus_matches_payment ?? false,
     rate: Number(data.rate),
     holdDays: data.hold_days,
     bonusPlans: data.bonus_plans,

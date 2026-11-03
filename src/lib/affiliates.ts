@@ -10,7 +10,10 @@ export const PLANS: Record<PlanId, { name: string; cents: number }> = {
 export const PLAN_IDS = Object.keys(PLANS) as PlanId[];
 
 export interface AffiliateProgram {
+  // The most a bonus can be. With bonusMatchesPayment, the bonus is the payment that earns it (one
+  // month of the seller's plan) up to this; otherwise it's always this.
   bonusCents: number;
+  bonusMatchesPayment: boolean;
   rate: number;
   holdDays: number;
   bonusPlans: PlanId[];
@@ -21,10 +24,11 @@ export interface AffiliateProgram {
 
 // Matches the defaults in 0009_affiliates.sql; the live terms come from the affiliate_program table.
 export const DEFAULT_PROGRAM: AffiliateProgram = {
-  bonusCents: 10000,
+  bonusCents: 10900,
+  bonusMatchesPayment: true,
   rate: 0.05,
   holdDays: 30,
-  bonusPlans: ["grow", "flow"],
+  bonusPlans: ["ship", "grow", "flow"],
   bonusAfterPaidCents: 0,
   cookieDays: 60,
   minPayoutCents: 2500,
@@ -129,10 +133,14 @@ export function commissionsFor(
   const out: { kind: Commission["kind"]; amountCents: number }[] = [{ kind: "recurring", amountCents: Math.round(payment.cents * program.rate) }];
   const paidAfter = referral.totalPaidCents + payment.cents;
   if (!referral.bonusEarned && program.bonusCents > 0 && program.bonusPlans.includes(payment.plan) && paidAfter >= program.bonusAfterPaidCents) {
-    out.push({ kind: "bonus", amountCents: program.bonusCents });
+    out.push({ kind: "bonus", amountCents: bonusFor(program, payment.cents) });
   }
   return out;
 }
+
+// The one-time bonus a payment earns: one month of the seller's plan, up to the cap, or a flat amount.
+export const bonusFor = (program: AffiliateProgram, paymentCents: number) =>
+  program.bonusMatchesPayment ? Math.min(paymentCents, program.bonusCents) : program.bonusCents;
 
 // Pending: earned, still in the refund hold. Available: ready to be paid. Paid: already sent.
 export function balances(commissions: Commission[], now = new Date()) {
@@ -156,7 +164,7 @@ export function projectEarnings(program: AffiliateProgram, referrals: Partial<Re
     if (!n) continue;
     const price = PLANS[plan].cents;
     recurring += n * Math.round(price * program.rate) * months;
-    if (program.bonusCents > 0 && program.bonusPlans.includes(plan) && price * months >= program.bonusAfterPaidCents) bonus += n * program.bonusCents;
+    if (program.bonusCents > 0 && program.bonusPlans.includes(plan) && price * months >= program.bonusAfterPaidCents) bonus += n * bonusFor(program, price);
   }
   return { bonusCents: bonus, recurringCents: recurring, totalCents: bonus + recurring };
 }
@@ -167,5 +175,13 @@ export function bonusRule(program: AffiliateProgram) {
   const which = plans.length === PLAN_IDS.length ? "any plan" : plans.length ? `the ${plans.join(" or ")} plan` : "";
   if (!which || program.bonusCents <= 0) return "";
   const after = program.bonusAfterPaidCents > 0 ? `once they've paid ${formatCents(program.bonusAfterPaidCents)} in total` : "after their first payment";
+  if (program.bonusMatchesPayment) {
+    const prices = PLAN_IDS.filter((p) => program.bonusPlans.includes(p)).map((p) => `${formatCents(bonusFor(program, PLANS[p].cents))} for ${PLANS[p].name}`);
+    const plans = which === "any plan" ? "" : ` on ${which}`;
+    return `A one-time bonus equal to one month of the plan a seller you referred picks${plans} (${prices.join(", ")}), ${after}.`;
+  }
   return `${formatCents(program.bonusCents)} when a seller you referred subscribes to ${which}, ${after}.`;
 }
+
+// Short wording for headlines: "their first month" or "$100".
+export const bonusHeadline = (program: AffiliateProgram) => (program.bonusMatchesPayment ? "a seller's first month" : `${formatCents(program.bonusCents)} per seller`);

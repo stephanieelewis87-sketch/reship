@@ -3,7 +3,9 @@
 -- Safe to run more than once. Needs 0006 (app_admins and is_app_admin).
 
 -- The program's terms, one row. Change them here; the app reads them from this table.
---   bonus_cents             one-time bonus per referred seller (10000 = $100)
+--   bonus_cents             the one-time bonus per referred seller, or its cap (10900 = $109)
+--   bonus_matches_payment   true: the bonus is the payment that earns it (one month of their plan:
+--                           Ship $9.99, Grow $49, Flow $109), up to bonus_cents. false: always bonus_cents
 --   rate                    share of every subscription payment, for life (0.05 = 5%)
 --   hold_days               days a commission waits before it can be paid, so refunds can be taken back
 --   bonus_plans             plans whose payment earns the bonus (ship, grow, flow)
@@ -12,14 +14,16 @@
 --   min_payout_cents        smallest balance paid out
 create table if not exists public.affiliate_program (
   id boolean primary key default true check (id),
-  bonus_cents integer not null default 10000 check (bonus_cents >= 0),
+  bonus_cents integer not null default 10900 check (bonus_cents >= 0),
+  bonus_matches_payment boolean not null default true,
   rate numeric(5, 4) not null default 0.05 check (rate >= 0 and rate <= 1),
   hold_days integer not null default 30 check (hold_days >= 0),
-  bonus_plans text[] not null default array['grow', 'flow'],
+  bonus_plans text[] not null default array['ship', 'grow', 'flow'],
   bonus_after_paid_cents integer not null default 0 check (bonus_after_paid_cents >= 0),
   cookie_days integer not null default 60 check (cookie_days > 0),
   min_payout_cents integer not null default 2500 check (min_payout_cents >= 0)
 );
+alter table public.affiliate_program add column if not exists bonus_matches_payment boolean not null default true;
 insert into public.affiliate_program (id) values (true) on conflict (id) do nothing;
 
 alter table public.affiliate_program enable row level security;
@@ -175,6 +179,7 @@ declare
   v_available timestamptz;
   v_earned integer := 0;
   v_share integer;
+  v_bonus integer;
 begin
   if not (public.is_app_admin() or coalesce(auth.role(), '') = 'service_role') then
     raise exception 'Only the billing service or an admin can record payments';
@@ -203,11 +208,12 @@ begin
   values (r.affiliate_id, r.id, 'recurring', v_share, p_payment_ref, p_amount_cents, v_available);
   v_earned := v_share;
 
-  if not r.bonus_earned and lower(p_plan) = any (t.bonus_plans) and r.total_paid_cents >= t.bonus_after_paid_cents and t.bonus_cents > 0 then
+  v_bonus := case when t.bonus_matches_payment then least(p_amount_cents, t.bonus_cents) else t.bonus_cents end;
+  if not r.bonus_earned and lower(p_plan) = any (t.bonus_plans) and r.total_paid_cents >= t.bonus_after_paid_cents and v_bonus > 0 then
     insert into public.affiliate_commissions (affiliate_id, referral_id, kind, amount_cents, payment_ref, payment_cents, available_at)
-    values (r.affiliate_id, r.id, 'bonus', t.bonus_cents, p_payment_ref, p_amount_cents, v_available);
+    values (r.affiliate_id, r.id, 'bonus', v_bonus, p_payment_ref, p_amount_cents, v_available);
     update public.referrals set bonus_earned = true where id = r.id;
-    v_earned := v_earned + t.bonus_cents;
+    v_earned := v_earned + v_bonus;
   end if;
   return v_earned;
 end $$;

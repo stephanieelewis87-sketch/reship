@@ -101,7 +101,7 @@ In demo mode there's no AI: SellSync groups photos by when they were taken (a lo
 
 ## Affiliates
 
-Sellers earn **$100 per seller they refer, then 5% of every subscription payment that seller makes, for life**. The **Affiliates** tab (sidebar on computers, Settings on phones) has:
+Sellers earn **a referred seller's first month (Ship $9.99, Grow $49 or Flow $109), then 5% of every subscription payment that seller makes, for life**. The **Affiliates** tab (sidebar on computers, Settings on phones) has:
 
 - **Join**: pick a referral code and how to be paid (PayPal, Venmo, Cash App, bank transfer). The link is `https://your-app/?ref=code`.
 - **Overview**: the link with Copy and Share, money ready to pay, pending (held 30 days in case of refunds), paid so far, the monthly amount earned for life, link visits, sign-ups and paying sellers.
@@ -113,7 +113,7 @@ A public page about the program, for sharing, is at `https://your-app/?affiliate
 
 How referrals are tracked: a visit with `?ref=code` is counted and the code is remembered in that browser for 60 days. When that visitor signs up, they're credited to the affiliate. Self-referrals and accounts older than 7 days don't count, and a seller can only be referred once.
 
-Setup: run `supabase/migrations/0009_affiliates.sql`. The terms live in the one-row `affiliate_program` table (bonus amount, rate, refund hold, which plans earn the bonus, an optional "after they've paid this much" threshold, link memory, minimum payout); change them there and the app follows. By default the bonus is paid for Grow and Flow subscriptions, not Ship.
+Setup: run `supabase/migrations/0009_affiliates.sql`. The terms live in the one-row `affiliate_program` table (bonus amount or cap, rate, refund hold, which plans earn the bonus, an optional "after they've paid this much" threshold, link memory, minimum payout); change them there and the app follows. By default the bonus equals the referred seller's first payment (one month of their plan), capped at $109, on any plan. Set `bonus_matches_payment` to false for a flat `bonus_cents` instead.
 
 When billing is built, its webhook calls these with the service role key: `record_subscription_payment(user_id, plan, amount_cents, invoice_id)` on every paid invoice (safe to repeat), `record_subscription_refund(invoice_id)` on a refund, and `record_subscription_canceled(user_id)` on a cancellation.
 

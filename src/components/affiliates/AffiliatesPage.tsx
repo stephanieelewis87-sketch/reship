@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, Copy, ExternalLink, Gift, Share2 } from "lucide-react";
 import type { Affiliate, AffiliateBalanceRow, AffiliateProgram, Commission, PayoutMethod, Payout, PlanId, Referral } from "@/lib/affiliates";
-import { CODE_PATTERN, DEFAULT_PROGRAM, PAYOUT_METHODS, PLANS, PLAN_IDS, balances, formatCents, normalizeCode, ratePercent, referralLink, suggestCode } from "@/lib/affiliates";
+import { CODE_PATTERN, DEFAULT_PROGRAM, PAYOUT_METHODS, PLANS, PLAN_IDS, balances, bonusHeadline, bonusRule, formatCents, normalizeCode, ratePercent, referralLink, suggestCode } from "@/lib/affiliates";
 import type { useReshipData } from "@/lib/useReshipData";
 import { Card, Kpi } from "../analytics/parts";
 import { PageHeader } from "../shell/PageHeader";
@@ -63,7 +63,7 @@ export function AffiliatesPage({ data, email, tab: initialTab }: { data: Data; e
 
   return (
     <div>
-      <PageHeader title="Affiliates" subtitle={`Earn ${formatCents(program.bonusCents)} per seller you refer, then ${ratePercent(program.rate)} of what they pay, for life`}>
+      <PageHeader title="Affiliates" subtitle={`Earn ${bonusHeadline(program)}, then ${ratePercent(program.rate)} of what they pay, for life`}>
         <a href="/?affiliates" target="_blank" rel="noreferrer" className={secondaryButton}>
           <ExternalLink className="w-4 h-4" /> Program page
         </a>
@@ -303,7 +303,7 @@ function Referrals({ referrals, commissions, program }: { referrals: Referral[];
       </Card>
     );
   return (
-    <Card title="Sellers you referred" subtitle={`We show part of each email to protect their privacy. The bonus pays ${program.bonusPlans.map((p) => PLANS[p].name).join(" or ")} subscriptions.`}>
+    <Card title="Sellers you referred" subtitle={`We show part of each email to protect their privacy. Bonus: ${bonusRule(program)}`}>
       <div className="overflow-x-auto -mx-4 md:-mx-5">
         <table className="w-full text-sm min-w-[560px]">
           <thead>
