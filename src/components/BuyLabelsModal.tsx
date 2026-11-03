@@ -63,7 +63,7 @@ export function BuyLabelsModal({
         title={orders.length === 1 ? "Buy a Different Label" : "Buy Different Labels"}
         subtitle={`${orders.length} order${orders.length !== 1 ? "s" : ""} · estimated rates`}
         onClose={onClose}
-        icon={<ShoppingCart className="w-5 h-5 text-[#B5607A]" />}
+        icon={<ShoppingCart className="w-5 h-5 text-accent" />}
       />
 
       <div className="px-5 sm:px-6 py-3 border-b border-border bg-muted/30 flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap">
@@ -73,7 +73,7 @@ export function BuyLabelsModal({
           onChange={(e) => setBulkWeight(e.target.value)}
           placeholder="Weight (lbs)"
           inputMode="decimal"
-          className="w-28 text-xs px-2.5 py-1.5 rounded-md border border-border bg-background focus:border-[#B5607A] focus:outline-none"
+          className="w-28 text-xs px-2.5 py-1.5 rounded-md border border-border bg-background focus:border-accent focus:outline-none"
         />
         <select value={bulkPkg} onChange={(e) => setBulkPkg(e.target.value as PackageType)} className={selectClass}>
           {PACKAGE_TYPES.map((p) => (
@@ -117,7 +117,7 @@ export function BuyLabelsModal({
                     onChange={(e) => update(d.order.id, { weight: e.target.value, rate: null })}
                     inputMode="decimal"
                     aria-label="Weight in pounds"
-                    className="w-20 text-xs px-2 py-1.5 rounded-md border border-border bg-background focus:border-[#B5607A] focus:outline-none text-center"
+                    className="w-20 text-xs px-2 py-1.5 rounded-md border border-border bg-background focus:border-accent focus:outline-none text-center"
                     placeholder="lbs"
                   />
                   <select
@@ -145,18 +145,18 @@ export function BuyLabelsModal({
                         key={`${rate.carrier}-${rate.service}`}
                         onClick={() => update(d.order.id, { rate })}
                         className={`flex items-center justify-between px-3 py-2 rounded-lg border text-left transition-all ${
-                          on ? "border-[#B5607A] bg-rose-50/50 shadow-sm" : "border-border hover:border-[#B5607A]/40 hover:bg-muted/40"
+                          on ? "border-accent bg-rose-50/50 shadow-sm" : "border-border hover:border-accent/40 hover:bg-muted/40"
                         }`}
                       >
                         <div>
-                          <p className={`text-xs font-medium leading-none ${on ? "text-[#B5607A]" : "text-foreground"}`}>
+                          <p className={`text-xs font-medium leading-none ${on ? "text-accent" : "text-foreground"}`}>
                             {rate.carrier} {rate.service}
                           </p>
                           <p className="text-[10px] text-muted-foreground mt-0.5">{rate.days}</p>
                         </div>
                         <div className="text-right">
-                          <p className={`text-sm font-semibold ${on ? "text-[#B5607A]" : "text-foreground"}`}>~${rate.price.toFixed(2)}</p>
-                          {on && <Check className="w-3 h-3 text-[#B5607A] ml-auto mt-0.5" />}
+                          <p className={`text-sm font-semibold ${on ? "text-accent" : "text-foreground"}`}>~${rate.price.toFixed(2)}</p>
+                          {on && <Check className="w-3 h-3 text-accent ml-auto mt-0.5" />}
                         </div>
                       </button>
                     );

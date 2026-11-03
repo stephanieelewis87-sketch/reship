@@ -4,7 +4,6 @@ import { CheckCircle2, Clock, Layers, Package, Tag, Truck, X } from "lucide-reac
 import type { LabelStatus, Order, Platform } from "@/lib/types";
 import { SHIPMENT_LABEL, shipUrgency } from "@/lib/orderStatus";
 
-export const ACCENT = "#B5607A";
 
 export const PLATFORM_CONFIG: Record<Platform, { color: string; bg: string; domain?: string }> = {
   Poshmark: { color: "text-rose-700", bg: "bg-rose-50", domain: "poshmark.com" },
@@ -41,7 +40,7 @@ export function Toggle({ checked, onChange, label }: { checked: boolean; onChang
       aria-checked={checked}
       aria-label={label}
       onClick={onChange}
-      className={`relative shrink-0 rounded-full transition-colors duration-200 focus:outline-none ${checked ? "bg-[#B5607A]" : "bg-[#C8BAC0]"}`}
+      className={`relative shrink-0 rounded-full transition-colors duration-200 focus:outline-none ${checked ? "bg-accent" : "bg-switch-background"}`}
       style={{ width: "2rem", height: "1.125rem" }}
     >
       <span
@@ -80,7 +79,7 @@ export function SkuCell({ sku, onSave }: { sku?: string; onSave: (val: string) =
             setEditing(false);
           }
         }}
-        className="w-full font-mono text-[11px] px-1.5 py-0.5 rounded border border-[#B5607A] bg-background text-foreground focus:outline-none"
+        className="w-full font-mono text-[11px] px-1.5 py-0.5 rounded border border-accent bg-background text-foreground focus:outline-none"
         placeholder="e.g. LV-JEAN-28"
       />
     );
@@ -108,7 +107,7 @@ export function SkuCell({ sku, onSave }: { sku?: string; onSave: (val: string) =
         setDraft("");
         setEditing(true);
       }}
-      className="text-[11px] text-muted-foreground/50 hover:text-[#B5607A] transition-colors"
+      className="text-[11px] text-muted-foreground/50 hover:text-accent transition-colors"
       title="Add SKU"
     >
       + SKU
@@ -263,11 +262,11 @@ export function ModalHeader({ title, subtitle, onClose, icon }: { title: string;
 }
 
 export const inputClass =
-  "w-full text-sm px-2.5 py-1.5 rounded-md border border-border bg-background text-foreground focus:border-[#B5607A] focus:outline-none placeholder:text-muted-foreground/70";
+  "w-full text-sm px-2.5 py-1.5 rounded-md border border-border bg-background text-foreground focus:border-accent focus:outline-none placeholder:text-muted-foreground/70";
 export const selectClass =
-  "text-xs border border-border rounded-md px-2 py-1.5 bg-background text-foreground focus:border-[#B5607A] focus:outline-none";
+  "text-xs border border-border rounded-md px-2 py-1.5 bg-background text-foreground focus:border-accent focus:outline-none";
 export const primaryButton =
-  "px-4 py-2 rounded-md bg-[#B5607A] text-white text-sm font-medium hover:bg-[#9E4D6A] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2";
+  "px-4 py-2 rounded-md bg-accent text-accent-foreground text-sm font-medium hover:bg-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2";
 export const secondaryButton =
   "px-4 py-2 rounded-md border border-border text-sm font-medium text-foreground hover:bg-muted transition-colors flex items-center justify-center gap-2";
 

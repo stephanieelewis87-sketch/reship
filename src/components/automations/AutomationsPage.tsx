@@ -70,7 +70,7 @@ export function AutomationsPage({ data }: { data: Data }) {
         <div className="rounded-lg border border-amber-200 bg-amber-50 text-amber-900 text-xs px-3 py-2.5 flex gap-2">
           <Puzzle className="w-4 h-4 shrink-0" />
           <p>
-            Automations run through the Reship browser extension while you're signed in to each marketplace. Settings save here now, and the extension picks them up
+            Automations run through the SellSync browser extension while you're signed in to each marketplace. Settings save here now, and the extension picks them up
             once it's installed. {anyOn ? "Nothing runs until the extension is connected." : ""}
           </p>
         </div>
@@ -83,7 +83,7 @@ export function AutomationsPage({ data }: { data: Data }) {
                 type="button"
                 onClick={() => setPlatform(p)}
                 aria-pressed={platform === p}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs whitespace-nowrap ${platform === p ? "border-[#B5607A] bg-rose-50/60 text-[#B5607A]" : "border-border text-muted-foreground hover:bg-muted"}`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs whitespace-nowrap ${platform === p ? "border-accent bg-rose-50/60 text-accent" : "border-border text-muted-foreground hover:bg-muted"}`}
               >
                 <PlatformIcon platform={p} /> {p}
                 {on > 0 && <span className="font-mono text-[10px]">{on} on</span>}
@@ -96,7 +96,7 @@ export function AutomationsPage({ data }: { data: Data }) {
             const meta = KINDS.find((x) => x.kind === k)!;
             const s = get(k);
             return (
-              <section key={k} className={`rounded-xl border bg-card p-4 space-y-3 ${s.enabled ? "border-[#B5607A]/40" : "border-border"}`}>
+              <section key={k} className={`rounded-xl border bg-card p-4 space-y-3 ${s.enabled ? "border-accent/40" : "border-border"}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h2 className="font-display text-sm font-semibold text-foreground">{meta.label}</h2>

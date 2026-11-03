@@ -39,7 +39,7 @@ function StatCard({
   onClick: () => void;
 }) {
   return (
-    <button type="button" onClick={onClick} className="text-left bg-card border border-border rounded-xl px-4 py-3 hover:border-[#B5607A]/40 hover:shadow-sm transition-all">
+    <button type="button" onClick={onClick} className="text-left bg-card border border-border rounded-xl px-4 py-3 hover:border-accent/40 hover:shadow-sm transition-all">
       <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
       <p className={`font-display text-2xl font-semibold mt-1 tabular-nums ${tone}`}>{value}</p>
       <p className="text-[11px] text-muted-foreground mt-0.5">{hint}</p>
@@ -263,7 +263,7 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search orders, items, SKUs…"
                 aria-label="Search orders"
-                className="pl-9 pr-3 py-1.5 text-sm bg-muted rounded-md border border-transparent focus:border-[#B5607A] focus:outline-none transition-colors placeholder:text-muted-foreground w-full md:w-64"
+                className="pl-9 pr-3 py-1.5 text-sm bg-muted rounded-md border border-transparent focus:border-accent focus:outline-none transition-colors placeholder:text-muted-foreground w-full md:w-64"
               />
             </div>
             <button
@@ -318,7 +318,7 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
                   <section>
                     <div className="flex items-center justify-between mb-2">
                       <h2 className="font-display text-sm font-semibold text-muted-foreground">Recently printed</h2>
-                      <button type="button" onClick={() => goTo("printed")} className="flex items-center gap-1 text-xs text-[#B5607A] hover:underline">
+                      <button type="button" onClick={() => goTo("printed")} className="flex items-center gap-1 text-xs text-accent hover:underline">
                         See all printed <ArrowRight className="w-3 h-3" />
                       </button>
                     </div>
@@ -334,7 +334,7 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
             )}
             {view === "shipped" && listed.length > 0 && (
               <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <Truck className="w-3 h-3" /> Shipping status comes from the marketplace each time the Reship extension syncs.
+                <Truck className="w-3 h-3" /> Shipping status comes from the marketplace each time the SellSync extension syncs.
               </p>
             )}
           </div>
