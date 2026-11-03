@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
-import { MapPin, Plus, Puzzle, Trash2 } from "lucide-react";
+import { ChevronDown, MapPin, Plus, Puzzle, Trash2 } from "lucide-react";
 import type { LabelFormat, PackageType, Platform, Settings } from "@/lib/types";
+import { PLATFORM_INFO } from "@/lib/platforms";
 import { ALL_PLATFORMS, CARRIER_SERVICES, PACKAGE_TYPES, emptyAddress } from "@/lib/types";
 import type { useReshipData } from "@/lib/useReshipData";
 import { AddressFields } from "../AddressFields";
@@ -313,6 +314,9 @@ export function SettingsPage({
   );
 }
 
+// Marketplaces the browser extension syncs orders from today.
+const CONNECTOR_PLATFORMS: Platform[] = ["Poshmark", "Mercari"];
+
 function Connections() {
   return (
     <Section title="Connections" text="Reship works with your marketplace accounts through its browser extension, using the sign-ins you already have.">
@@ -320,11 +324,32 @@ function Connections() {
         <Puzzle className="w-4 h-4 shrink-0" />
         <p>The extension isn't connected yet. Until it is, add orders with Import CSV or Add order on the Orders page, and add inventory by hand.</p>
       </div>
-      {ALL_PLATFORMS.map((p) => (
-        <Row key={p} title={<PlatformName p={p} />}>
-          <span className="text-[11px] text-muted-foreground">Not connected</span>
-        </Row>
-      ))}
+      <p className="text-xs text-muted-foreground">Each marketplace allows different things. Here is how orders, labels and listings work on each one.</p>
+      {ALL_PLATFORMS.map((p) => {
+        const info = PLATFORM_INFO[p];
+        return (
+          <details key={p} className="group rounded-lg border border-border">
+            <summary className="flex items-center justify-between gap-3 px-3 py-2.5 cursor-pointer list-none">
+              <span className="flex items-center gap-2 text-sm text-foreground">
+                <PlatformIcon platform={p} className="w-4 h-4" /> {info.name}
+              </span>
+              <span className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                {CONNECTOR_PLATFORMS.includes(p) ? "Extension not connected" : "Manual and CSV"}
+                <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
+              </span>
+            </summary>
+            <dl className="px-3 pb-3 grid grid-cols-[5rem_1fr] gap-x-3 gap-y-1.5 text-xs">
+              <dt className="text-muted-foreground">Orders</dt>
+              <dd className="text-foreground">{info.orders}</dd>
+              <dt className="text-muted-foreground">Labels</dt>
+              <dd className="text-foreground">{info.label}</dd>
+              <dt className="text-muted-foreground">Listings</dt>
+              <dd className="text-foreground">{info.listing}</dd>
+              {info.note && <dd className="col-span-2 text-muted-foreground pt-1">{info.note}</dd>}
+            </dl>
+          </details>
+        );
+      })}
     </Section>
   );
 }

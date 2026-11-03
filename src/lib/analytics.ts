@@ -72,7 +72,11 @@ export function estimateFees(platform: Platform, price: number): number {
       return price * 0.033 + 0.45;
     case "WhatNot":
       return price * 0.109 + 0.3;
+    case "Facebook":
+      // Shipped sales only; local pickup has no fee, so record those with a fee of 0.
+      return Math.max(price * 0.1, 0.8);
     case "Vinted":
+    case "ThredUp": // Direct Listing charges sellers no fee
     case "Other":
       return 0;
   }
