@@ -5,14 +5,23 @@ import { LocalStore, SupabaseStore } from "./lib/store";
 import { useReshipData } from "./lib/useReshipData";
 import { AppShell } from "./components/shell/AppShell";
 import { AuthScreen } from "./components/AuthScreen";
+import { AffiliateProgramPage } from "./components/affiliates/AffiliateProgramPage";
+import { captureReferral, clearReferral, pendingReferral } from "./lib/referralCapture";
 
 const demoStore = new LocalStore();
-// reship…/?demo opens the demo with sample orders even where accounts are set up, for showing
-// Reship to people without signing in.
+// sellsync…/?demo opens the demo with sample orders even where accounts are set up, for showing
+// SellSync to people without signing in.
 const demoRequested = new URLSearchParams(window.location.search).has("demo");
+// sellsync…/?affiliates is the public page about the affiliate program, for sharing.
+const programPageRequested = new URLSearchParams(window.location.search).has("affiliates");
+
+// sellsync…/?ref=code is an affiliate's link: remember who sent this visitor and count the visit.
+const referredBy = captureReferral();
+if (referredBy) void supabase?.rpc("record_referral_click", { p_code: referredBy });
 
 export default function App() {
-  if (!supabase || demoRequested) return <ReshipApp store={demoStore} email={null} demoMode onSignOut={() => {}} />;
+  if (programPageRequested) return <AffiliateProgramPage />;
+  if (!supabase || demoRequested) return <SellSyncApp store={demoStore} email={null} demoMode onSignOut={() => {}} />;
   return <SignedInGate />;
 }
 
@@ -33,13 +42,20 @@ function SignedInGate() {
   const userId = session?.user.id;
   const store = useMemo(() => (userId ? new SupabaseStore(userId) : null), [userId]);
 
+  // A seller who arrived through an affiliate's link is credited to that affiliate once signed in.
+  useEffect(() => {
+    const code = pendingReferral();
+    if (!store || !code) return;
+    store.affiliates.claim(code).then(clearReferral, () => undefined);
+  }, [store]);
+
   if (session === undefined) return null;
   if (recovering && session) return <AuthScreen recovery onRecovered={() => setRecovering(false)} />;
   if (!session || !store) return <AuthScreen />;
-  return <ReshipApp key={userId} store={store} email={session.user.email ?? null} demoMode={false} onSignOut={() => supabase!.auth.signOut()} />;
+  return <SellSyncApp key={userId} store={store} email={session.user.email ?? null} demoMode={false} onSignOut={() => supabase!.auth.signOut()} />;
 }
 
-function ReshipApp({
+function SellSyncApp({
   store,
   email,
   demoMode,

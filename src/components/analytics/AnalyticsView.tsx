@@ -168,7 +168,7 @@ export function AnalyticsView({
             type="button"
             onClick={() => setTab(t.key)}
             aria-current={tab === t.key ? "page" : undefined}
-            className={`py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px ${tab === t.key ? "border-[#B5607A] text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            className={`py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px ${tab === t.key ? "border-accent text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
           >
             {t.label}
           </button>
@@ -187,12 +187,12 @@ export function AnalyticsView({
           <div className="flex items-center gap-2 flex-wrap text-xs">
             <span className="text-muted-foreground">Showing only</span>
             {brand && (
-              <button type="button" onClick={() => setBrand(null)} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-[#B5607A] border border-[#B5607A]/30">
+              <button type="button" onClick={() => setBrand(null)} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-accent border border-accent/30">
                 Brand: {brand} <X className="w-3 h-3" />
               </button>
             )}
             {category && (
-              <button type="button" onClick={() => setCategory(null)} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-[#B5607A] border border-[#B5607A]/30">
+              <button type="button" onClick={() => setCategory(null)} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-accent border border-accent/30">
                 Category: {category} <X className="w-3 h-3" />
               </button>
             )}
@@ -638,7 +638,7 @@ function InventoryPage({ ctx }: { ctx: Ctx }) {
               key: "suggested",
               label: "Try",
               align: "right",
-              render: (s) => (s.suggestedPrice == null ? "–" : <span className="font-medium text-[#B5607A]">{fmtMoney(s.suggestedPrice)}</span>),
+              render: (s) => (s.suggestedPrice == null ? "–" : <span className="font-medium text-accent">{fmtMoney(s.suggestedPrice)}</span>),
               sort: (s) => s.suggestedPrice,
             },
             { key: "advice", label: "Next step", render: (s) => <span className="text-xs text-muted-foreground">{s.advice}</span> },
@@ -657,7 +657,7 @@ function InventoryPage({ ctx }: { ctx: Ctx }) {
                       setApplied((a) => new Set(a).add(s.item.id));
                     }}
                     className="text-[11px] px-2 py-1 rounded-md border border-border hover:bg-muted whitespace-nowrap"
-                    title="Saves the new price in Reship. Change it on the marketplace too."
+                    title="Saves the new price in SellSync. Change it on the marketplace too."
                   >
                     Use price
                   </button>
@@ -911,7 +911,7 @@ function Exports({ ctx }: { ctx: Ctx }) {
       text: "Every item sold, with price, fees, shipping, cost and profit.",
       run: () =>
         download(
-          `reship-sales-${tag}.csv`,
+          `sellsync-sales-${tag}.csv`,
           lines.map((l) => ({
             Date: l.date,
             Marketplace: l.platform,
@@ -938,7 +938,7 @@ function Exports({ ctx }: { ctx: Ctx }) {
       text: "Gross sales, fees, shipping, cost of goods, expenses and net profit for each month.",
       run: () =>
         download(
-          `reship-profit-and-loss-${tag}.csv`,
+          `sellsync-profit-and-loss-${tag}.csv`,
           series(lines, range, "month").map((p) => {
             const m = metrics(lines.filter((l) => l.date >= p.start && l.date <= p.end), null);
             const ex = sumExpenses(ctx.expenses.filter((e) => e.date >= p.start && e.date <= p.end));
@@ -960,7 +960,7 @@ function Exports({ ctx }: { ctx: Ctx }) {
       text: "Every logged expense, with mileage, for your records.",
       run: () =>
         download(
-          `reship-expenses-${tag}.csv`,
+          `sellsync-expenses-${tag}.csv`,
           ctx.expenses.map((e) => ({ Date: e.date, Category: e.category, Amount: r2(e.amount), Miles: e.miles ?? "", Note: e.note ?? "" })),
         ),
     },
@@ -969,7 +969,7 @@ function Exports({ ctx }: { ctx: Ctx }) {
       text: "Everything listed or in drafts, with cost, price and days listed. Handy for year-end counts.",
       run: () =>
         download(
-          `reship-inventory-${ctx.today}.csv`,
+          `sellsync-inventory-${ctx.today}.csv`,
           [...ctx.activeNow, ...ctx.inventory.filter((i) => i.status === "draft")].map((i) => ({
             SKU: i.sku,
             Item: i.title,

@@ -1,6 +1,6 @@
-# Reship
+# SellSync
 
-A shipping dashboard for resellers: see sold orders from Poshmark, Vinted, Depop, Mercari, Whatnot, Etsy and eBay in one place, print the labels those marketplaces already generated (with SKUs and packing slips) in one batch, and track what has shipped. Built from the Reship design in Figma Make.
+A shipping dashboard for resellers: see sold orders from Poshmark, Vinted, Depop, Mercari, Whatnot, Etsy and eBay in one place, print the labels those marketplaces already generated (with SKUs and packing slips) in one batch, and track what has shipped. Built from the SellSync design in Figma Make.
 
 ## Run it
 
@@ -11,21 +11,21 @@ npm run dev
 
 Open the address it prints (usually http://localhost:5173).
 
-Without any setup, Reship runs in **demo mode**: it starts with sample orders and saves everything in your browser only.
+Without any setup, SellSync runs in **demo mode**: it starts with sample orders and saves everything in your browser only.
 
 ## Use real accounts and a shared database (Supabase)
 
 1. Create a free project at [supabase.com](https://supabase.com).
-2. In the project's SQL editor, run the files in `supabase/migrations/` in order (0004 adds inventory and profit tracking for Analytics).
+2. In the project's SQL editor, run the files in `supabase/migrations/` in order (0004 adds inventory and profit tracking for Analytics, 0009 the affiliate program).
 3. Copy `.env.example` to `.env.local` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from Settings > API.
-4. Restart `npm run dev`. Reship now asks you to sign in, and each account only sees its own orders.
+4. Restart `npm run dev`. SellSync now asks you to sign in, and each account only sees its own orders.
 
 ## What works today
 
 - Order dashboard from the design: status and marketplace filters, search, list and grid views, bundles, inline SKU editing
 - Add and edit orders by hand, including buyer address and package weight
 - Import orders from a marketplace CSV export, with automatic column matching and bundle grouping
-- Poshmark orders and their prepaid labels come in automatically through the Reship browser extension (see below)
+- Poshmark orders and their prepaid labels come in automatically through the SellSync browser extension (see below)
 - Upload an order's label PDF by hand from the order drawer when needed
 - Print all selected labels in one PDF, optionally stamped with the SKUs, with a packing slip after each label (4x6, Letter or A4)
 - Optional "Buy a different label" per order, with rate estimates for USPS, UPS and FedEx
@@ -39,7 +39,7 @@ Marketplaces don't offer label APIs, so the extension in `extension/` reads sold
 
 - `node extension/build.mjs` builds it into `extension/dist` (it reads the same Supabase settings from `.env.local`).
 - In Chrome, open `chrome://extensions`, turn on Developer mode, click Load unpacked and pick `extension/dist`.
-- Sign in with your Reship account, turn on a marketplace and press Sync now. It also syncs every 15 minutes.
+- Sign in with your SellSync account, turn on a marketplace and press Sync now. It also syncs every 15 minutes.
 - New seller setup checklist (also shown in the extension popup):
   1. Log in to each marketplace in the same Chrome profile that has the extension.
   2. Make sure Chrome isn't blocking third-party cookies. Go to Settings, then Privacy and security, then Third-party cookies, and choose "Allow third-party cookies" (or add each marketplace under "Allowed to use third-party cookies"). When they're blocked, marketplace pages such as Mercari may not load and syncs fail.
@@ -67,10 +67,10 @@ Users send feedback from the Feedback tab. The `feedback-digest` Edge Function r
 
 ## List with a video (AI)
 
-Inventory > **List with a video**: the seller films up to 25 items (up to 5 minutes), one after another. Reship reads frames out of the video in the browser (the video itself is never uploaded), then:
+Inventory > **List with a video**: the seller films up to 25 items (up to 5 minutes), one after another. SellSync reads frames out of the video in the browser (the video itself is never uploaded), then:
 
 1. Claude finds each distinct item and marks where it is in its clearest frame.
-2. Reship cuts snips of each item from the video.
+2. SellSync cuts snips of each item from the video.
 3. Claude writes each listing from its snips: title, description, brand, category, size, color, condition, flaws, tags, and a suggested price with the usual sold range and a one-line reason. It also gets the seller's AI instructions from Settings and the median sold prices of their own most common brands and categories.
 4. Optionally, an image model turns the best snip into a clean studio-style photo (it's told to keep the item exactly as it is, flaws included). The real snips are always kept with it.
 5. The seller checks each draft, edits anything, and saves them as inventory drafts, ready to crosslist.
@@ -84,7 +84,7 @@ Setup:
 3. Deploy: `supabase functions deploy video-listing`.
 4. Optional daily caps per user: `VIDEO_LISTING_DAILY_VIDEOS` (20), `VIDEO_LISTING_DAILY_ITEMS` (600), `VIDEO_LISTING_DAILY_PHOTOS` (300).
 
-In demo mode there's no AI: Reship splits the video into items by scene and makes a draft with snips for each, for the seller to fill in.
+In demo mode there's no AI: SellSync splits the video into items by scene and makes a draft with snips for each, for the seller to fill in.
 
 ## List from photos (AI)
 
@@ -97,7 +97,25 @@ Inventory > **List from photos**: the seller uploads up to 100 photos of up to 2
 
 Setup is the same as List with a video, plus `supabase/migrations/0008_photo_listing.sql` (lets the daily cap count photo batches). Optional cap: `VIDEO_LISTING_DAILY_PHOTO_BATCHES` (20). Redeploy `video-listing`.
 
-In demo mode there's no AI: Reship groups photos by when they were taken (a long pause between shots starts a new item), or by how they look when the photos carry no times.
+In demo mode there's no AI: SellSync groups photos by when they were taken (a long pause between shots starts a new item), or by how they look when the photos carry no times.
+
+## Affiliates
+
+Sellers earn **a referred seller's first month (Ship $9.99, Grow $49 or Flow $109), then 5% of every subscription payment that seller makes, for life**. The **Affiliates** tab (sidebar on computers, Settings on phones) has:
+
+- **Join**: pick a referral code and how to be paid (PayPal, Venmo, Cash App, bank transfer). The link is `https://your-app/?ref=code`.
+- **Overview**: the link with Copy and Share, money ready to pay, pending (held 30 days in case of refunds), paid so far, the monthly amount earned for life, link visits, sign-ups and paying sellers.
+- **Referrals**: each referred seller (part of their email only), plan, status, whether the bonus is earned, and what they've earned the affiliate.
+- **Earnings and payouts**: every earning with when it's ready, and every payout.
+- **Pay affiliates** (app owner only): what each affiliate is owed, **Mark paid** after sending the money, and **Record payment** to credit a referred seller's subscription payment by hand until billing is connected.
+
+A public page about the program, for sharing, is at `https://your-app/?affiliates`.
+
+How referrals are tracked: a visit with `?ref=code` is counted and the code is remembered in that browser for 60 days. When that visitor signs up, they're credited to the affiliate. Self-referrals and accounts older than 7 days don't count, and a seller can only be referred once.
+
+Setup: run `supabase/migrations/0009_affiliates.sql`. The terms live in the one-row `affiliate_program` table (bonus amount or cap, rate, refund hold, which plans earn the bonus, an optional "after they've paid this much" threshold, link memory, minimum payout); change them there and the app follows. By default the bonus equals the referred seller's first payment (one month of their plan), capped at $109, on any plan. Set `bonus_matches_payment` to false for a flat `bonus_cents` instead.
+
+When billing is built, its webhook calls these with the service role key: `record_subscription_payment(user_id, plan, amount_cents, invoice_id)` on every paid invoice (safe to repeat), `record_subscription_refund(invoice_id)` on a refund, and `record_subscription_canceled(user_id)` on a cancellation.
 
 ## Coming next
 

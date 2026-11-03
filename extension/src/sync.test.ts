@@ -105,7 +105,7 @@ describe("syncAll", () => {
     ]);
   });
 
-  it("records shipment changes for orders Reship already has", async () => {
+  it("records shipment changes for orders SellSync already has", async () => {
     const { sink, shipments } = memorySink([["A1", true], ["Z9", true]]);
     const c = fakeConnector({
       listShipmentUpdates: async () => [

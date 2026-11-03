@@ -46,7 +46,7 @@ describe("print job", () => {
     expect(res.pageCount).toBe(2);
   });
 
-  it("skips Reship's slip when a Poshmark label already includes Poshmark's", async () => {
+  it("skips SellSync's slip when a Poshmark label already includes Poshmark's", async () => {
     const labels = new Map([
       ["p2", await fakeLabel(2)],
       ["p1", await fakeLabel(1)],

@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { AlertCircle, BarChart3, Home, MessageSquare, Package, Settings as SettingsIcon, Shirt, Truck, X, Zap } from "lucide-react";
+import { AlertCircle, BarChart3, Gift, Home, MessageSquare, Settings as SettingsIcon, Shirt, Truck, X, Zap } from "lucide-react";
 import type { useReshipData } from "@/lib/useReshipData";
 import { isPartiallyDelisted } from "@/lib/inventory";
 import { OrdersPage } from "../Dashboard";
@@ -9,16 +9,20 @@ import { InventoryPage } from "../inventory/InventoryPage";
 import { AutomationsPage } from "../automations/AutomationsPage";
 import { SettingsPage } from "../settings/SettingsPage";
 import { FeedbackPage } from "../feedback/FeedbackPage";
+import { AffiliatesPage } from "../affiliates/AffiliatesPage";
 import { type Section, go, useRoute } from "./route";
+import { Logo } from "../brand/Logo";
 
 type Data = ReturnType<typeof useReshipData>;
 
-const NAV: { section: Section; label: string; icon: ComponentType<{ className?: string }> }[] = [
+// mobile: false keeps an entry out of the phone's bottom bar, which fits six.
+const NAV: { section: Section; label: string; icon: ComponentType<{ className?: string }>; mobile?: false }[] = [
   { section: "home", label: "Home", icon: Home },
   { section: "inventory", label: "Inventory", icon: Shirt },
   { section: "automations", label: "Automations", icon: Zap },
   { section: "orders", label: "Orders", icon: Truck },
   { section: "analytics", label: "Analytics", icon: BarChart3 },
+  { section: "affiliates", label: "Affiliates", icon: Gift, mobile: false },
   { section: "settings", label: "Settings", icon: SettingsIcon },
 ];
 
@@ -45,10 +49,7 @@ export function AppShell({
     <div className="h-screen bg-background flex overflow-hidden">
       <aside className="hidden md:flex w-52 shrink-0 bg-card border-r border-border flex-col">
         <button type="button" onClick={() => go("home")} className="px-5 py-5 border-b border-border flex items-center gap-2.5 text-left">
-          <div className="w-7 h-7 rounded-lg bg-[#B5607A] flex items-center justify-center">
-            <Package className="w-3.5 h-3.5 text-white" />
-          </div>
-          <span className="font-display font-semibold text-foreground text-sm">Reship</span>
+          <Logo />
         </button>
         <nav className="px-3 py-4 flex flex-col gap-0.5">
           {NAV.map(({ section, label, icon: Icon }) => {
@@ -58,13 +59,13 @@ export function AppShell({
                 key={section}
                 href={`#/${section}`}
                 aria-current={active ? "page" : undefined}
-                className={`flex items-center justify-between px-2.5 py-2 rounded-md text-sm transition-colors ${active ? "bg-[#B5607A] text-white" : "text-foreground hover:bg-muted"}`}
+                className={`flex items-center justify-between px-2.5 py-2 rounded-md text-sm transition-colors ${active ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-muted"}`}
               >
                 <span className="flex items-center gap-2.5">
                   <Icon className="w-4 h-4" /> {label}
                 </span>
                 {!!badge[section] && (
-                  <span className={`font-mono text-[11px] tabular-nums ${active ? "text-white/80" : "text-muted-foreground"}`}>{badge[section]}</span>
+                  <span className={`font-mono text-[11px] tabular-nums ${active ? "text-accent-foreground/70" : "text-muted-foreground"}`}>{badge[section]}</span>
                 )}
               </a>
             );
@@ -73,13 +74,13 @@ export function AppShell({
         <a
           href="#/feedback"
           aria-current={route.section === "feedback" ? "page" : undefined}
-          className={`mt-auto mx-3 mb-2 flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm ${route.section === "feedback" ? "bg-[#B5607A] text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+          className={`mt-auto mx-3 mb-2 flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm ${route.section === "feedback" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
         >
           <MessageSquare className="w-4 h-4" /> Feedback
         </a>
         <a href="#/settings?tab=account" className=" border-t border-border px-4 py-3 flex items-center gap-2 hover:bg-muted">
-          <div className="w-6 h-6 rounded-full bg-[#B5607A]/15 flex items-center justify-center shrink-0">
-            <span className="font-display text-[11px] font-semibold text-[#B5607A]">{(data.settings.displayName || "R").charAt(0).toUpperCase()}</span>
+          <div className="w-6 h-6 rounded-full bg-accent/15 flex items-center justify-center shrink-0">
+            <span className="font-display text-[11px] font-semibold text-accent">{(data.settings.displayName || "S").charAt(0).toUpperCase()}</span>
           </div>
           <div className="min-w-0">
             <p className="text-xs font-medium text-foreground truncate leading-none">{data.settings.displayName || "Your shop"}</p>
@@ -132,6 +133,7 @@ export function AppShell({
                   initialTab={route.params.get("tab")}
                 />
               )}
+              {route.section === "affiliates" && <AffiliatesPage key={route.params.get("tab") ?? ""} data={data} email={email} tab={route.params.get("tab")} />}
               {route.section === "feedback" && <FeedbackPage key={route.params.get("tab") ?? ""} data={data} tab={route.params.get("tab")} />}
               {route.section === "settings" && (
                 <SettingsPage data={data} email={email} demoMode={demoMode} onSignOut={onSignOut} tab={route.params.get("tab")} />
@@ -141,22 +143,22 @@ export function AppShell({
         </div>
       </main>
 
-      <a href="#/feedback" aria-label="Send feedback" className="md:hidden fixed right-3 bottom-[4.5rem] z-30 w-10 h-10 rounded-full bg-card border border-border shadow-md flex items-center justify-center text-[#B5607A]">
+      <a href="#/feedback" aria-label="Send feedback" className="md:hidden fixed right-3 bottom-[4.5rem] z-30 w-10 h-10 rounded-full bg-card border border-border shadow-md flex items-center justify-center text-accent">
         <MessageSquare className="w-4 h-4" />
       </a>
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-card border-t border-border grid grid-cols-6">
-        {NAV.map(({ section, label, icon: Icon }) => {
+        {NAV.filter((n) => n.mobile !== false).map(({ section, label, icon: Icon }) => {
           const active = route.section === section;
           return (
             <a
               key={section}
               href={`#/${section}`}
               aria-current={active ? "page" : undefined}
-              className={`relative flex flex-col items-center gap-0.5 py-2 text-[10px] ${active ? "text-[#B5607A] font-medium" : "text-muted-foreground"}`}
+              className={`relative flex flex-col items-center gap-0.5 py-2 text-[10px] ${active ? "text-accent font-medium" : "text-muted-foreground"}`}
             >
               <Icon className="w-5 h-5" />
               {label === "Automations" ? "Auto" : label}
-              {!!badge[section] && <span className="absolute top-1 right-[22%] w-1.5 h-1.5 rounded-full bg-[#B5607A]" />}
+              {!!badge[section] && <span className="absolute top-1 right-[22%] w-1.5 h-1.5 rounded-full bg-accent" />}
             </a>
           );
         })}
