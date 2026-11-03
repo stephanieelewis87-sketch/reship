@@ -16,7 +16,7 @@ Without any setup, SellSync runs in **demo mode**: it starts with sample orders 
 ## Use real accounts and a shared database (Supabase)
 
 1. Create a free project at [supabase.com](https://supabase.com).
-2. In the project's SQL editor, run the files in `supabase/migrations/` in order (0004 adds inventory and profit tracking for Analytics, 0009 the affiliate program, 0011 the current plans).
+2. In the project's SQL editor, run the files in `supabase/migrations/` in order (0004 adds inventory and profit tracking for Analytics, 0009 the affiliate program, 0011 the current plans, 0013 the Community).
 3. Copy `.env.example` to `.env.local` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from Settings > API.
 4. Restart `npm run dev`. SellSync now asks you to sign in, and each account only sees its own orders.
 
@@ -192,6 +192,16 @@ How referrals are tracked: a visit with `?ref=code` is counted and the code is r
 Setup: run `supabase/migrations/0009_affiliates.sql`. The terms live in the one-row `affiliate_program` table (bonus amount or cap, rate, refund hold, which plans earn the bonus, an optional "after they've paid this much" threshold, link memory, minimum payout); change them there and the app follows. By default the bonus equals the referred seller's first payment (one month of their plan), capped at $95 (one month of Flow), on any plan. Run `0011_plans.sql` too if you ran an older 0009. Set `bonus_matches_payment` to false for a flat `bonus_cents` instead.
 
 When billing is built, its webhook calls these with the service role key: `record_subscription_payment(user_id, plan, amount_cents, invoice_id)` on every paid invoice (safe to repeat), `record_subscription_refund(invoice_id)` on a refund, and `record_subscription_canceled(user_id)` on a cancellation.
+## Community
+
+Tools > **Community** is where SellSync sellers swap tips, ask questions and share wins. Run `supabase/migrations/0013_community.sql` to turn it on with accounts (needs 0006 for admins). Demo mode has sample discussions saved in the browser, and you're the moderator there.
+
+- **Posts and replies** in eight categories (Tips, Questions, Shipping, Sourcing, Wins, Marketplace news, Ideas, Just chatting), with likes, search, and sorting by recently active, newest or top. Authors can edit and delete their own posts. Posts show the shop name from Settings, never the email address.
+- **Report**: anyone can report a post or reply (spam, scam, harassment, off topic, other). Reports from three different sellers hide it automatically until a moderator decides.
+- **Block**: hides a seller's posts and replies from you. They aren't told. Unblock from the Blocked tab.
+- **Moderators** (anyone in `app_admins`, the same list as Feedback) get a Reports tab to remove, keep removed, put back up or dismiss, can remove anything from its menu, and can ban a seller from posting (they can still read). Bans are lifted from the Blocked tab.
+- The database enforces all of it: sellers can only post as themselves, can't change like or reply counts, banned sellers can't post or reply, and only admins can moderate or read reports.
+
 ## Buying labels (EasyPost)
 
 SellSync buys its own labels through EasyPost at EasyPost's discounted carrier rates, from the edge function in `supabase/functions/labels`.
