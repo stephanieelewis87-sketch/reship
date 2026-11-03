@@ -65,6 +65,16 @@ Marketplaces don't offer label APIs, so the extension in `extension/` reads sold
 - Poshmark and Mercari work today. Depop, Vinted and Whatnot show as "coming soon". The "Capture this page" and "Test" buttons help map and check a marketplace.
 - Mercari's pages are drawn in the browser, so the extension reads them in a minimized window it opens and closes during a sync. Mercari's letter-size label is cut out and turned upright when printing on 4x6 labels.
 
+## Bundle comments and buyer messages
+
+Automations > **Comments and messages** helps sellers keep in touch, within each marketplace's rules:
+
+- **Poshmark bundle comments**: pick a template (thanks for bundling, bundle offer coming, happy to help), fill in the shopper and items, then Copy and open Poshmark and post it on the shopper's bundle from My Shoppers.
+- **Past buyers**: everyone who bought from you on a marketplace, with a template that fits where their order is (thanks, on its way, did it arrive). On Poshmark it opens the order page. A note about new items is allowed once a month per buyer, and a buyer can be marked "don't contact".
+- **Potential buyers**: on Depop, Vinted, Facebook Marketplace and Whatnot, message people who liked or asked about an item. Poshmark, Mercari, eBay and Etsy don't allow messages to shoppers before they buy, and the page says so with a link to the rule.
+
+SellSync never posts or sends for you: every marketplace here bans bots that comment or message. With the extension, a "SellSync templates" button appears in Poshmark and Depop comment boxes and types a template in; you press Post.
+
 ## Feedback summaries (AI)
 
 Users send feedback from the Feedback tab. The `feedback-digest` Edge Function reads new feedback, asks Claude for a summary (themes, bugs, quick wins, decisions for you), saves it, and emails it to you. You read every summary under Feedback, then AI summaries.

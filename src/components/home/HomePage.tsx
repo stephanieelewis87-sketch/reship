@@ -469,6 +469,7 @@ function Goals({ data, today }: { data: Data; today: string }) {
 // --- What's new ---------------------------------------------------------------------------------
 
 const RELEASES = [
+  { date: "Nov 3, 2026", text: "Bundle comments and buyer messages, in Automations: comment on Poshmark shoppers' bundles, thank and check in with past buyers on their order page, and message interested shoppers on Depop, Vinted and Facebook, from templates. SellSync shows what each marketplace allows, and you press Send yourself." },
   { date: "Nov 3, 2026", text: "A simpler look: the menu is grouped into Sell and Grow, Inventory has one Add button for every way to add items, and Settings is grouped into four sections. Shares and follows are gone from Automations, since Poshmark no longer rewards them." },
   { date: "Oct 31, 2026", text: "List from photos: upload photos of up to 25 items at once, and AI sorts them into one listing per item, then writes each one with a suggested price." },
   { date: "Oct 30, 2026", text: "List with a video: film up to 25 items, and AI finds each one, keeps snips from the video, makes a clean photo, and writes the listing with a suggested price." },

@@ -6,6 +6,7 @@ import { relistState } from "@/lib/inventory";
 import type { useReshipData } from "@/lib/useReshipData";
 import { PlatformIcon, Toggle, inputClass, primaryButton } from "../ui";
 import { PageHeader } from "../shell/PageHeader";
+import { MessagesPanel } from "./MessagesPanel";
 
 type Data = ReturnType<typeof useReshipData>;
 
@@ -42,10 +43,12 @@ export function AutomationsPage({ data }: { data: Data }) {
   };
   const stale = data.inventory.filter((i) => i.listings.some((l) => l.platform === platform && l.status === "active" && relistState(l) === "stale")).length;
   const anyOn = automationOn(draft);
+  const [tab, setTab] = useState<"auto" | "messages">(() => (location.hash.includes("messages") ? "messages" : "auto"));
 
   return (
     <div>
-      <PageHeader title="Automations" subtitle="Keep listings fresh on every marketplace without doing it by hand">
+      <PageHeader title="Automations" subtitle="Keep listings fresh on every marketplace, and keep in touch with shoppers and buyers">
+        {tab === "auto" && (
         <div className="flex gap-2">
           <button
             type="button"
@@ -59,7 +62,30 @@ export function AutomationsPage({ data }: { data: Data }) {
             {saved ? "Saved" : "Save"}
           </button>
         </div>
+        )}
       </PageHeader>
+      <div className="px-4 md:px-8 pt-4 flex gap-1.5 overflow-x-auto" role="tablist">
+        {([
+          ["auto", "Relists and offers"],
+          ["messages", "Comments and messages"],
+        ] as const).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={tab === id}
+            onClick={() => setTab(id)}
+            className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap border ${tab === id ? "bg-accent text-accent-foreground border-accent" : "border-border text-muted-foreground hover:bg-muted"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {tab === "messages" ? (
+        <div className="px-4 md:px-8 py-4">
+          <MessagesPanel data={data} />
+        </div>
+      ) : (
       <div className="px-4 md:px-8 py-4 space-y-4">
         <p className="text-xs text-muted-foreground flex gap-2">
           <Puzzle className="w-4 h-4 shrink-0 text-accent" />
@@ -130,6 +156,7 @@ export function AutomationsPage({ data }: { data: Data }) {
           </div>
         </details>
       </div>
+      )}
     </div>
   );
 }
