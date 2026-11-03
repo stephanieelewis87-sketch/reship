@@ -36,6 +36,7 @@ import { salesHints } from "@/lib/videoListing";
 import { Pills } from "../analytics/parts";
 import { PageHeader } from "../shell/PageHeader";
 import { go, type Route } from "../shell/route";
+import { compQuery } from "@/lib/comps";
 import { EmptyState, Menu, MenuItem, Modal, PlatformIcon, inputClass, selectClass } from "../ui";
 import { LabelDots } from "./LabelChips";
 import { ListingForm } from "./ListingForm";
@@ -777,6 +778,9 @@ function ItemMenu({
           </MenuItem>
           <MenuItem onClick={run(close, onLabel)}>
             <ScanLine className="w-3.5 h-3.5" /> Print SKU label
+          </MenuItem>
+          <MenuItem onClick={run(close, () => go("research", { q: compQuery(item) }))}>
+            <Search className="w-3.5 h-3.5" /> Find comps
           </MenuItem>
           <MenuItem danger onClick={run(close, onDelete)}>
             <Trash2 className="w-3.5 h-3.5" /> Delete

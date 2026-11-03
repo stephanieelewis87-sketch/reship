@@ -7,6 +7,7 @@ import type { DetectedItem, ListingSuggestion } from "./videoListing";
 import type { PhotoGroup } from "./photoListing";
 import { asCondition } from "./videoListing";
 import { type AffiliateApi, LocalAffiliates, SupabaseAffiliates } from "./affiliateStore";
+import { type CompsApi, type LiveCompsResult, sampleLiveComps } from "./comps";
 
 // One interface, two backends: Supabase when it's configured, otherwise this browser's storage (demo mode).
 export interface Store {
@@ -45,6 +46,8 @@ export interface Store {
   saveListingPhoto(dataUrl: string): Promise<string>;
   // Referral links, referred sellers, and what the program owes each affiliate.
   affiliates: AffiliateApi;
+  // Research: live comps from marketplaces with official APIs (samples in demo mode).
+  comps: CompsApi;
 }
 
 // An image for the AI: inline JPEG/PNG data, or a public address.
@@ -208,6 +211,8 @@ export class LocalStore implements Store {
   saveListingPhoto = async (dataUrl: string) => dataUrl;
 
   affiliates = new LocalAffiliates();
+
+  comps: CompsApi = { search: async (q) => sampleLiveComps(q) };
 
   // Puts the demo back to its sample orders, all of them as they started.
   reset() {
@@ -610,6 +615,16 @@ export class SupabaseStore implements Store {
     const detail = await (error as { context?: Response }).context?.json?.().catch(() => null);
     throw Object.assign(new Error(detail?.error ?? `The AI service didn't answer (${error.message}).`), { unavailable: !!detail?.unavailable });
   }
+
+  // Live comps from eBay and Etsy's official APIs, through the comps-search Edge Function.
+  comps: CompsApi = {
+    search: async (q) => {
+      const { data, error } = await this.db.functions.invoke("comps-search", { body: { q } });
+      if (!error) return data as LiveCompsResult;
+      const detail = await (error as { context?: Response }).context?.json?.().catch(() => null);
+      throw new Error(detail?.error ?? `Live comps didn't load (${error.message}).`);
+    },
+  };
 
   // Listing photos go in the public "listing-photos" bucket under the user's own folder.
   async saveListingPhoto(dataUrl: string) {
