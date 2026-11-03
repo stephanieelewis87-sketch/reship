@@ -9,7 +9,7 @@ import { Sparkline, fmtMoney } from "./charts";
 
 export function Card({ title, subtitle, right, children, className = "" }: { title?: string; subtitle?: string; right?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <section className={`bg-card border border-border rounded-xl p-4 md:p-5 min-w-0 ${className}`}>
+    <section className={`bg-card border border-border rounded-2xl p-4 md:p-5 min-w-0 ${className}`}>
       {(title || right) && (
         <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
           <div className="min-w-0">
@@ -53,7 +53,7 @@ export function Kpi({
     <Tag
       type={onClick ? "button" : undefined}
       onClick={onClick}
-      className={`text-left bg-card border border-border rounded-xl px-4 py-3 min-w-0 ${onClick ? "hover:border-[#B5607A]/40 hover:shadow-sm transition-all" : ""}`}
+      className={`text-left bg-card border border-border rounded-xl px-4 py-3 min-w-0 ${onClick ? "hover:border-accent/40 hover:shadow-sm transition-all" : ""}`}
     >
       <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground truncate">{label}</p>
       <div className="flex items-end justify-between gap-2 mt-1">
@@ -164,7 +164,7 @@ export function SortTable<T>({
         </tbody>
       </table>
       {limit && sorted.length > limit && (
-        <button type="button" onClick={() => setShowAll((v) => !v)} className="mt-2 text-xs text-[#B5607A] hover:underline">
+        <button type="button" onClick={() => setShowAll((v) => !v)} className="mt-2 text-xs text-accent hover:underline">
           {showAll ? "Show fewer" : `Show all ${sorted.length}`}
         </button>
       )}

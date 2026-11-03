@@ -1,4 +1,4 @@
-// Builds the Reship browser extension into extension/dist (load it unpacked in Chrome).
+// Builds the SellSync browser extension into extension/dist (load it unpacked in Chrome).
 // Uses the same Supabase settings as the web app: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.
 import { build } from "esbuild";
 import { cpSync, mkdirSync, readFileSync, existsSync } from "fs";

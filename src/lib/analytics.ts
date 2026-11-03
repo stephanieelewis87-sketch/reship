@@ -524,7 +524,7 @@ export function insights({
     out.push({
       tone: "info",
       title: `${WEEKDAY_NAMES[WEEKDAYS.indexOf(topDay.label)]}s are your best day`,
-      detail: `${pct(topDay.units / lines.length)} of sales in this period landed then. Share and relist the day before.`,
+      detail: `${pct(topDay.units / lines.length)} of sales in this period landed then. Relist the day before.`,
       page: "overview",
     });
   }
