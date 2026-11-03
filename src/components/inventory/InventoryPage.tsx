@@ -10,6 +10,7 @@ import {
   Clock,
   Copy,
   ExternalLink,
+  Eye,
   Filter,
   LayoutGrid,
   List,
@@ -44,6 +45,8 @@ import { PhotoListing } from "./PhotoListing";
 import { VideoListing } from "./VideoListing";
 import { ScanModal, SkuLabelsModal } from "./SkuTools";
 import { GuardianPage } from "./GuardianPage";
+import { StatsChip, StatsImportModal, StatsModal } from "./ListingStats";
+import { itemStats } from "@/lib/listingStats";
 import { LockedCard, LockedSection, PlanTag, currentPlan, upgradeFor } from "../plans/PlanGate";
 import { type Feature, crosslistTargets, hasFeature, yourMarketplaces } from "@/lib/plans";
 import { BrandMark } from "../brand/Logo";
@@ -52,10 +55,19 @@ import { checkInventory } from "@/lib/guardian";
 type Data = ReturnType<typeof useReshipData>;
 type StatusFilter = "all" | "draft" | "listed" | "sold";
 type Issue = "" | "partial" | "stale" | "duplicate" | "nocost";
-type Sort = "newest" | "oldest" | "name" | "price" | "sold";
+type Sort = "newest" | "oldest" | "name" | "price" | "sold" | "views" | "watchers";
 const PAGE_SIZE = 24;
 type View = "list" | "board";
 const VIEW_KEY = "reship.inventory.view";
+// Views and watchers show by default; a seller who finds them busy can hide them in Filter.
+const STATS_KEY = "reship.inventory.showStats";
+const readShowStats = (): boolean => {
+  try {
+    return localStorage.getItem(STATS_KEY) !== "off";
+  } catch {
+    return true;
+  }
+};
 const readView = (): View => {
   try {
     return localStorage.getItem(VIEW_KEY) === "board" ? "board" : "list";
@@ -111,6 +123,17 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
     platform?: Platform;
   } | null>(null);
   const [quick, setQuick] = useState<InventoryItem | null>(null);
+  const [statsFor, setStatsFor] = useState<InventoryItem | null>(null);
+  const [statsImport, setStatsImport] = useState(false);
+  const [showStats, setShowStatsState] = useState(readShowStats);
+  const setShowStats = (v: boolean) => {
+    setShowStatsState(v);
+    try {
+      localStorage.setItem(STATS_KEY, v ? "on" : "off");
+    } catch {
+      // The choice just won't be remembered.
+    }
+  };
   // #/inventory?video opens List with a video straight away (the Home page and homepage link here).
   const [video, setVideo] = useState(route.params.has("video"));
   useEffect(() => {
@@ -154,6 +177,8 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
       name: (a, b) => a.title.localeCompare(b.title),
       price: (a, b) => (b.listPrice ?? 0) - (a.listPrice ?? 0),
       sold: (a, b) => (b.soldAt ?? "").localeCompare(a.soldAt ?? ""),
+      views: (a, b) => itemStats(b).views - itemStats(a).views,
+      watchers: (a, b) => itemStats(b).watchers - itemStats(a).watchers,
     };
     return rows.sort(by[sort]);
   }, [inventory, status, search, issue, labelIn, labelOut, location, sort, dupes, today]);
@@ -354,6 +379,14 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                 >
                   Quick sync
                 </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    close();
+                    setStatsImport(true);
+                  }}
+                >
+                  Import eBay views and watchers
+                </MenuItem>
                 <MenuItem onClick={() => window.location.reload()}>Refresh this page</MenuItem>
               </>
             )}
@@ -431,6 +464,8 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
             <option value="name">Item name</option>
             <option value="price">Price, high to low</option>
             <option value="sold">Sale detected at</option>
+            <option value="views">Most viewed</option>
+            <option value="watchers">Most watched</option>
           </select>
           <button
             type="button"
@@ -511,6 +546,10 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                 })}
               </div>
             </div>
+            <label className="flex items-center gap-2 sm:col-span-2">
+              <input type="checkbox" checked={showStats} onChange={(e) => setShowStats(e.target.checked)} />
+              <span>Show views and watchers on items</span>
+            </label>
           </div>
         )}
       </div>
@@ -540,9 +579,10 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                     onToggle={() => toggleSelect(item.id)}
                     onEdit={() => setForm({ item, isNew: false })}
                     onQuick={() => setQuick(item)}
+                    onStats={showStats ? () => setStatsFor(item) : undefined}
                     onListOn={(p) => setForm({ item, isNew: false, platform: p })}
                     actionsFor={(l) => listingActions(item, l)}
-                    menu={<ItemMenu item={item} onEdit={() => setForm({ item, isNew: false })} onDelistAll={() => delistAll([item])} onCopy={() => copyItem(item)} onDelete={() => deleteItem(item)} onLabel={() => setSkuLabels([item])} />}
+                    menu={<ItemMenu item={item} onEdit={() => setForm({ item, isNew: false })} onDelistAll={() => delistAll([item])} onCopy={() => copyItem(item)} onDelete={() => deleteItem(item)} onLabel={() => setSkuLabels([item])} onStats={() => setStatsFor(item)} />}
                   />
                 ))}
               </div>
@@ -612,6 +652,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                               onCopy={() => copyItem(item)}
                               onDelete={() => deleteItem(item)}
                               onLabel={() => setSkuLabels([item])}
+                              onStats={() => setStatsFor(item)}
                             />
                           </div>
                           <div className="flex items-center gap-2 flex-wrap text-[12px] text-muted-foreground">
@@ -621,6 +662,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                             {(item.quantity ?? 1) > 1 && <span>qty {item.quantity}</span>}
                             <StatusChip item={item} />
                             <LabelDots defs={settings.labels} ids={item.labels} />
+                            {showStats && <StatsChip item={item} onOpen={() => setStatsFor(item)} />}
                           </div>
                         </div>
                       </div>
@@ -724,6 +766,31 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
       )}
       {formModal}
       {skuLabelsModal}
+      {statsFor && (
+        <StatsModal
+          key={statsFor.id}
+          item={statsFor}
+          today={today}
+          onClose={() => setStatsFor(null)}
+          onImport={() => (setStatsFor(null), setStatsImport(true))}
+          onSave={(i) => {
+            saveInventory([i]);
+            setStatsFor(null);
+          }}
+        />
+      )}
+      {statsImport && (
+        <StatsImportModal
+          inventory={inventory}
+          today={today}
+          onClose={() => setStatsImport(false)}
+          onApply={(changed, msg) => {
+            saveInventory(changed);
+            setStatsImport(false);
+            setNotice(msg);
+          }}
+        />
+      )}
       {scan && (
         <ScanModal
           inventory={inventory}
@@ -771,6 +838,7 @@ function ItemMenu({
   onCopy,
   onDelete,
   onLabel,
+  onStats,
 }: {
   item: InventoryItem;
   onEdit: () => void;
@@ -778,6 +846,7 @@ function ItemMenu({
   onCopy: () => void;
   onDelete: () => void;
   onLabel: () => void;
+  onStats: () => void;
 }) {
   const run = (close: () => void, fn: () => void) => () => {
     close();
@@ -801,6 +870,11 @@ function ItemMenu({
           <MenuItem onClick={run(close, onLabel)}>
             <ScanLine className="w-3.5 h-3.5" /> Print SKU label
           </MenuItem>
+          {item.listings.length > 0 && (
+            <MenuItem onClick={run(close, onStats)}>
+              <Eye className="w-3.5 h-3.5" /> Views and watchers
+            </MenuItem>
+          )}
           <MenuItem danger onClick={run(close, onDelete)}>
             <Trash2 className="w-3.5 h-3.5" /> Delete
           </MenuItem>
@@ -927,6 +1001,7 @@ function BoardCard({
   onToggle,
   onEdit,
   onQuick,
+  onStats,
   onListOn,
   actionsFor,
   menu,
@@ -938,6 +1013,7 @@ function BoardCard({
   onToggle: () => void;
   onEdit: () => void;
   onQuick: () => void;
+  onStats?: () => void;
   onListOn: (p: Platform) => void;
   actionsFor: (l: Listing) => ListingActions;
   menu: ReactNode;
@@ -970,6 +1046,7 @@ function BoardCard({
             {item.listPrice != null && <span>${item.listPrice}</span>}
             {(item.quantity ?? 1) > 1 && <span>qty {item.quantity}</span>}
             <LabelDots defs={settings.labels} ids={item.labels} />
+            {onStats && <StatsChip item={item} onOpen={onStats} />}
           </div>
         </div>
         <ul className="border-t border-border/70 divide-y divide-border/50 text-xs">

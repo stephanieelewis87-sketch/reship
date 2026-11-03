@@ -40,6 +40,18 @@ Without any setup, SellSync runs in **demo mode**: it starts with sample orders 
 - Inventory > **Scan** finds an item by SKU or marketplace listing ID with any USB or Bluetooth barcode scanner, or with the camera in Chrome. It also sets where the item is stored, so putting items away is scan, type the bin, scan the next.
 - Every item has a storage location (bin, shelf). Filter by it, search by it, set it in bulk, and it's printed on the SKU label.
 
+## Views and watchers
+
+Each item shows its views and watchers (likes, favorites or saves, in each marketplace's own word) from all its marketplaces as one small line in Inventory, with a per-marketplace breakdown and the change since the last reading when you click it. Sort by Most viewed or Most watched; turn the line off under Filter if you'd rather not see it. Items without numbers show nothing extra.
+
+SellSync only gets these numbers in ways the marketplaces allow:
+
+- **eBay**: Inventory > Sync > Import eBay views and watchers takes Seller Hub's listings traffic report (page views) and active listings download (watchers), matched to items by eBay item ID or listing link. eBay's official Analytics and Trading APIs have both numbers, for an automatic connection later.
+- **Etsy**: typed in for now. Etsy's official API has listing views and favorites, so they can update on their own once SellSync's Etsy app key is approved.
+- **Poshmark, Mercari, Depop, Vinted, Whatnot, Facebook Marketplace, ThredUp**: typed in from the listing (item menu > Views and watchers). None of them offers a seller API with these numbers, and SellSync doesn't scrape them.
+
+The numbers are stored on each listing in the existing `listings` column, so no migration is needed.
+
 ## Inventory Guardian
 
 Inventory > **Guardian** keeps the master record of every item safe. Run `supabase/migrations/0010_inventory_guardian.sql` to turn it on with accounts (demo mode keeps it in the browser).

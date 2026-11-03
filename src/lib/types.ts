@@ -76,6 +76,18 @@ export interface Listing {
   url?: string;
   // The marketplace's own ID for this listing, so Reship can tell it apart from look-alikes.
   listingId?: string;
+  // How many times buyers viewed the listing, and how many watch, like or favorite it, as the
+  // marketplace last reported them (from its API or report, or typed in by the seller).
+  views?: number;
+  watchers?: number;
+  statsAt?: string; // YYYY-MM-DD the numbers are from
+  statsHistory?: ListingStatsPoint[]; // earlier readings, oldest first, so SellSync can show the change
+}
+
+export interface ListingStatsPoint {
+  date: string; // YYYY-MM-DD
+  views?: number;
+  watchers?: number;
 }
 
 export type Condition = "New with tags" | "New without tags" | "Like new" | "Good" | "Fair";
