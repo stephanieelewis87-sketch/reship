@@ -380,7 +380,7 @@ export class LocalCommunity implements CommunityApi {
   };
 }
 
-// ---------- Accounts: Supabase (supabase/migrations/0013_community.sql) ----------
+// ---------- Accounts: Supabase (supabase/migrations/0014_community.sql) ----------
 
 interface PostRow {
   id: string;
