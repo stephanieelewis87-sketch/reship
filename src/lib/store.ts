@@ -7,6 +7,7 @@ import type { DetectedItem, ListingSuggestion } from "./videoListing";
 import type { PhotoGroup } from "./photoListing";
 import { asCondition } from "./videoListing";
 import { type AffiliateApi, LocalAffiliates, SupabaseAffiliates } from "./affiliateStore";
+import { type CommunityApi, LocalCommunity, SupabaseCommunity } from "./communityStore";
 import { type CompsApi, type LiveCompsResult, sampleLiveComps } from "./comps";
 
 // One interface, two backends: Supabase when it's configured, otherwise this browser's storage (demo mode).
@@ -48,6 +49,8 @@ export interface Store {
   affiliates: AffiliateApi;
   // Research: live comps from marketplaces with official APIs (samples in demo mode).
   comps: CompsApi;
+  // Community: sellers trading tips and ideas, with reports, blocks and admin moderation.
+  community: CommunityApi;
 }
 
 // An image for the AI: inline JPEG/PNG data, or a public address.
@@ -242,6 +245,8 @@ export class LocalStore implements Store {
 
   comps: CompsApi = { search: async (q) => sampleLiveComps(q) };
 
+  community = new LocalCommunity();
+
   // Puts the demo back to its sample orders, all of them as they started.
   reset() {
     this.memOrders = null;
@@ -249,6 +254,7 @@ export class LocalStore implements Store {
     this.expenses.reset();
     this.feedback.reset();
     this.affiliates.reset();
+    this.community.reset();
     try {
       indexedDB.deleteDatabase(GUARDIAN_DB);
     } catch {
@@ -440,8 +446,10 @@ const inventoryFromRow = (r: InventoryRow): InventoryItem => ({
 export class SupabaseStore implements Store {
   constructor(private userId: string) {
     this.affiliates = new SupabaseAffiliates(userId);
+    this.community = new SupabaseCommunity(userId);
   }
   affiliates: SupabaseAffiliates;
+  community: SupabaseCommunity;
 
   private get db() {
     if (!supabase) throw new Error("Supabase is not configured");
