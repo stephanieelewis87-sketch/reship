@@ -28,5 +28,15 @@ await build({
   },
 });
 
+// Content scripts can't be modules, so the comment-box Templates button is built on its own.
+await build({
+  entryPoints: { templates: "extension/src/templates.ts" },
+  outdir: "extension/dist",
+  bundle: true,
+  format: "iife",
+  target: "chrome120",
+  minify: true,
+});
+
 if (!env.VITE_SUPABASE_URL) console.warn("Built without VITE_SUPABASE_URL; the extension can't sign in until it's set.");
 console.log("Built extension/dist");
