@@ -2,7 +2,8 @@ import type { Expense, Feedback, FeedbackStatus, FeedbackSummary, InventoryBacku
 import { DEFAULT_SETTINGS } from "./types";
 import { SAMPLE_EXPENSES, SAMPLE_HISTORY_ORDERS, SAMPLE_INVENTORY, SAMPLE_ORDERS, sampleLabelPdf } from "./sampleData";
 import { SAMPLE_FEEDBACK, SAMPLE_SUMMARY } from "./sampleFeedback";
-import { supabase } from "./supabase";
+import { anonKey, supabase, url as supabaseUrl } from "./supabase";
+import type { ChatMessage } from "./assistant";
 import type { DetectedItem, ListingSuggestion } from "./videoListing";
 import type { PhotoGroup } from "./photoListing";
 import { asCondition } from "./videoListing";
@@ -48,6 +49,20 @@ export interface Store {
   affiliates: AffiliateApi;
   // Research: live comps from marketplaces with official APIs (samples in demo mode).
   comps: CompsApi;
+  // The AI helper chat. Null in demo mode, where the helper gives canned answers instead.
+  assistant: AssistantApi | null;
+}
+
+export interface AssistantQuestion {
+  messages: ChatMessage[]; // the chat so far, ending with the new question
+  page: string; // the section the seller has open, e.g. "inventory"
+  shop?: string; // shopSnapshot(), sent only on plans where the helper sees the shop
+}
+
+export interface AssistantApi {
+  // Streams the answer through onText as it's written; resolves with the whole answer and how
+  // many questions are left today.
+  ask(q: AssistantQuestion, onText: (soFar: string) => void, signal?: AbortSignal): Promise<{ text: string; left: number | null }>;
 }
 
 // An image for the AI: inline JPEG/PNG data, or a public address.
@@ -236,6 +251,7 @@ export class LocalStore implements Store {
   // No AI in demo mode; List with a video splits the video by scene instead, and List from photos
   // groups photos by when they were taken. Photos stay in this browser as small data URLs.
   listingAi = null;
+  assistant = null;
   saveListingPhoto = async (dataUrl: string) => dataUrl;
 
   affiliates = new LocalAffiliates();
@@ -667,6 +683,34 @@ export class SupabaseStore implements Store {
       if (!error) return data as LiveCompsResult;
       const detail = await (error as { context?: Response }).context?.json?.().catch(() => null);
       throw new Error(detail?.error ?? `Live comps didn't load (${error.message}).`);
+    },
+  };
+
+  // The AI helper, through the assistant Edge Function. The answer streams back as plain text.
+  assistant: AssistantApi = {
+    ask: async (q, onText, signal) => {
+      if (!supabaseUrl || !anonKey) throw new Error("Supabase is not configured");
+      const { data } = await this.db.auth.getSession();
+      const res = await fetch(`${supabaseUrl}/functions/v1/assistant`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: anonKey, Authorization: `Bearer ${data.session?.access_token ?? anonKey}` },
+        body: JSON.stringify(q),
+        signal,
+      });
+      if (!res.ok || !res.body) {
+        const detail = await res.json().catch(() => null);
+        throw new Error(detail?.error ?? `The helper didn't answer (${res.status}).`);
+      }
+      const leftHeader = res.headers.get("X-Questions-Left");
+      const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+      let text = "";
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        text += value;
+        onText(text);
+      }
+      return { text, left: leftHeader == null ? null : Number(leftHeader) };
     },
   };
 

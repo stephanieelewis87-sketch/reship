@@ -31,7 +31,7 @@ export const PLANS: Record<PlanId, Plan> = {
     name: "Ship",
     cents: 2500,
     pitch: "Everything in Sell, plus your shipping labels.",
-    adds: ["Print every marketplace's labels in one batch", "Compare and buy labels", "Packing slips and SKU on labels"],
+    adds: ["Print every marketplace's labels in one batch", "Compare and buy labels", "Packing slips and SKU on labels", "AI helper for how-to questions (15 a day)"],
     listingsPerDay: 20,
     marketplaces: 3,
   },
@@ -55,13 +55,13 @@ export const PLANS: Record<PlanId, Plan> = {
     name: "Flow",
     cents: 9500,
     pitch: "Unlimited everything.",
-    adds: ["Unlimited listings and marketplaces", "Video listings", "Full AI: listings from photos, and AI writing in your style", "Backups and restore"],
+    adds: ["Unlimited listings and marketplaces", "Video listings", "Full AI: listings from photos, AI writing in your style, and an AI helper that knows your shop", "Backups and restore"],
     listingsPerDay: null,
     marketplaces: null,
   },
 };
 
-export type Feature = "inventory" | "labels" | "quantitySync" | "crosslisting" | "delisting" | "automations" | "videoListing" | "backups" | "ai";
+export type Feature = "inventory" | "labels" | "quantitySync" | "crosslisting" | "delisting" | "automations" | "videoListing" | "backups" | "ai" | "assistant";
 
 // The first plan that has each feature.
 export const FEATURE_PLAN: Record<Feature, PlanId> = {
@@ -74,6 +74,7 @@ export const FEATURE_PLAN: Record<Feature, PlanId> = {
   videoListing: "flow",
   backups: "flow",
   ai: "flow",
+  assistant: "ship",
 };
 
 export const FEATURE_NAMES: Record<Feature, string> = {
@@ -86,6 +87,7 @@ export const FEATURE_NAMES: Record<Feature, string> = {
   videoListing: "Video listing",
   backups: "Backup and restore",
   ai: "Full AI access",
+  assistant: "The AI helper",
 };
 
 // Early access: until billing is switched on, everyone starts on Flow and can pick any plan.

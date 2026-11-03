@@ -105,6 +105,24 @@ Automations > **Comments and messages** helps sellers keep in touch, within each
 
 SellSync never posts or sends for you: every marketplace here bans bots that comment or message. With the extension, a "SellSync templates" button appears in Poshmark and Depop comment boxes and types a template in; you press Post.
 
+## AI helper
+
+The **Ask SellSync** button in the corner of every page opens a chat that answers how-to questions about SellSync and reselling (pricing, listing, shipping, marketplace rules). Answers link straight to the part of the app they mention.
+
+- **Sell**: no helper (the button shows what it does and which plan has it).
+- **Ship, Sync and Grow**: how-to and reselling answers, 15 questions a day.
+- **Flow**: the helper also sees a short summary of your shop with each question (totals, sales and profit this month and last, top brands and marketplaces, items listed over 60 days, orders to print and ship, and one line per item with SKU, price, cost, days listed and storage location), so it can answer "what should I mark down?" or "where did I put the Nike hoodie?". 200 questions a day. No photos or buyer addresses are sent.
+
+The chat is kept in your browser. Answers come from Claude (`claude-opus-5-5`, low effort for quick replies) through the `assistant` Edge Function, which checks the plan saved in your settings and the daily cap, and streams the answer back as it's written.
+
+Setup:
+
+1. Run `supabase/migrations/0013_assistant.sql` (lets the daily cap count helper questions).
+2. `supabase secrets set ANTHROPIC_API_KEY=...` (already set if you use the other AI features). Optional caps: `ASSISTANT_DAILY_HELPER` (15) and `ASSISTANT_DAILY_FULL` (200).
+3. `supabase functions deploy assistant`.
+
+In demo mode there's no AI: the helper answers common questions (what to mark down, profit this month, what needs to ship, where an item is stored, how to crosslist, print labels, restore a backup and more) from the sample shop.
+
 ## Feedback summaries (AI)
 
 Users send feedback from the Feedback tab. The `feedback-digest` Edge Function reads new feedback, asks Claude for a summary (themes, bugs, quick wins, decisions for you), saves it, and emails it to you. You read every summary under Feedback, then AI summaries.
@@ -209,9 +227,9 @@ Combining with Listy (video to listings) into one app: an inventory page, return
 | Plan | Price | Adds |
 | --- | --- | --- |
 | Sell | $15/mo | Inventory manager, delisting, 20 new listings a day on up to 3 marketplaces (no AI) |
-| Ship | $25/mo | Shipping labels (print, compare and buy, packing slips) |
+| Ship | $25/mo | Shipping labels (print, compare and buy, packing slips), AI helper for how-to questions |
 | Sync | $50/mo | Crosslisting, up to 5 marketplaces, 30 listings a day, quantity sync after a sale |
 | Grow | $65/mo | Automations, 40 listings a day |
-| Flow | $95/mo | Unlimited listings and marketplaces, video listing, full AI, backup and restore |
+| Flow | $95/mo | Unlimited listings and marketplaces, video listing, full AI (including a helper that knows your shop), backup and restore |
 
 Each plan includes the ones before it. Prices, features and limits live in `src/lib/plans.ts`; the homepage, Settings > Subscription, the upgrade prompts and the affiliate bonus all read from it. There's no billing yet: a seller picks a plan in Settings > Subscription, and everyone starts on Flow during early access.

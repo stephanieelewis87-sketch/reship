@@ -12,6 +12,7 @@ import { SettingsPage } from "../settings/SettingsPage";
 import { FeedbackPage } from "../feedback/FeedbackPage";
 import { AffiliatesPage } from "../affiliates/AffiliatesPage";
 import { ResearchPage } from "../research/ResearchPage";
+import { AssistantPanel } from "../assistant/AssistantPanel";
 import { type Section, go, useRoute } from "./route";
 import { Logo } from "../brand/Logo";
 import { ThemeToggle } from "../brand/ThemeToggle";
@@ -184,6 +185,7 @@ export function AppShell({
       </main>
 
       <PhoneNav route={route.section} badge={badge} />
+      {!data.loading && <AssistantPanel data={data} section={route.section} demoMode={demoMode} />}
     </div>
   );
 }
