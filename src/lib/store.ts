@@ -6,6 +6,7 @@ import { supabase } from "./supabase";
 import type { DetectedItem, ListingSuggestion } from "./videoListing";
 import type { PhotoGroup } from "./photoListing";
 import { asCondition } from "./videoListing";
+import { type AffiliateApi, LocalAffiliates, SupabaseAffiliates } from "./affiliateStore";
 
 // One interface, two backends: Supabase when it's configured, otherwise this browser's storage (demo mode).
 export interface Store {
@@ -35,6 +36,8 @@ export interface Store {
   listingAi: ListingAi | null;
   // Keeps a listing photo and returns the address to use for it.
   saveListingPhoto(dataUrl: string): Promise<string>;
+  // Referral links, referred sellers, and what the program owes each affiliate.
+  affiliates: AffiliateApi;
 }
 
 // An image for the AI: inline JPEG/PNG data, or a public address.
@@ -161,12 +164,15 @@ export class LocalStore implements Store {
   listingAi = null;
   saveListingPhoto = async (dataUrl: string) => dataUrl;
 
+  affiliates = new LocalAffiliates();
+
   // Puts the demo back to its sample orders, all of them as they started.
   reset() {
     this.memOrders = null;
     this.inventory.reset();
     this.expenses.reset();
     this.feedback.reset();
+    this.affiliates.reset();
     try {
       localStorage.removeItem(ORDERS_KEY);
     } catch {
@@ -350,7 +356,10 @@ const inventoryFromRow = (r: InventoryRow): InventoryItem => ({
 });
 
 export class SupabaseStore implements Store {
-  constructor(private userId: string) {}
+  constructor(private userId: string) {
+    this.affiliates = new SupabaseAffiliates(userId);
+  }
+  affiliates: SupabaseAffiliates;
 
   private get db() {
     if (!supabase) throw new Error("Supabase is not configured");

@@ -69,6 +69,10 @@ export function SettingsPage({
               {t.label}
             </a>
           ))}
+          {/* Affiliates has no room in the phone's bottom bar, so phones reach it from here. */}
+          <a href="#/affiliates" className="md:hidden px-2.5 py-1.5 rounded-md text-sm whitespace-nowrap text-[#B5607A] font-medium">
+            Affiliates
+          </a>
         </nav>
         <div className="flex-1 min-w-0 px-4 md:px-8 py-5 max-w-2xl space-y-6">
           {tab === "connections" && <Connections />}

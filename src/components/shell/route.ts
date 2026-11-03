@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
 // Sections of the app, kept in the address (#/inventory) so a refresh or a shared link lands in the same place.
-export type Section = "home" | "inventory" | "automations" | "orders" | "analytics" | "settings" | "feedback";
-export const SECTIONS: Section[] = ["home", "inventory", "automations", "orders", "analytics", "settings", "feedback"];
+export type Section = "home" | "inventory" | "automations" | "orders" | "analytics" | "settings" | "feedback" | "affiliates";
+export const SECTIONS: Section[] = ["home", "inventory", "automations", "orders", "analytics", "settings", "feedback", "affiliates"];
 
 export interface Route {
   section: Section;

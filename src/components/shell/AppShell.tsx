@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { AlertCircle, BarChart3, Home, MessageSquare, Package, Settings as SettingsIcon, Shirt, Truck, X, Zap } from "lucide-react";
+import { AlertCircle, BarChart3, Gift, Home, MessageSquare, Package, Settings as SettingsIcon, Shirt, Truck, X, Zap } from "lucide-react";
 import type { useReshipData } from "@/lib/useReshipData";
 import { isPartiallyDelisted } from "@/lib/inventory";
 import { OrdersPage } from "../Dashboard";
@@ -9,16 +9,19 @@ import { InventoryPage } from "../inventory/InventoryPage";
 import { AutomationsPage } from "../automations/AutomationsPage";
 import { SettingsPage } from "../settings/SettingsPage";
 import { FeedbackPage } from "../feedback/FeedbackPage";
+import { AffiliatesPage } from "../affiliates/AffiliatesPage";
 import { type Section, go, useRoute } from "./route";
 
 type Data = ReturnType<typeof useReshipData>;
 
-const NAV: { section: Section; label: string; icon: ComponentType<{ className?: string }> }[] = [
+// mobile: false keeps an entry out of the phone's bottom bar, which fits six.
+const NAV: { section: Section; label: string; icon: ComponentType<{ className?: string }>; mobile?: false }[] = [
   { section: "home", label: "Home", icon: Home },
   { section: "inventory", label: "Inventory", icon: Shirt },
   { section: "automations", label: "Automations", icon: Zap },
   { section: "orders", label: "Orders", icon: Truck },
   { section: "analytics", label: "Analytics", icon: BarChart3 },
+  { section: "affiliates", label: "Affiliates", icon: Gift, mobile: false },
   { section: "settings", label: "Settings", icon: SettingsIcon },
 ];
 
@@ -132,6 +135,7 @@ export function AppShell({
                   initialTab={route.params.get("tab")}
                 />
               )}
+              {route.section === "affiliates" && <AffiliatesPage key={route.params.get("tab") ?? ""} data={data} email={email} tab={route.params.get("tab")} />}
               {route.section === "feedback" && <FeedbackPage key={route.params.get("tab") ?? ""} data={data} tab={route.params.get("tab")} />}
               {route.section === "settings" && (
                 <SettingsPage data={data} email={email} demoMode={demoMode} onSignOut={onSignOut} tab={route.params.get("tab")} />
@@ -145,7 +149,7 @@ export function AppShell({
         <MessageSquare className="w-4 h-4" />
       </a>
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-card border-t border-border grid grid-cols-6">
-        {NAV.map(({ section, label, icon: Icon }) => {
+        {NAV.filter((n) => n.mobile !== false).map(({ section, label, icon: Icon }) => {
           const active = route.section === section;
           return (
             <a
