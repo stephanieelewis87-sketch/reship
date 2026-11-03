@@ -13,6 +13,7 @@ import {
   Repeat2,
   Shirt,
   Sparkles,
+  Gift,
   Undo2,
   Video,
   X,
@@ -21,7 +22,7 @@ import type { Platform } from "@/lib/types";
 import { PlatformIcon } from "../ui";
 import { Logo as BrandLogo } from "../brand/Logo";
 import { PLANS as PLAN_INFO, PLAN_IDS, priceLabel } from "@/lib/plans";
-import { MISSION_HREF, minPriceLabel } from "@/lib/minPrice";
+import { MISSION_HREF, freeGiftTip, minPriceLabel } from "@/lib/minPrice";
 
 const MARKETPLACES: Platform[] = ["Poshmark", "Mercari", "eBay", "Depop", "Vinted", "Etsy", "WhatNot"];
 
@@ -687,6 +688,15 @@ function Pricing({ onSignUp }: { onSignUp: () => void }) {
         ))}
       </div>
       <p className="mt-6 text-center text-xs text-muted-foreground">Cancel any time.</p>
+      <div className="mt-8 max-w-2xl mx-auto flex items-start gap-3 rounded-2xl border border-accent/30 bg-accent/5 px-5 py-4 text-sm">
+        <Gift className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+        <p>
+          <span className="font-semibold">Every item lists at {minPriceLabel} or more.</span> {freeGiftTip}{" "}
+          <a href={MISSION_HREF} className="text-accent font-medium hover:underline">
+            Why we have a minimum
+          </a>
+        </p>
+      </div>
     </section>
   );
 }
@@ -710,7 +720,7 @@ const FAQS = [
   },
   {
     q: `Why is there a ${minPriceLabel} minimum price?`,
-    a: `A seller's labor is not free. Very low-priced items leave nothing for the work behind them, clog the shipping channels and the marketplaces, and undervalue quality brands. Every item listed through SellSync is priced at ${minPriceLabel} or more. Smaller items sell well bundled together. Read more on our Mission page.`,
+    a: `A seller's labor is not free. Very low-priced items leave nothing for the work behind them, clog the shipping channels and the marketplaces, and undervalue quality brands. Every item listed through SellSync is priced at ${minPriceLabel} or more. Smaller items sell well bundled together, or as a free gift with another item, using the FREE GIFT WITH ORDER cover banner. Read more on our Mission page.`,
   },
   {
     q: "Does it work on my phone?",

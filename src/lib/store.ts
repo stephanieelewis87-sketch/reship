@@ -380,6 +380,7 @@ const inventoryToRow = (i: InventoryItem, userId: string) => ({
     notes: i.notes,
     location: i.location,
     photos: i.photos,
+    coverEdit: i.coverEdit,
     readyToList: i.readyToList,
     soldOrders: i.soldOrders,
   },

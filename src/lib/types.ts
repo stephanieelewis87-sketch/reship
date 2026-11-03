@@ -1,3 +1,4 @@
+import type { CoverEdit } from "./coverPhoto";
 import { DEFAULT_PLAN, type PlanId } from "./plans";
 export type Platform = "Poshmark" | "Vinted" | "Depop" | "Mercari" | "WhatNot" | "Etsy" | "eBay" | "Facebook" | "ThredUp" | "Other";
 export type LabelStatus = "pending" | "printed" | "shipped";
@@ -106,6 +107,7 @@ export interface InventoryItem {
   location?: string; // where it's stored, e.g. "Bin 4" or "Shelf B2"
   photo?: string;
   photos?: string[];
+  coverEdit?: CoverEdit; // brand tag and sale banner added to the first photo
   readyToList?: boolean;
   soldOrders?: string[]; // orders already counted against this item
   createdAt?: string;
