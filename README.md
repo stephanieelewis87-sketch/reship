@@ -236,10 +236,10 @@ Combining with Listy (video to listings) into one app: an inventory page, return
 
 | Plan | Price | Adds |
 | --- | --- | --- |
-| Sell | $15/mo | Inventory manager, delisting, 20 new listings a day on up to 3 marketplaces (no AI) |
-| Ship | $25/mo | Shipping labels (print, compare and buy, packing slips), AI helper for how-to questions |
-| Sync | $50/mo | Crosslisting, up to 5 marketplaces, 30 listings a day, quantity sync after a sale |
+| Ship | $10/mo | Just the shipping tool: labels (print, compare and buy, packing slips), AI helper for how-to questions |
+| Sell | $25/mo | Inventory manager, crosslisting and delisting, 20 new listings a day on up to 3 marketplaces (no AI) |
+| Sync | $50/mo | Up to 5 marketplaces, 30 listings a day, quantity sync after a sale |
 | Grow | $65/mo | Automations, 40 listings a day |
-| Flow | $95/mo | Unlimited listings and marketplaces, video listing, full AI (including a helper that knows your shop), backup and restore |
+| Flow | $150/mo | Unlimited listings and marketplaces, video listing, full AI (including a helper that knows your shop), backup and restore |
 
 Each plan includes the ones before it. Prices, features and limits live in `src/lib/plans.ts`; the homepage, Settings > Subscription, the upgrade prompts and the affiliate bonus all read from it. There's no billing yet: a seller picks a plan in Settings > Subscription, and everyone starts on Flow during early access.

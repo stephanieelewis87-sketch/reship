@@ -1,11 +1,11 @@
-// SellSync's plans (Sell $15, Ship $25, Sync $50, Grow $65, Flow $95), in one place: names, monthly prices, what each one includes, and the checks
+// SellSync's plans (Ship $10, Sell $25, Sync $50, Grow $65, Flow $150), in one place: names, monthly prices, what each one includes, and the checks
 // the app uses to lock features. Each plan includes everything in the plans before it.
 // The homepage, the Subscription settings, the upgrade prompts and the affiliate math all read this.
 
 import type { InventoryItem, Platform } from "./types";
 
 export type PlanId = "sell" | "ship" | "sync" | "grow" | "flow";
-export const PLAN_IDS: PlanId[] = ["sell", "ship", "sync", "grow", "flow"];
+export const PLAN_IDS: PlanId[] = ["ship", "sell", "sync", "grow", "flow"];
 
 export interface Plan {
   name: string;
@@ -19,27 +19,28 @@ export interface Plan {
 }
 
 export const PLANS: Record<PlanId, Plan> = {
-  sell: {
-    name: "Sell",
-    cents: 1500,
-    pitch: "Your inventory in one place, on up to three marketplaces.",
-    adds: ["Inventory manager", "20 new listings a day", "Up to 3 marketplaces", "Delisting when an item sells"],
-    listingsPerDay: 20,
-    marketplaces: 3,
-  },
+  // The way in: just the shipping tool, for sellers who only want their labels sorted.
   ship: {
     name: "Ship",
-    cents: 2500,
-    pitch: "Everything in Sell, plus your shipping labels.",
+    cents: 1000,
+    pitch: "Every marketplace's shipping labels, in one batch.",
     adds: ["Print every marketplace's labels in one batch", "Compare and buy labels", "Packing slips and SKU on labels", "AI helper for how-to questions (15 a day)"],
+    listingsPerDay: 0,
+    marketplaces: 0,
+  },
+  sell: {
+    name: "Sell",
+    cents: 2500,
+    pitch: "Everything in Ship, plus your inventory and crosslisting on three marketplaces.",
+    adds: ["Inventory manager", "Crosslisting", "20 new listings a day", "Up to 3 marketplaces", "Delisting when an item sells"],
     listingsPerDay: 20,
     marketplaces: 3,
   },
   sync: {
     name: "Sync",
     cents: 5000,
-    pitch: "List once, and crosslist to five marketplaces.",
-    adds: ["Crosslisting", "Up to 5 marketplaces", "30 new listings a day", "Quantities adjust everywhere after a sale"],
+    pitch: "Crosslist to five marketplaces, with quantities kept in sync.",
+    adds: ["Up to 5 marketplaces", "30 new listings a day", "Quantities adjust everywhere after a sale"],
     listingsPerDay: 30,
     marketplaces: 5,
   },
@@ -53,7 +54,7 @@ export const PLANS: Record<PlanId, Plan> = {
   },
   flow: {
     name: "Flow",
-    cents: 9500,
+    cents: 15000,
     pitch: "Unlimited everything.",
     adds: ["Unlimited listings and marketplaces", "Video listings", "Full AI: listings from photos, AI writing in your style, and an AI helper that knows your shop", "Backups and restore"],
     listingsPerDay: null,
@@ -65,16 +66,16 @@ export type Feature = "inventory" | "labels" | "quantitySync" | "crosslisting" |
 
 // The first plan that has each feature.
 export const FEATURE_PLAN: Record<Feature, PlanId> = {
-  inventory: "sell",
   labels: "ship",
+  assistant: "ship",
+  inventory: "sell",
+  crosslisting: "sell",
   quantitySync: "sync",
-  crosslisting: "sync",
   delisting: "sell",
   automations: "grow",
   videoListing: "flow",
   backups: "flow",
   ai: "flow",
-  assistant: "ship",
 };
 
 export const FEATURE_NAMES: Record<Feature, string> = {

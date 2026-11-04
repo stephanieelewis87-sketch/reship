@@ -189,7 +189,7 @@ const HOW_TO: { words: RegExp; answer: string }[] = [
   {
     words: /plan|upgrade|price of sellsync|subscription|cost of sellsync/,
     answer:
-      "SellSync has five plans: Sell $15, Ship $25, Sync $50, Grow $65 and Flow $95 a month, each with everything in the ones before it. See them in [Settings → Subscription](#/settings?tab=subscription).",
+      "SellSync has five plans: Ship $10, Sell $25, Sync $50, Grow $65 and Flow $150 a month, each with everything in the ones before it. See them in [Settings → Subscription](#/settings?tab=subscription).",
   },
 ];
 

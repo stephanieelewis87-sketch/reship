@@ -66,9 +66,9 @@ describe("balances", () => {
 
 describe("projectEarnings", () => {
   it("adds bonuses and a year of 5%", () => {
-    const y = projectEarnings(DEFAULT_PROGRAM, { sell: 10, grow: 2 }, 12);
-    expect(y.bonusCents).toBe(10 * 1500 + 2 * 6500);
-    expect(y.recurringCents).toBe(10 * 75 * 12 + 2 * 325 * 12);
+    const y = projectEarnings(DEFAULT_PROGRAM, { ship: 10, grow: 2 }, 12);
+    expect(y.bonusCents).toBe(10 * 1000 + 2 * 6500);
+    expect(y.recurringCents).toBe(10 * 50 * 12 + 2 * 325 * 12);
   });
 });
 
@@ -79,7 +79,7 @@ describe("codes and wording", () => {
     expect(suggestCode("A")).toMatch(/^seller-/);
   });
   it("describes the bonus rule", () => {
-    expect(bonusRule(DEFAULT_PROGRAM)).toBe("A one-time bonus equal to one month of the plan a seller you referred picks ($15 for Sell, $25 for Ship, $50 for Sync, $65 for Grow, $95 for Flow), after their first payment.");
+    expect(bonusRule(DEFAULT_PROGRAM)).toBe("A one-time bonus equal to one month of the plan a seller you referred picks ($10 for Ship, $25 for Sell, $50 for Sync, $65 for Grow, $95 for Flow), after their first payment.");
     expect(formatCents(245)).toBe("$2.45");
     expect(formatCents(10000)).toBe("$100");
   });

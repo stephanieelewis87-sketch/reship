@@ -741,6 +741,9 @@ function Pricing({ onSignUp }: { onSignUp: () => void }) {
         ))}
       </div>
       <p className="mt-6 text-center text-xs text-muted-foreground">Cancel any time.</p>
+      <p className="mt-2 text-center text-sm text-foreground">
+        <span className="font-semibold">Just want to meet other sellers?</span> The Community is free on every plan, and with a free account. No card needed.
+      </p>
       <div className="mt-8 max-w-2xl mx-auto flex items-start gap-3 rounded-2xl border border-accent/30 bg-accent/5 px-5 py-4 text-sm">
         <Gift className="w-5 h-5 text-accent shrink-0 mt-0.5" />
         <p>
@@ -761,7 +764,11 @@ const FAQS = [
   },
   {
     q: "Which marketplaces work?",
-    a: "Poshmark and Mercari orders and labels sync automatically today. You can bring in orders from Depop, Vinted, Whatnot, Etsy and eBay with a CSV export, and automatic sync for them is on the way.",
+    a: "SellSync works with Poshmark, Mercari, eBay, Etsy, Depop, Vinted, Whatnot, Facebook Marketplace, ThredUp, OfferUp, Curtsy, Grailed, Vestiaire Collective and your own Shopify store. Poshmark, Mercari and Vinted orders sync through the browser extension; the others come in by CSV export or by hand, and you can import the listings you already have from any of them.",
+  },
+  {
+    q: "Is the Community free?",
+    a: "Yes. The Community, where sellers share tips, ask questions and help each other, is open on every plan and to free accounts. You only pay for the selling tools.",
   },
   {
     q: "Do I have to buy labels through SellSync?",

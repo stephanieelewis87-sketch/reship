@@ -14,9 +14,8 @@ const orders: Order[] = [
 const shop = { inventory, orders, settings: { ...DEFAULT_SETTINGS, displayName: "Bin Babe", plan: "flow" as const } };
 
 describe("AI helper", () => {
-  it("is off on Sell, how-to only on Ship to Grow, and knows the shop on Flow", () => {
-    expect(assistantAccess("sell").level).toBe("none");
-    for (const p of ["ship", "sync", "grow"] as const) expect(assistantAccess(p)).toEqual({ level: "helper", daily: 15, seesShop: false });
+  it("answers how-to questions on Ship to Grow, and knows the shop on Flow", () => {
+    for (const p of ["ship", "sell", "sync", "grow"] as const) expect(assistantAccess(p)).toEqual({ level: "helper", daily: 15, seesShop: false });
     expect(assistantAccess("flow")).toEqual({ level: "full", daily: 200, seesShop: true });
   });
 

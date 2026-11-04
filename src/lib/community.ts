@@ -1,4 +1,6 @@
 // Community: sellers trading tips, questions and ideas. Types and the rules both backends share.
+// Open to every signed-in account, free or on any plan: it's never gated by plan (no Feature in
+// plans.ts), and the database lets any signed-in user read and post.
 
 export type CommunityCategory = "tips" | "questions" | "shipping" | "sourcing" | "wins" | "news" | "ideas" | "chat";
 export type ContentKind = "post" | "reply";

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { InventoryItem } from "./types";
 import { ALL_PLATFORMS, DEFAULT_SETTINGS } from "./types";
-import { PLANS, PLAN_IDS, crosslistTargets, hasFeature, listingRoom, marketplacesInUse, nextPlanFor, planOf, yourMarketplaces } from "./plans";
+import { FEATURE_PLAN, PLANS, PLAN_IDS, crosslistTargets, hasFeature, listingRoom, marketplacesInUse, nextPlanFor, planOf, yourMarketplaces } from "./plans";
 import { applySales } from "./inventory";
 
 const item = (id: string, platforms: InventoryItem["listings"][number]["platform"][], listedAt?: string): InventoryItem => ({
@@ -14,18 +14,24 @@ const item = (id: string, platforms: InventoryItem["listings"][number]["platform
 });
 
 describe("plans", () => {
-  it("costs $15, $25, $50, $65 and $95, in order", () => {
-    expect(PLAN_IDS.map((p) => PLANS[p].cents)).toEqual([1500, 2500, 5000, 6500, 9500]);
+  it("costs $10, $25, $50, $65 and $150, in order", () => {
+    expect(PLAN_IDS).toEqual(["ship", "sell", "sync", "grow", "flow"]);
+    expect(PLAN_IDS.map((p) => PLANS[p].cents)).toEqual([1000, 2500, 5000, 6500, 15000]);
   });
 
   it("includes everything in the plans below", () => {
     expect(hasFeature("sell", "inventory")).toBe(true);
     expect(hasFeature("sell", "delisting")).toBe(true);
     expect(hasFeature("sell", "ai")).toBe(false);
-    expect(hasFeature("sell", "labels")).toBe(false);
+    expect(hasFeature("sell", "labels")).toBe(true);
+    expect(hasFeature("sell", "crosslisting")).toBe(true);
+    expect(hasFeature("sell", "quantitySync")).toBe(false);
+    // Ship is just the shipping tool (and the how-to helper).
     expect(hasFeature("ship", "labels")).toBe(true);
+    expect(hasFeature("ship", "assistant")).toBe(true);
+    expect(hasFeature("ship", "inventory")).toBe(false);
     expect(hasFeature("ship", "crosslisting")).toBe(false);
-    expect(hasFeature("sync", "crosslisting")).toBe(true);
+    expect(hasFeature("sync", "quantitySync")).toBe(true);
     expect(hasFeature("sync", "automations")).toBe(false);
     expect(hasFeature("grow", "automations")).toBe(true);
     expect(hasFeature("grow", "videoListing")).toBe(false);
@@ -47,7 +53,8 @@ describe("plans", () => {
     expect(listingRoom("grow", inv, today).cap).toBe(40);
     expect(listingRoom("flow", inv, today).cap).toBeNull();
     expect([...marketplacesInUse([item("c", ["Poshmark", "Mercari"]), item("d", ["eBay"])])].sort()).toEqual(["Mercari", "Poshmark", "eBay"]);
-    expect(PLAN_IDS.map((p) => PLANS[p].marketplaces)).toEqual([3, 3, 5, 5, null]);
+    expect(PLAN_IDS.map((p) => PLANS[p].marketplaces)).toEqual([0, 3, 5, 5, null]);
+    expect(nextPlanFor("ship", "listingsPerDay")).toBe("sell");
     expect(nextPlanFor("sell", "marketplaces")).toBe("sync");
     expect(nextPlanFor("sync", "listingsPerDay")).toBe("grow");
     expect(nextPlanFor("grow", "marketplaces")).toBe("flow");
@@ -80,5 +87,11 @@ describe("crosslist to all", () => {
     const mine = yourMarketplaces("flow", [item("a", ["Poshmark", "Mercari", "Depop"])], ALL_PLATFORMS);
     expect(crosslistTargets(item("b", ["Poshmark"]), mine)).toEqual(["Depop", "Mercari"]);
     expect(crosslistTargets({ ...item("c", []), status: "sold" }, mine)).toEqual([]);
+  });
+});
+
+describe("Community", () => {
+  it("is never locked to a plan, so free accounts can join too", () => {
+    expect(Object.keys(FEATURE_PLAN)).not.toContain("community");
   });
 });
