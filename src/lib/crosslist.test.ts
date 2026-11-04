@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkDraft, conditionLabel, fitDraft, type ListingDraft } from "./crosslist";
+import { checkDraft, conditionLabel, fitDraft, plainCoverOf, type ListingDraft } from "./crosslist";
 
 const draft = (over: Partial<ListingDraft> = {}): ListingDraft => ({
   title: "Vintage Levi's 501 high waisted mom jeans light wash denim size 28 made in USA button fly",
@@ -42,5 +42,18 @@ describe("crosslist rules", () => {
     expect(conditionLabel("Vinted", "like_new")).toBe("Very good");
     expect(conditionLabel("Vinted", "fair")).toBe("Satisfactory");
     expect(conditionLabel("Vinted", undefined)).toBeUndefined();
+  });
+});
+
+describe("customized cover photos", () => {
+  it("sends Mercari the plain cover and Vinted the customized one", () => {
+    const d = draft({ photos: ["https://x.test/banner.jpg", "https://x.test/2.jpg"], plainCover: "https://x.test/plain.jpg" });
+    expect(fitDraft("Mercari", d).photos[0]).toBe("https://x.test/plain.jpg");
+    expect(fitDraft("Vinted", d).photos[0]).toBe("https://x.test/banner.jpg");
+  });
+  it("finds the plain cover only while the edited cover is still first", () => {
+    const coverEdit = { original: "plain.jpg", applied: "banner.jpg" };
+    expect(plainCoverOf({ photos: ["banner.jpg"], coverEdit })).toBe("plain.jpg");
+    expect(plainCoverOf({ photos: ["other.jpg"], coverEdit })).toBeUndefined();
   });
 });

@@ -1,5 +1,5 @@
-import { MARKETPLACES } from "./marketplaces";
-import type { Platform } from "./types";
+import { MARKETPLACES, photosFor } from "./marketplaces";
+import type { InventoryItem, Platform } from "./types";
 
 // One item, written once, that the extension fills into each marketplace's own sell form.
 export interface ListingDraft {
@@ -8,6 +8,8 @@ export interface ListingDraft {
   price: number;
   // Photo addresses (https or data URLs), first one is the cover photo.
   photos: string[];
+  // The cover before its brand tag and sale banner, for marketplaces that ban text on photos.
+  plainCover?: string;
   sku?: string;
   brand?: string;
   size?: string;
@@ -76,6 +78,11 @@ export const CROSSLIST_RULES: Partial<Record<Platform, MarketplaceRules>> = {
   },
 };
 
+// The item's cover before its brand tag and sale banner, when the current cover is the edited one.
+// Put this on a ListingDraft's plainCover so eBay and Mercari get the plain photo.
+export const plainCoverOf = (item: Pick<InventoryItem, "photos" | "coverEdit">): string | undefined =>
+  item.coverEdit && item.photos?.[0] === item.coverEdit.applied ? item.coverEdit.original : undefined;
+
 export const CROSSLIST_PLATFORMS = Object.keys(CROSSLIST_RULES) as Platform[];
 
 export const canCrosslist = (platform: Platform) => platform in CROSSLIST_RULES;
@@ -104,7 +111,7 @@ export function fitDraft(platform: Platform, draft: ListingDraft): ListingDraft 
     ...draft,
     title: clip(draft.title.trim(), rules.titleMax),
     description: clip(draft.description.trim(), rules.descriptionMax - sku.length) + sku,
-    photos: draft.photos.slice(0, rules.photosMax),
+    photos: photosFor(platform, draft.photos, draft.plainCover).slice(0, rules.photosMax),
     price: Math.round(draft.price * 100) / 100,
   };
 }

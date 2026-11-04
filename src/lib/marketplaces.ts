@@ -20,6 +20,9 @@ export interface Marketplace {
   // Most photos the marketplace's sell form takes. SellSync sends the first this many.
   photosMax: number;
   photosNote?: string; // when the limit isn't published by the marketplace itself
+  // Gets the plain cover photo, without SellSync's brand tag or sale banner, because the
+  // marketplace removes or rejects photos with text or logos added on them.
+  plainCover?: boolean;
   // The listing link, built from the marketplace's own listing ID. Left out when the
   // marketplace's links need more than the ID (a title slug), so the cleaned pasted link is kept.
   listingUrl?: (id: string) => string;
@@ -64,6 +67,7 @@ export const MARKETPLACES: Record<Platform, Marketplace> = {
     shareHosts: ["merc.li"],
     home: "https://www.mercari.com/",
     photosMax: 12,
+    plainCover: true, // Mercari rejects photos with text or watermarks added
     listingIdFrom: (p) => after(p, "item"),
     listingUrl: (id) => `https://www.mercari.com/us/item/${enc(id)}/`,
     orders: "https://www.mercari.com/mypage/listings/in_progress/",
@@ -77,6 +81,7 @@ export const MARKETPLACES: Record<Platform, Marketplace> = {
     shareHosts: ["ebay.us"],
     home: "https://www.ebay.com/",
     photosMax: 24,
+    plainCover: true, // eBay bans text, logos, banners and watermarks added to photos
     // ebay.com/itm/123456789012, or the older ebay.com/itm/title-words/123456789012
     listingIdFrom: (p) => (p.includes("itm") ? p.slice(p.indexOf("itm") + 1).find((s) => /^\d{9,}$/.test(s)) : undefined),
     listingUrl: (id) => `https://www.ebay.com/itm/${enc(id)}`,
@@ -217,7 +222,15 @@ export const MARKETPLACES: Record<Platform, Marketplace> = {
 // Each marketplace gets its first photosMax of them, cover photo first.
 export const MAX_LISTING_PHOTOS = Math.max(...Object.values(MARKETPLACES).map((m) => m.photosMax));
 
-export const photosFor = (platform: Platform, photos: string[]) => photos.slice(0, MARKETPLACES[platform].photosMax);
+// The photos a marketplace gets: its first photosMax, cover first. Marketplaces that ban added
+// text or logos get the plain cover (before the brand tag and sale banner) in place of the edited one.
+export function photosFor(platform: Platform, photos: string[], plainCover?: string): string[] {
+  const m = MARKETPLACES[platform];
+  const list = m.plainCover && plainCover && photos.length ? [plainCover, ...photos.slice(1)] : photos;
+  return list.slice(0, m.photosMax);
+}
+
+export const PLAIN_COVER_PLATFORMS = (Object.keys(MARKETPLACES) as Platform[]).filter((p) => MARKETPLACES[p].plainCover);
 
 const hostMatches = (host: string, hosts: string[]) => {
   const h = host.toLowerCase().replace(/^www\.|^m\.|^mobile\./, "");

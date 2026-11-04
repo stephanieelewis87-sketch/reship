@@ -85,3 +85,19 @@ describe("listingHref", () => {
     expect(listingHref("Grailed", {})).toBeUndefined();
   });
 });
+
+describe("plain cover for eBay and Mercari", () => {
+  const photos = ["https://x.test/cover-with-banner.jpg", "https://x.test/2.jpg"];
+  const plain = "https://x.test/cover-plain.jpg";
+  it("sends eBay and Mercari the cover without the brand tag and banner", () => {
+    expect(photosFor("eBay", photos, plain)).toEqual([plain, photos[1]]);
+    expect(photosFor("Mercari", photos, plain)[0]).toBe(plain);
+  });
+  it("keeps the customized cover everywhere else", () => {
+    expect(photosFor("Poshmark", photos, plain)[0]).toBe(photos[0]);
+    expect(photosFor("Depop", photos, plain)[0]).toBe(photos[0]);
+  });
+  it("leaves photos alone when the cover wasn't customized", () => {
+    expect(photosFor("eBay", photos)).toEqual(photos);
+  });
+});

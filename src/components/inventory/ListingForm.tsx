@@ -6,7 +6,7 @@ import { isoDay } from "@/lib/analytics";
 import { priceFor } from "@/lib/inventory";
 import type { ListingAi, Store } from "@/lib/store";
 import type { ItemChange } from "@/lib/types";
-import { MARKETPLACES, MAX_LISTING_PHOTOS, parseListingLink } from "@/lib/marketplaces";
+import { MARKETPLACES, MAX_LISTING_PHOTOS, PLAIN_COVER_PLATFORMS, parseListingLink } from "@/lib/marketplaces";
 import { HistoryList } from "./GuardianPage";
 import { Barcode } from "./SkuTools";
 import type { ListingSuggestion } from "@/lib/videoListing";
@@ -272,7 +272,7 @@ export function ListingForm({
                 <span className="font-medium text-foreground">{coverEdit ? "Edit your cover's brand tag and sale banner" : "Customize your cover photo"}</span>
                 <span className="block text-[12px] text-muted-foreground">
                   {photos.length
-                    ? "Add a brand tag (100 brands, or type your own) and a sale banner like BOGO, 50% OFF or FREE GIFT WITH PURCHASE."
+                    ? `Add a brand tag (100 brands, or type your own) and a sale banner like BOGO, 50% OFF or FREE GIFT WITH PURCHASE. ${PLAIN_COVER_PLATFORMS.map((p) => MARKETPLACES[p].name).join(" and ")} always get your plain photo, since they don't allow text added to photos.`
                     : "Add a photo first, then put a brand tag and a sale banner like BOGO or 50% OFF on it."}
                 </span>
               </span>
