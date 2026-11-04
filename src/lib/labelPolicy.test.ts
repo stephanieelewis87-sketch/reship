@@ -50,6 +50,8 @@ describe("parsePrice", () => {
 describe("marketplaceOrderUrl", () => {
   it("links straight to a Mercari order", () => {
     expect(marketplaceOrderUrl({ platform: "Mercari", orderId: "m12345678" })).toBe("https://www.mercari.com/transaction/order_status/m12345678/");
-    expect(marketplaceOrderUrl({ platform: "eBay", orderId: "1" })).toBeUndefined();
+    // Marketplaces without order links open their sold-orders page instead of nothing.
+    expect(marketplaceOrderUrl({ platform: "eBay", orderId: "1" })).toBe("https://www.ebay.com/sh/ord");
+    expect(marketplaceOrderUrl({ platform: "Curtsy", orderId: "1" })).toBeUndefined();
   });
 });

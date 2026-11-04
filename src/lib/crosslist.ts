@@ -1,3 +1,4 @@
+import { MARKETPLACES } from "./marketplaces";
 import type { Platform } from "./types";
 
 // One item, written once, that the extension fills into each marketplace's own sell form.
@@ -44,7 +45,7 @@ export const CROSSLIST_RULES: Partial<Record<Platform, MarketplaceRules>> = {
   Mercari: {
     titleMax: 80,
     descriptionMax: 1000,
-    photosMax: 12,
+    photosMax: MARKETPLACES.Mercari.photosMax,
     priceMin: 1,
     priceMax: 2000,
     conditions: {
@@ -60,7 +61,7 @@ export const CROSSLIST_RULES: Partial<Record<Platform, MarketplaceRules>> = {
   Vinted: {
     titleMax: 100,
     descriptionMax: 2000,
-    photosMax: 20,
+    photosMax: MARKETPLACES.Vinted.photosMax,
     priceMin: 1,
     priceMax: 5000,
     conditions: {

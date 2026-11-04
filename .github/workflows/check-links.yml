@@ -1,0 +1,42 @@
+name: Check marketplace links
+
+# Every Monday morning, visit every marketplace link SellSync uses. If one is broken, open (or
+# update) a GitHub issue so it's fixed before sellers run into it. Can also be run by hand.
+on:
+  schedule:
+    - cron: "17 13 * * 1" # Mondays 7:17 AM Central (13:17 UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Visit every marketplace link
+        id: check
+        run: npx vite-node scripts/check-links.ts
+        continue-on-error: true
+      - name: Open or update the broken-links issue
+        if: steps.check.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Broken marketplace links"
+          number=$(gh issue list --state open --search "in:title \"$title\"" --json number --jq '.[0].number')
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body-file link-report.md
+          else
+            gh issue create --title "$title" --body-file link-report.md
+          fi
+      - name: Fail the run when links are broken
+        if: steps.check.outcome == 'failure'
+        run: exit 1

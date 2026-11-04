@@ -1,3 +1,4 @@
+import { MARKETPLACES } from "./marketplaces";
 import type { Order, Platform } from "./types";
 
 // Which label an order ships on, by marketplace:
@@ -21,6 +22,15 @@ export const LABEL_POLICY: Record<Platform, LabelPolicy> = {
   Facebook: "compare",
   // ThredUp Direct Listing orders ship by the steps in the ThredUp order.
   ThredUp: "marketplace",
+  // OfferUp makes the label for shipped sales; local pickup needs none.
+  OfferUp: "marketplace",
+  Curtsy: "marketplace",
+  // Grailed offers its prepaid label, and sellers can also ship on their own and add tracking.
+  Grailed: "compare",
+  // Vestiaire gives the shipping label (items may go through its authentication first).
+  Vestiaire: "marketplace",
+  // Your own store has no label of its own to use.
+  Shopify: "reship",
 };
 
 export const labelPolicy = (o: Pick<Order, "platform">): LabelPolicy => LABEL_POLICY[o.platform];
@@ -54,23 +64,9 @@ export function parsePrice(text: string): number | null {
 
 // Where the seller handles this order on the marketplace, when SellSync knows the page.
 export function marketplaceOrderUrl(o: Pick<Order, "platform" | "orderId">): string | undefined {
-  const id = encodeURIComponent(o.orderId);
-  switch (o.platform) {
-    case "Mercari":
-      return /^m\d+$/.test(o.orderId) ? `https://www.mercari.com/transaction/order_status/${id}/` : "https://www.mercari.com/mypage/listings/in_progress/";
-    case "Depop":
-      return "https://www.depop.com/sellinghub/sold-items/";
-    case "Poshmark":
-      return "https://poshmark.com/order/sales";
-    case "Vinted":
-      return "https://www.vinted.com/my_orders/sold";
-    case "WhatNot":
-      return "https://www.whatnot.com/dashboard/orders";
-    case "Facebook":
-      return "https://www.facebook.com/marketplace/you/selling";
-    default:
-      return undefined;
-  }
+  // Mercari is the one marketplace whose order IDs open the order itself.
+  if (o.platform === "Mercari" && /^m\d+$/.test(o.orderId)) return `https://www.mercari.com/transaction/order_status/${encodeURIComponent(o.orderId)}/`;
+  return MARKETPLACES[o.platform].orders;
 }
 
 // What to do on the marketplace once a SellSync label is bought, so the sale shows as shipped there.
@@ -98,4 +94,7 @@ export const PREPAID_LABEL_NOTE: Partial<Record<Platform, string>> = {
   WhatNot: "Whatnot makes the prepaid label for each sale. Ship on that label so tracking and payout stay with Whatnot.",
   Vinted: "Vinted makes the prepaid label (or drop-off code) for each sale. Ship on that so buyer protection and payout stay with Vinted.",
   ThredUp: "Follow the shipping steps in the ThredUp order so the sale stays covered by ThredUp.",
+  OfferUp: "OfferUp makes the prepaid label for shipped sales. Ship on that label so OfferUp's purchase protection and your payout stay in place. Local pickup needs no label.",
+  Curtsy: "Curtsy emails a prepaid label with each sale. Ship on that label so tracking and payout stay with Curtsy.",
+  Vestiaire: "Vestiaire makes the shipping label for each sale, and some items go to its authentication team first. Follow the steps in the Vestiaire order.",
 };

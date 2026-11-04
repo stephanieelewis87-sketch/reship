@@ -22,6 +22,11 @@ export const WATCHER_WORD: Record<Platform, { one: string; many: string }> = {
   WhatNot: { one: "save", many: "saves" },
   Facebook: { one: "save", many: "saves" },
   ThredUp: { one: "favorite", many: "favorites" },
+  OfferUp: { one: "save", many: "saves" },
+  Curtsy: { one: "like", many: "likes" },
+  Grailed: { one: "favorite", many: "favorites" },
+  Vestiaire: { one: "like", many: "likes" },
+  Shopify: { one: "favorite", many: "favorites" },
   Other: { one: "watcher", many: "watchers" },
 };
 export const watcherWord = (p: Platform, n: number) => (n === 1 ? WATCHER_WORD[p].one : WATCHER_WORD[p].many);
@@ -37,6 +42,11 @@ export const STATS_SOURCE: Record<Platform, string> = {
   WhatNot: "Type in what your listing shows. Whatnot has no seller API for this.",
   Facebook: "Type in what your listing shows. Facebook has no API for personal Marketplace sellers.",
   ThredUp: "Type in what your listing shows. ThredUp has no seller API.",
+  OfferUp: "Type in what your listing shows. OfferUp has no API for personal sellers.",
+  Curtsy: "Type in what your listing shows in the Curtsy app. Curtsy has no seller API.",
+  Grailed: "Type in what your listing shows. Grailed has no public seller API.",
+  Vestiaire: "Type in what your listing shows. Vestiaire has no public seller API.",
+  Shopify: "Type in what your Shopify analytics show for the product. Shopify's API can share these once SellSync connects to your store, a later step.",
   Other: "Type in what the marketplace shows you.",
 };
 

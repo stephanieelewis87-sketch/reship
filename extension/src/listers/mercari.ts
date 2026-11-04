@@ -1,3 +1,4 @@
+import { MARKETPLACES } from "../../../src/lib/marketplaces";
 import type { Lister } from "./types";
 
 const ORIGIN = "https://www.mercari.com";
@@ -5,7 +6,7 @@ const ORIGIN = "https://www.mercari.com";
 export const mercariLister: Lister = {
   platform: "Mercari",
   sellUrl: `${ORIGIN}/sell/`,
-  listingUrl: (id) => `${ORIGIN}/us/item/${id}/`,
+  listingUrl: (id) => MARKETPLACES.Mercari.listingUrl!(id),
   listingIdFromUrl: (url) => url.match(/^https:\/\/(?:www\.)?mercari\.com\/(?:us\/)?item\/(m\d{6,})/)?.[1] ?? null,
   isLoginPage: (url) => /mercari\.com\/(login|signup)/.test(url),
   fields: [

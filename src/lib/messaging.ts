@@ -1,3 +1,4 @@
+import { MARKETPLACES } from "./marketplaces";
 import type { Order, Platform } from "./types";
 
 // Buyer messages: bundle comments on Poshmark, notes to past buyers on their order page, and
@@ -145,6 +146,31 @@ export const MESSAGE_RULES: Record<Platform, Record<MessageContext, MessageRule>
     bundle: NO_BUNDLES,
     pastBuyer: { allowed: "no", text: "ThredUp has no messages between sellers and buyers." },
     potentialBuyer: { allowed: "no", text: "ThredUp has no messages between sellers and buyers." },
+  },
+  OfferUp: {
+    bundle: NO_BUNDLES,
+    pastBuyer: { allowed: "limited", text: "Message the buyer in the OfferUp chat for that item. Keep payment and contact inside OfferUp." },
+    potentialBuyer: { allowed: "limited", text: "Reply to people who message you about an item in OfferUp chat. OfferUp doesn't allow tools to message people for you." },
+  },
+  Curtsy: {
+    bundle: NO_BUNDLES,
+    pastBuyer: { allowed: "limited", text: "Message the buyer about their order in the Curtsy app." },
+    potentialBuyer: { allowed: "limited", text: "Answer questions buyers send you in the Curtsy app, and use Curtsy's own offers to people who liked an item." },
+  },
+  Grailed: {
+    bundle: NO_BUNDLES,
+    pastBuyer: { allowed: "limited", text: "Message the buyer about their order in Grailed messages." },
+    potentialBuyer: { allowed: "limited", text: "Reply to people who message you, and use Grailed's Send offer to people who favorited the listing." },
+  },
+  Vestiaire: {
+    bundle: NO_BUNDLES,
+    pastBuyer: { allowed: "limited", text: "Use the order page on Vestiaire. Vestiaire keeps contact between buyers and sellers inside its site." },
+    potentialBuyer: { allowed: "limited", text: "Answer buyers' questions in the listing's comments on Vestiaire." },
+  },
+  Shopify: {
+    bundle: NO_BUNDLES,
+    pastBuyer: { allowed: "yes", text: "These are your own customers. Email them about their order from the order page in Shopify." },
+    potentialBuyer: { allowed: "limited", text: "Only email shoppers who signed up for your emails. Marketing email needs their consent." },
   },
   Other: {
     bundle: NO_BUNDLES,
@@ -317,23 +343,19 @@ export function messagePageUrl(platform: Platform, context: MessageContext, opts
     case "Poshmark":
       if (context === "pastBuyer" && orderId) return `https://poshmark.com/order/sales/${encodeURIComponent(orderId)}`;
       if (buyer) return `https://poshmark.com/closet/${handle(buyer)}`;
-      return "https://poshmark.com/";
+      return MARKETPLACES.Poshmark.home;
     case "Depop":
-      return buyer ? `https://www.depop.com/${handle(buyer)}/` : "https://www.depop.com/";
+      return buyer ? `https://www.depop.com/${handle(buyer)}/` : MARKETPLACES.Depop.home;
     case "Vinted":
       return "https://www.vinted.com/inbox";
-    case "Mercari":
-      return "https://www.mercari.com/";
     case "eBay":
-      return "https://www.ebay.com/sh/ord";
     case "Etsy":
-      return "https://www.etsy.com/your/orders/sold";
+      return MARKETPLACES[platform].orders ?? MARKETPLACES[platform].home;
     case "Facebook":
       return "https://www.facebook.com/marketplace/inbox";
-    case "WhatNot":
-      return "https://www.whatnot.com/";
     default:
-      return "";
+      // Never an empty link: the marketplace's main page at least.
+      return MARKETPLACES[platform].home;
   }
 }
 

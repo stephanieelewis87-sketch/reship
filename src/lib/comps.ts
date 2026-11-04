@@ -1,3 +1,4 @@
+import { MARKETPLACES } from "./marketplaces";
 import type { InventoryItem, Order, Platform } from "./types";
 
 // Research: price comps for an item across marketplaces, from sources each marketplace allows.
@@ -58,69 +59,85 @@ export interface CompCoverage {
   why: string; // shown when data can't be pulled in
   soldUrl?: (q: string) => string; // the marketplace's own sold search, if it has one
   activeUrl: (q: string) => string;
+  homeOnly?: boolean; // the marketplace has no web search, so the link opens its main page
 }
 
-const enc = encodeURIComponent;
 
-export const COMP_COVERAGE: CompCoverage[] = [
+// Search links come from the marketplace address book, so they're checked weekly with the rest.
+const withLinks = (c: Omit<CompCoverage, "soldUrl" | "activeUrl">): CompCoverage => ({
+  ...c,
+  soldUrl: MARKETPLACES[c.platform].soldSearch,
+  activeUrl: MARKETPLACES[c.platform].search ?? (() => MARKETPLACES[c.platform].home),
+  homeOnly: !MARKETPLACES[c.platform].search,
+});
+
+export const COMP_COVERAGE: CompCoverage[] = ([
   {
     platform: "eBay",
     inApp: { sold: "approval", active: "yes" },
     why: "Active listings come from eBay's official Browse API. Sold prices need eBay's Marketplace Insights API, which eBay only opens to approved apps, so until then use the sold search on eBay.",
-    soldUrl: (q) => `https://www.ebay.com/sch/i.html?_nkw=${enc(q)}&LH_Sold=1&LH_Complete=1`,
-    activeUrl: (q) => `https://www.ebay.com/sch/i.html?_nkw=${enc(q)}`,
   },
   {
     platform: "Etsy",
     inApp: { sold: "no", active: "yes" },
     why: "Active listings come from Etsy's official Open API. Etsy doesn't share other shops' sold prices.",
-    activeUrl: (q) => `https://www.etsy.com/search?q=${enc(q)}`,
   },
   {
     platform: "Poshmark",
     inApp: { sold: "no", active: "no" },
     why: "Poshmark has no public API for searching listings, so SellSync opens Poshmark's own sold search for you.",
-    soldUrl: (q) => `https://poshmark.com/search?query=${enc(q)}&availability=sold_out`,
-    activeUrl: (q) => `https://poshmark.com/search?query=${enc(q)}&availability=available`,
   },
   {
     platform: "Mercari",
     inApp: { sold: "no", active: "no" },
     why: "Mercari has no public API for searching listings, so SellSync opens Mercari's own sold search for you.",
-    soldUrl: (q) => `https://www.mercari.com/search/?keyword=${enc(q)}&itemStatuses=2`,
-    activeUrl: (q) => `https://www.mercari.com/search/?keyword=${enc(q)}`,
   },
   {
     platform: "Depop",
     inApp: { sold: "no", active: "no" },
     why: "Depop has no public API for searching listings, and its search shows items for sale, not sold prices.",
-    activeUrl: (q) => `https://www.depop.com/search/?q=${enc(q)}`,
   },
   {
     platform: "Vinted",
     inApp: { sold: "no", active: "no" },
     why: "Vinted has no public API and its terms don't allow tools to read its site, so SellSync only opens Vinted's search. Vinted doesn't show sold prices.",
-    activeUrl: (q) => `https://www.vinted.com/catalog?search_text=${enc(q)}`,
   },
   {
     platform: "WhatNot",
     inApp: { sold: "no", active: "no" },
     why: "Whatnot has no public API for searching listings, so SellSync opens Whatnot's search.",
-    activeUrl: (q) => `https://www.whatnot.com/search?query=${enc(q)}`,
   },
   {
     platform: "Facebook",
     inApp: { sold: "no", active: "no" },
     why: "Facebook has no API for Marketplace listings. Its search opens in Facebook, signed in as you.",
-    activeUrl: (q) => `https://www.facebook.com/marketplace/search/?query=${enc(q)}`,
   },
   {
     platform: "ThredUp",
     inApp: { sold: "no", active: "no" },
     why: "ThredUp has no public API for searching listings, so SellSync opens ThredUp's search.",
-    activeUrl: (q) => `https://www.thredup.com/search?search_text=${enc(q)}`,
   },
-];
+  {
+    platform: "OfferUp",
+    inApp: { sold: "no", active: "no" },
+    why: "OfferUp has no public API for searching listings, and its search shows items for sale near you, not sold prices.",
+  },
+  {
+    platform: "Curtsy",
+    inApp: { sold: "no", active: "no" },
+    why: "Curtsy is app-only with no web search or public API, so search for it in the Curtsy app.",
+  },
+  {
+    platform: "Grailed",
+    inApp: { sold: "no", active: "no" },
+    why: "Grailed has no public API for searching listings, so SellSync opens Grailed's search. Grailed shows sold listings with a Sold filter there.",
+  },
+  {
+    platform: "Vestiaire",
+    inApp: { sold: "no", active: "no" },
+    why: "Vestiaire has no public API for searching listings, so SellSync opens Vestiaire's search.",
+  },
+] as Omit<CompCoverage, "soldUrl" | "activeUrl">[]).map(withLinks);
 
 const STOP = new Set(["a", "an", "and", "the", "for", "with", "of", "in", "on", "to", "by", "size", "sz", "womens", "mens", "women", "men", "s"]);
 

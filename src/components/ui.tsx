@@ -15,6 +15,11 @@ export const PLATFORM_CONFIG: Record<Platform, { color: string; bg: string; doma
   eBay: { color: "text-yellow-800", bg: "bg-yellow-50", domain: "ebay.com" },
   Facebook: { color: "text-sky-700", bg: "bg-sky-50", domain: "facebook.com" },
   ThredUp: { color: "text-indigo-700", bg: "bg-indigo-50", domain: "thredup.com" },
+  OfferUp: { color: "text-emerald-700", bg: "bg-emerald-50", domain: "offerup.com" },
+  Curtsy: { color: "text-pink-700", bg: "bg-pink-50", domain: "curtsyapp.com" },
+  Grailed: { color: "text-zinc-800", bg: "bg-zinc-100", domain: "grailed.com" },
+  Vestiaire: { color: "text-amber-800", bg: "bg-amber-50", domain: "vestiairecollective.com" },
+  Shopify: { color: "text-lime-700", bg: "bg-lime-50", domain: "shopify.com" },
   Other: { color: "text-stone-700", bg: "bg-stone-100" },
 };
 

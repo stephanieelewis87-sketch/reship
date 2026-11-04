@@ -20,6 +20,7 @@ import {
   RefreshCw,
   RotateCcw,
   ScanLine,
+  Download,
   Search,
   ShieldCheck,
   Shirt,
@@ -43,6 +44,8 @@ import { LabelDots } from "./LabelChips";
 import { ListingForm } from "./ListingForm";
 import { QuickEdit } from "./QuickEdit";
 import { PhotoListing } from "./PhotoListing";
+import { ImportListingsModal } from "./ImportListingsModal";
+import { listingHref } from "@/lib/marketplaces";
 import { VideoListing } from "./VideoListing";
 import { ScanModal, SkuLabelsModal } from "./SkuTools";
 import { GuardianPage } from "./GuardianPage";
@@ -145,6 +148,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
   }, [route]);
   // #/inventory?photos opens List from photos the same way.
   const [photoUpload, setPhotoUpload] = useState(route.params.has("photos"));
+  const [importing, setImporting] = useState(false);
   useEffect(() => {
     if (route.params.has("photos")) setPhotoUpload(true);
   }, [route]);
@@ -424,6 +428,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                 <AddOption icon={Plus} title="One item" hint="Fill in the details yourself" onClick={() => (close(), setForm({ item: blank(), isNew: true }))} />
                 <AddOption icon={Images} title="From photos" hint={can("ai") ? "Up to 25 items, one listing each" : "AI listing, on Flow"} onClick={() => (close(), gated("ai", () => setPhotoUpload(true))())} />
                 <AddOption icon={Clapperboard} title="From a video" hint={can("videoListing") ? "Film your pile, get drafts" : "Video listing, on Flow"} onClick={() => (close(), gated("videoListing", () => setVideo(true))())} />
+                <AddOption icon={Download} title="Import listings" hint="From links or a marketplace export" onClick={() => (close(), setImporting(true))} />
                 <AddOption icon={ScanLine} title="Scan a barcode" hint="Find or add an item by its SKU" onClick={() => (close(), setScan(true))} />
               </div>
             )}
@@ -759,6 +764,18 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
           }}
         />
       )}
+      {importing && (
+        <ImportListingsModal
+          existing={inventory}
+          skuFormat={settings.skuFormat}
+          onClose={() => setImporting(false)}
+          onImport={(items, msg) => {
+            saveInventory(items, "Import listings");
+            setStatus("all");
+            setNotice(msg);
+          }}
+        />
+      )}
       {photoUpload && can("ai") && (
         <PhotoListing
           data={data}
@@ -924,8 +941,8 @@ function ListingMenu({
             {listing.platform} · {listing.status}
             {listing.price != null ? ` · $${listing.price}` : ""}
           </p>
-          {listing.url && (
-            <a href={listing.url} target="_blank" rel="noreferrer" className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-muted text-foreground">
+          {listingHref(listing.platform, listing) && (
+            <a href={listingHref(listing.platform, listing)} target="_blank" rel="noreferrer" className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-muted text-foreground">
               <ExternalLink className="w-3.5 h-3.5" /> View on {listing.platform}
             </a>
           )}
