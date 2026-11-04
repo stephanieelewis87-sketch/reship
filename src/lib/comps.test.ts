@@ -75,7 +75,7 @@ describe("marketplace coverage", () => {
   it("puts the search in each marketplace's own link", () => {
     const posh = COMP_COVERAGE.find((c) => c.platform === "Poshmark")!;
     expect(posh.soldUrl!("nike tech")).toBe("https://poshmark.com/search?query=nike%20tech&availability=sold_out");
-    for (const c of COMP_COVERAGE) expect(c.activeUrl("a&b")).toContain("a%26b");
+    for (const c of COMP_COVERAGE.filter((c) => !c.homeOnly)) expect(c.activeUrl("a&b")).toContain("a%26b");
   });
 
   it("marks demo results as samples and keeps them stable", () => {

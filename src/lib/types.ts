@@ -2,7 +2,7 @@ import type { CoverEdit } from "./coverPhoto";
 import { DEFAULT_PLAN, type PlanId } from "./plans";
 import type { MessagingSettings } from "./messaging";
 import type { SavedResearch } from "./comps";
-export type Platform = "Poshmark" | "Vinted" | "Depop" | "Mercari" | "WhatNot" | "Etsy" | "eBay" | "Facebook" | "ThredUp" | "Other";
+export type Platform = "Poshmark" | "Vinted" | "Depop" | "Mercari" | "WhatNot" | "Etsy" | "eBay" | "Facebook" | "ThredUp" | "OfferUp" | "Curtsy" | "Grailed" | "Vestiaire" | "Shopify" | "Other";
 export type LabelStatus = "pending" | "printed" | "shipped";
 export type OrderSource = "manual" | "csv" | "sample" | "sync";
 export type PackageType = "Envelope" | "Soft Pack" | "Small Box" | "Medium Box";
@@ -275,7 +275,7 @@ export interface PrintOptions {
   qrCodes: boolean;
 }
 
-export const ALL_PLATFORMS: Platform[] = ["Poshmark", "Vinted", "Depop", "Mercari", "WhatNot", "Etsy", "eBay", "Facebook", "ThredUp"];
+export const ALL_PLATFORMS: Platform[] = ["Poshmark", "Vinted", "Depop", "Mercari", "WhatNot", "Etsy", "eBay", "Facebook", "ThredUp", "OfferUp", "Curtsy", "Grailed", "Vestiaire", "Shopify"];
 export const PACKAGE_TYPES: PackageType[] = ["Envelope", "Soft Pack", "Small Box", "Medium Box"];
 export const CARRIER_SERVICES = ["USPS Ground Advantage", "USPS Priority", "USPS First Class", "UPS Ground", "FedEx Home"];
 
@@ -298,7 +298,7 @@ export const DEFAULT_SETTINGS: Settings = {
     { id: "lbl-bin-a", name: "Bin A", color: "#2a78d6" },
   ],
   automations: {},
-  autoDelist: { Poshmark: true, Mercari: true, eBay: true, Depop: true, Etsy: true, WhatNot: true, Vinted: true, Facebook: true, ThredUp: true },
+  autoDelist: { Poshmark: true, Mercari: true, eBay: true, Depop: true, Etsy: true, WhatNot: true, Vinted: true, Facebook: true, ThredUp: true, OfferUp: true, Curtsy: true, Grailed: true, Vestiaire: true, Shopify: true },
   autoAdjustQuantity: true,
   primaryMarketplace: "Poshmark",
   pricingRules: {},

@@ -13,7 +13,7 @@ type Data = ReturnType<typeof useReshipData>;
 const money = (n: number) => `$${n % 1 ? n.toFixed(2) : n.toFixed(0)}`;
 const keyOf = (q: string) => q.trim().toLowerCase().replace(/\s+/g, " ");
 const SOURCE_TAG: Record<Comp["source"], string> = { yours: "Your sale", api: "Live", manual: "Added by you", sample: "Sample" };
-const MANUAL_PLATFORMS: Platform[] = ["Poshmark", "Mercari", "eBay", "Depop", "Vinted", "Etsy", "WhatNot", "Facebook", "ThredUp", "Other"];
+const MANUAL_PLATFORMS: Platform[] = ["Poshmark", "Mercari", "eBay", "Depop", "Vinted", "Etsy", "WhatNot", "Facebook", "ThredUp", "OfferUp", "Curtsy", "Grailed", "Vestiaire", "Shopify", "Other"];
 
 // Research: look up what an item sells for, and what it's listed at, across marketplaces.
 export function ResearchPage({ data, initialQuery }: { data: Data; initialQuery: string }) {
@@ -216,7 +216,7 @@ export function ResearchPage({ data, initialQuery }: { data: Data; initialQuery:
                         </a>
                       )}
                       <a href={cov.activeUrl(query)} target="_blank" rel="noreferrer" className={`${secondaryButton} !px-2.5 !py-1 text-xs`}>
-                        For sale <ArrowUpRight className="w-3 h-3" />
+                        {cov.homeOnly ? `Open ${PLATFORM_INFO[cov.platform].name}` : "For sale"} <ArrowUpRight className="w-3 h-3" />
                       </a>
                     </div>
                   </div>

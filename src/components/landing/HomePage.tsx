@@ -9,6 +9,8 @@ import {
   Landmark,
   Menu,
   Printer,
+  Radio,
+  Store,
   RefreshCw,
   Repeat2,
   Shirt,
@@ -18,13 +20,15 @@ import {
   Video,
   X,
 } from "lucide-react";
-import type { Platform } from "@/lib/types";
+import { ALL_PLATFORMS, type Platform } from "@/lib/types";
+import { MARKETPLACES as MARKETPLACE_INFO } from "@/lib/marketplaces";
 import { PlatformIcon } from "../ui";
 import { Logo as BrandLogo } from "../brand/Logo";
 import { PLANS as PLAN_INFO, PLAN_IDS, priceLabel } from "@/lib/plans";
 import { MISSION_HREF, freeGiftTip, minPriceLabel } from "@/lib/minPrice";
 
-const MARKETPLACES: Platform[] = ["Poshmark", "Mercari", "eBay", "Depop", "Vinted", "Etsy", "WhatNot"];
+// Every marketplace SellSync works with, from the marketplace address book.
+const MARKETPLACES = ALL_PLATFORMS;
 
 // Public homepage shown before sign-in. onSignIn/onSignUp open the account screen; demoHref opens
 // the demo with sample data.
@@ -40,6 +44,7 @@ export function HomePage({ onSignIn, onSignUp, demoHref = "/?demo" }: { onSignIn
         <FeaturePayouts />
         <FeatureLabels />
         <MoreTools />
+        <ComingNext onSignUp={onSignUp} />
         <HowItWorks />
         <Pricing onSignUp={onSignUp} />
         <Faq />
@@ -66,6 +71,7 @@ function Logo() {
 const NAV_LINKS = [
   { href: "#features", label: "Features" },
   { href: "#how", label: "How it works" },
+  { href: "#coming", label: "Coming in 2027" },
   { href: "#pricing", label: "Pricing" },
   { href: "#faq", label: "FAQ" },
   { href: MISSION_HREF, label: "Mission" },
@@ -202,7 +208,7 @@ function MarketplaceStrip() {
           {MARKETPLACES.map((p) => (
             <span key={p} className="flex items-center gap-2 text-sm font-medium text-foreground/80">
               <PlatformIcon platform={p} className="w-4 h-4" />
-              {p === "WhatNot" ? "Whatnot" : p}
+              {MARKETPLACE_INFO[p].name}
             </span>
           ))}
         </div>
@@ -608,6 +614,53 @@ function MoreTools() {
             <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{m.body}</p>
           </div>
         ))}
+      </div>
+    </section>
+  );
+}
+
+// What SellSync is building for 2027. Plans, not promises: dates and details can change.
+const COMING: { icon: ComponentType<{ className?: string }>; title: string; body: string; tag?: string }[] = [
+  {
+    icon: Radio,
+    title: "Live selling",
+    body: "Go live from SellSync and sell to your followers on video. Items sell straight from your inventory, so a live sale is delisted everywhere else at once.",
+  },
+  {
+    icon: Store,
+    title: "SellSource marketplace",
+    body: "Our own marketplace, where buyers shop sellers' items directly. Your SellSync inventory is already your storefront, with no extra listing work.",
+    tag: "3% seller fee",
+  },
+];
+
+function ComingNext({ onSignUp }: { onSignUp: () => void }) {
+  return (
+    <section id="coming" className="scroll-mt-16 max-w-6xl mx-auto px-4 sm:px-6 pb-20">
+      <div className="rounded-3xl border border-border bg-secondary/60 px-5 sm:px-10 py-12">
+        <div className="text-center max-w-2xl mx-auto">
+          <Eyebrow>Coming in 2027</Eyebrow>
+          <h2 className="font-serif text-3xl sm:text-4xl font-medium mt-4">Sell live, and sell on SellSource</h2>
+          <p className="mt-4 text-muted-foreground">Two big things on the way next year. Sign up now and you'll be first in line.</p>
+        </div>
+        <div className="mt-10 grid md:grid-cols-2 gap-4">
+          {COMING.map((c) => (
+            <div key={c.title} className="bg-card border border-border rounded-2xl p-6">
+              <div className="flex items-center gap-2">
+                <c.icon className="w-5 h-5 text-accent" />
+                <h3 className="font-semibold">{c.title}</h3>
+                {c.tag && <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-accent/10 text-accent">{c.tag}</span>}
+              </div>
+              <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{c.body}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-8 text-center">
+          <button type="button" onClick={onSignUp} className={ctaPrimary}>
+            Get early access <ArrowRight className="w-4 h-4" />
+          </button>
+          <p className="mt-3 text-xs text-muted-foreground">Plans for 2027. Features, timing and fees may change before launch.</p>
+        </div>
       </div>
     </section>
   );

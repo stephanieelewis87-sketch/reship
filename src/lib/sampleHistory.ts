@@ -80,7 +80,7 @@ const SIZES: Record<string, string[]> = {
 };
 
 const BUYERS = ["jessica_m", "thrift_hunter_99", "cottagecore_kate", "y2k_archive", "deals_always", "secondhandrose", "luxe_finds_la", "resale_queen_ny", "vintage_vault_uk", "capsule_closet", "grunge_garden", "stylestack_sam", "wardrobe_clear", "boho_dreams_shop", "slab_hunter", "denim_dreamer", "athleisure_amy", "preloved_paige", "sneakerhead_sid", "closet_curator"];
-const PREFIX: Record<Platform, string> = { Poshmark: "PM", Mercari: "MC", eBay: "EB", Depop: "DP", Etsy: "ET", WhatNot: "WN", Vinted: "VT", Facebook: "FB", ThredUp: "TU", Other: "OT" };
+const PREFIX: Record<Platform, string> = { Poshmark: "PM", Mercari: "MC", eBay: "EB", Depop: "DP", Etsy: "ET", WhatNot: "WN", Vinted: "VT", Facebook: "FB", ThredUp: "TU", OfferUp: "OU", Curtsy: "CY", Grailed: "GR", Vestiaire: "VC", Shopify: "SH", Other: "OT" };
 
 const pick = <T,>(r: () => number, xs: T[]) => xs[Math.floor(r() * xs.length)];
 const between = (r: () => number, [lo, hi]: [number, number]) => lo + r() * (hi - lo);

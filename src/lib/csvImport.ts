@@ -43,12 +43,15 @@ const ALIASES: Record<CsvField, string[]> = {
 
 const norm = (s: string) => s.toLowerCase().replace(/[_\-]+/g, " ").replace(/\s+/g, " ").trim();
 
-export function guessMapping(headers: string[]): ColumnMapping {
-  const mapping: ColumnMapping = {};
+export const guessMapping = (headers: string[]): ColumnMapping => guessColumns(headers, CSV_FIELDS, ALIASES);
+
+// Matches each field to a column by its common header names, exact matches first in alias order
+// (so "Order ID" wins over a looser "Order"), never using one column twice.
+export function guessColumns<K extends string>(headers: string[], fields: readonly { key: K }[], aliases: Record<K, string[]>): Partial<Record<K, string>> {
+  const mapping: Partial<Record<K, string>> = {};
   const used = new Set<string>();
-  for (const field of CSV_FIELDS) {
-    // Exact alias match first, in alias order, so "Order ID" wins over a looser "Order".
-    for (const alias of ALIASES[field.key]) {
+  for (const field of fields) {
+    for (const alias of aliases[field.key]) {
       const hit = headers.find((h) => !used.has(h) && norm(h) === alias);
       if (hit) {
         mapping[field.key] = hit;

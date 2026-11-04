@@ -6,7 +6,7 @@ import { isoDay } from "@/lib/analytics";
 import { priceFor } from "@/lib/inventory";
 import type { ListingAi, Store } from "@/lib/store";
 import type { ItemChange } from "@/lib/types";
-import { parseListingRef } from "@/lib/guardian";
+import { MARKETPLACES, MAX_LISTING_PHOTOS, PLAIN_COVER_PLATFORMS, parseListingLink } from "@/lib/marketplaces";
 import { HistoryList } from "./GuardianPage";
 import { Barcode } from "./SkuTools";
 import type { ListingSuggestion } from "@/lib/videoListing";
@@ -84,7 +84,7 @@ export function ListingForm({
     setUploading(true);
     try {
       const added = await Promise.all(
-        [...files].filter((f) => f.type.startsWith("image/")).map(async (f) => {
+        [...files].filter((f) => f.type.startsWith("image/")).slice(0, Math.max(0, MAX_LISTING_PHOTOS - photos.length)).map(async (f) => {
           const local = URL.createObjectURL(f);
           try {
             return await savePhoto(await shrinkImage(local, 1600));
@@ -93,7 +93,7 @@ export function ListingForm({
           }
         }),
       );
-      setD((x) => ({ ...x, photos: [...(x.photos ?? (x.photo ? [x.photo] : [])), ...added] }));
+      setD((x) => ({ ...x, photos: [...(x.photos ?? (x.photo ? [x.photo] : [])), ...added].slice(0, MAX_LISTING_PHOTOS) }));
     } catch (e) {
       setGen({ busy: false, message: (e as Error).message });
     } finally {
@@ -119,8 +119,10 @@ export function ListingForm({
     for (const [p, text] of Object.entries(refs) as [Platform, string][]) {
       const at = listings.findIndex((l) => l.platform === p);
       if (at === -1) continue;
-      const ref = parseListingRef(text);
-      listings[at] = { ...listings[at], listingId: ref.listingId, url: ref.url ?? (text.trim() ? listings[at].url : undefined) };
+      const ref = parseListingLink(p, text);
+      // A link that doesn't check out is never saved; the listing keeps what it had.
+      if (!ref.ok) continue;
+      listings[at] = { ...listings[at], listingId: ref.listingId, url: ref.url };
     }
     const active = listings.some((l) => l.status === "active");
     return {
@@ -241,7 +243,7 @@ export function ListingForm({
                 className="flex items-center gap-1.5"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (!photoUrl.trim()) return;
+                  if (!photoUrl.trim() || photos.length >= MAX_LISTING_PHOTOS) return;
                   set("photos", [...photos, photoUrl.trim()]);
                   setPhotoUrl("");
                 }}
@@ -256,6 +258,7 @@ export function ListingForm({
                 <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => (void upload(e.target.files), (e.target.value = ""))} />
               </label>
             </div>
+            <PhotoCount count={photos.length} platforms={[...new Set([...chosen, ...item.listings.map((l) => l.platform)])]} />
             <button
               type="button"
               onClick={() => photos.length && setCoverOpen(true)}
@@ -269,7 +272,7 @@ export function ListingForm({
                 <span className="font-medium text-foreground">{coverEdit ? "Edit your cover's brand tag and sale banner" : "Customize your cover photo"}</span>
                 <span className="block text-[12px] text-muted-foreground">
                   {photos.length
-                    ? "Add a brand tag (100 brands, or type your own) and a sale banner like BOGO, 50% OFF or FREE GIFT WITH PURCHASE."
+                    ? `Add a brand tag (100 brands, or type your own) and a sale banner like BOGO, 50% OFF or FREE GIFT WITH PURCHASE. ${PLAIN_COVER_PLATFORMS.map((p) => MARKETPLACES[p].name).join(" and ")} always get your plain photo, since they don't allow text added to photos.`
                     : "Add a photo first, then put a brand tag and a sale banner like BOGO or 50% OFF on it."}
                 </span>
               </span>
@@ -411,20 +414,27 @@ export function ListingForm({
             {item.listings.length > 0 && (
               <div className="space-y-1.5 pt-1">
                 <p className="text-xs font-medium text-foreground">Marketplace listing links</p>
-                {item.listings.map((l) => (
-                  <label key={l.platform} className="flex items-center gap-2 text-xs">
-                    <span className="flex items-center gap-1.5 w-24 shrink-0">
-                      <PlatformIcon platform={l.platform} /> {l.platform}
-                    </span>
-                    <input
-                      className={`${inputClass} font-mono text-xs`}
-                      value={refs[l.platform] ?? ""}
-                      onChange={(e) => setRefs({ ...refs, [l.platform]: e.target.value })}
-                      placeholder="Paste the listing link or ID"
-                      aria-label={`${l.platform} listing link or ID`}
-                    />
-                  </label>
-                ))}
+                {item.listings.map((l) => {
+                  const check = parseListingLink(l.platform, refs[l.platform] ?? "");
+                  return (
+                    <div key={l.platform}>
+                      <label className="flex items-center gap-2 text-xs">
+                        <span className="flex items-center gap-1.5 w-24 shrink-0">
+                          <PlatformIcon platform={l.platform} /> {l.platform}
+                        </span>
+                        <input
+                          className={`${inputClass} font-mono text-xs ${check.ok ? "" : "border-destructive"}`}
+                          value={refs[l.platform] ?? ""}
+                          onChange={(e) => setRefs({ ...refs, [l.platform]: e.target.value })}
+                          placeholder="Paste the listing link or ID"
+                          aria-label={`${l.platform} listing link or ID`}
+                          aria-invalid={!check.ok}
+                        />
+                      </label>
+                      {!check.ok && <p className="text-[11px] text-destructive pl-[6.5rem] pt-0.5">{check.problem} This link won't be saved until it's fixed.</p>}
+                    </div>
+                  );
+                })}
                 <p className="text-[12px] text-muted-foreground">Linking each listing to this item lets Inventory Guardian spot duplicates and listings that come apart.</p>
               </div>
             )}
@@ -518,5 +528,17 @@ export function ListingForm({
         />
       )}
     </div>
+  );
+}
+
+// How many photos the listing has, out of the most any marketplace takes, and which of the
+// seller's marketplaces will only get the first few.
+function PhotoCount({ count, platforms }: { count: number; platforms: Platform[] }) {
+  const fewer = platforms.filter((p) => count > MARKETPLACES[p].photosMax).sort((a, b) => MARKETPLACES[a].photosMax - MARKETPLACES[b].photosMax);
+  return (
+    <p className="text-[12px] text-muted-foreground">
+      {count} of {MAX_LISTING_PHOTOS} photos{count >= MAX_LISTING_PHOTOS ? " (the most any marketplace takes)" : ""}.
+      {fewer.length > 0 && ` ${fewer.map((p) => `${MARKETPLACES[p].name} gets the first ${MARKETPLACES[p].photosMax}`).join(", ")}, so put your best photos first.`}
+    </p>
   );
 }

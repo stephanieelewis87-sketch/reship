@@ -1,3 +1,4 @@
+import { MARKETPLACES } from "../../../src/lib/marketplaces";
 import type { Lister } from "./types";
 
 const ORIGIN = "https://www.vinted.com";
@@ -5,7 +6,7 @@ const ORIGIN = "https://www.vinted.com";
 export const vintedLister: Lister = {
   platform: "Vinted",
   sellUrl: `${ORIGIN}/items/new`,
-  listingUrl: (id) => `${ORIGIN}/items/${id}`,
+  listingUrl: (id) => MARKETPLACES.Vinted.listingUrl!(id),
   listingIdFromUrl: (url) => url.match(/^https:\/\/(?:www\.)?vinted\.[a-z.]+\/items\/(\d{5,})(?:[-/?#]|$)/)?.[1] ?? null,
   isLoginPage: (url) => /vinted\.[a-z.]+\/(member\/signup|session|login)/.test(url),
   fields: [
