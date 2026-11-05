@@ -55,6 +55,23 @@ function sharpness(gray: Float32Array, side: number): number {
 }
 
 // Samples the video every so often (about 240 looks at most). maxSide limits the size of the kept frames.
+// The frame's color thumbnail for cut detection: each cell is the average of a block of the 64x64
+// image. Shrinking straight to 8x8 samples only a few pixels per cell, so a little camera shake
+// changes the thumbnail a lot and handheld videos look like one long blur of change.
+export function blockAverage(rgba: ArrayLike<number>, side: number, cells: number): number[] {
+  const block = side / cells;
+  const sig = new Array<number>(cells * cells * 3).fill(0);
+  for (let y = 0; y < side; y++)
+    for (let x = 0; x < side; x++) {
+      const p = (y * side + x) * 4;
+      const c = (Math.floor(y / block) * cells + Math.floor(x / block)) * 3;
+      sig[c] += rgba[p];
+      sig[c + 1] += rgba[p + 1];
+      sig[c + 2] += rgba[p + 2];
+    }
+  return sig.map((v) => v / (block * block));
+}
+
 export async function sampleVideo(file: Blob, onProgress?: (done: number) => void, maxSide = 1024): Promise<SampledVideo> {
   const v = await loadVideo(file);
   try {
@@ -66,11 +83,10 @@ export async function sampleVideo(file: Blob, onProgress?: (done: number) => voi
     const width = Math.round(v.videoWidth * scale);
     const height = Math.round(v.videoHeight * scale);
     const full = Object.assign(document.createElement("canvas"), { width, height });
-    const small = Object.assign(document.createElement("canvas"), { width: SIG_SIDE, height: SIG_SIDE });
     const sharp = Object.assign(document.createElement("canvas"), { width: SHARP_SIDE, height: SHARP_SIDE });
     const fctx = full.getContext("2d")!;
-    const sctx = small.getContext("2d", { willReadFrequently: true })!;
     const pctx = sharp.getContext("2d", { willReadFrequently: true })!;
+    pctx.imageSmoothingQuality = "high";
     const samples: FrameSample[] = [];
     const images: string[] = [];
     const times: number[] = [];
@@ -78,12 +94,9 @@ export async function sampleVideo(file: Blob, onProgress?: (done: number) => voi
     for (const [n, t] of times.entries()) {
       await seek(v, t);
       fctx.drawImage(v, 0, 0, width, height);
-      sctx.drawImage(full, 0, 0, SIG_SIDE, SIG_SIDE);
-      const px = sctx.getImageData(0, 0, SIG_SIDE, SIG_SIDE).data;
-      const sig: number[] = [];
-      for (let i = 0; i < px.length; i += 4) sig.push(px[i], px[i + 1], px[i + 2]);
       pctx.drawImage(full, 0, 0, SHARP_SIDE, SHARP_SIDE);
       const g = pctx.getImageData(0, 0, SHARP_SIDE, SHARP_SIDE).data;
+      const sig = blockAverage(g, SHARP_SIDE, SIG_SIDE);
       const gray = new Float32Array(SHARP_SIDE * SHARP_SIDE);
       for (let i = 0; i < gray.length; i++) gray[i] = 0.299 * g[i * 4] + 0.587 * g[i * 4 + 1] + 0.114 * g[i * 4 + 2];
       samples.push({ t, sig, sharpness: sharpness(gray, SHARP_SIDE) });

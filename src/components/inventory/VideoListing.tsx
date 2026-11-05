@@ -44,7 +44,7 @@ export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: 
       } else {
         setNotice("AI is off in demo mode, so SellSync split your video into items by scene. With your SellSync account, AI names, describes and prices each item and makes clean photos.");
       }
-      if (!found.length) found = itemsFromScenes(scenes, picked);
+      if (!found.length) found = itemsFromScenes(scenes, picked, video.samples);
       if (cancelled.current) return;
 
       setStep({ kind: "working", label: "Cutting snips from the video" });

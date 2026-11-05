@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { InventoryItem } from "./types";
 import type { FrameSample, VideoDraft } from "./videoListing";
+import { blockAverage } from "./videoFrames";
 import { asCondition, cleanDetected, draftToItem, eachLimit, emptyListing, itemsFromScenes, orderedPhotos, padBox, pickFrames, salesHints, splitScenes } from "./videoListing";
 
 // A frame whose thumbnail is one flat color, with a little noise so frames of the same item differ slightly.
@@ -19,6 +20,32 @@ describe("splitScenes", () => {
   it("folds a short flash (a hand passing) into the scene before it", () => {
     const s = [...video([20], 6), frame(3, 250), ...video([20], 6).map((f) => ({ ...f, t: f.t + 3.5 }))];
     expect(splitScenes(s)).toHaveLength(1);
+  });
+
+  it("splits a handheld video that pans from item to item with no sharp cut", () => {
+    // Three items, 10 seconds each, a shaky camera, and a 2-second pan between them.
+    const shadeAt = (t: number) => {
+      const items = [30, 130, 230];
+      const n = Math.min(2, Math.floor(t / 10));
+      const into = t - n * 10;
+      const base = n > 0 && into < 2 ? items[n - 1] + ((items[n] - items[n - 1]) * into) / 2 : items[n];
+      return base + 15 * Math.sin(t * 7.3);
+    };
+    const samples = Array.from({ length: 60 }, (_, k) => frame(k * 0.5, shadeAt(k * 0.5)));
+    const scenes = splitScenes(samples);
+    expect(scenes).toHaveLength(3);
+    // Each cut lands during the pan to the next item (10–12s and 20–22s).
+    const starts = scenes.map((s) => samples[s[0]].t);
+    expect(starts[0]).toBe(0);
+    expect(starts[1]).toBeGreaterThanOrEqual(10);
+    expect(starts[1]).toBeLessThanOrEqual(12);
+    expect(starts[2]).toBeGreaterThanOrEqual(20);
+    expect(starts[2]).toBeLessThanOrEqual(22);
+  });
+
+  it("doesn't cut a steady shot of one item", () => {
+    const samples = Array.from({ length: 40 }, (_, k) => frame(k * 0.5, 100 + 15 * Math.sin(k * 3.7)));
+    expect(splitScenes(samples)).toHaveLength(1);
   });
 
   it("handles an empty video", () => {
@@ -176,5 +203,26 @@ describe("eachLimit", () => {
     });
     expect(peak).toBe(2);
     expect(done.sort()).toEqual([1, 2, 4, 5]);
+  });
+});
+
+describe("blockAverage", () => {
+  it("averages each block of the image into one thumbnail cell", () => {
+    // A 4x4 image: left half black, right half white, shrunk to 2x2.
+    const px: number[] = [];
+    for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) px.push(...(x < 2 ? [0, 0, 0, 255] : [255, 255, 255, 255]));
+    expect(blockAverage(px, 4, 2)).toEqual([0, 0, 0, 255, 255, 255, 0, 0, 0, 255, 255, 255]);
+  });
+});
+
+describe("itemsFromScenes covers", () => {
+  it("uses the sharpest frame from the middle of the scene, not the blurry pan at its start", () => {
+    // One 5-second scene; the sharpest frame (t=0) is the camera arriving, the best middle one is t=2.5.
+    const sharp = [90, 10, 20, 30, 40, 60, 35, 25, 15, 12, 80];
+    const samples = sharp.map((s, k) => frame(k * 0.5, 100, s));
+    const ids = samples.map((_, k) => k);
+    const [item] = itemsFromScenes([ids], ids, samples);
+    expect(item.bestFrame).toBe(5);
+    expect(item.frames.slice(0, 3)).toEqual([5, 4, 6]);
   });
 });
