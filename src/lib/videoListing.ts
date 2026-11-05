@@ -73,7 +73,8 @@ export function splitScenes(samples: FrameSample[], minSeconds = 1.2): number[][
   const diffs = samples.slice(1).map((s, i) => frameDistance(samples[i].sig, s.sig));
   const sorted = [...diffs].sort((a, b) => a - b);
   const median = sorted[Math.floor(sorted.length / 2)] ?? 0;
-  const cutAt = Math.max(0.12, median * 4);
+  // The floor is for steady videos, where almost nothing changes between frames of one item.
+  const cutAt = Math.max(0.08, median * 4);
   const runs: number[][] = [[0]];
   diffs.forEach((d, i) => {
     if (d > cutAt) runs.push([i + 1]);
@@ -95,7 +96,48 @@ export function splitScenes(samples: FrameSample[], minSeconds = 1.2): number[][
     if (near) prev.push(...r);
     else joined.push(r);
   }
-  return joined;
+  return splitDrift(samples, joined);
+}
+
+// A handheld video usually pans from one item to the next with no sharp cut, so the picture never
+// jumps from one sample to the next. This also cuts a scene where the average picture over the
+// 2 seconds before a moment differs most from the 2 seconds after it, at most once every 5 seconds.
+function splitDrift(samples: FrameSample[], scenes: number[][]): number[][] {
+  const n = samples.length;
+  const step = n > 1 ? (samples[n - 1].t - samples[0].t) / (n - 1) : 1;
+  const w = Math.max(2, Math.round(2 / step));
+  const gap = Math.max(1, Math.round(5 / step));
+  if (n < 2 * w + 1) return scenes;
+  const mean = (from: number, to: number) => {
+    const m = new Array<number>(samples[0].sig.length).fill(0);
+    for (let i = from; i < to; i++) samples[i].sig.forEach((v, k) => (m[k] += v / (to - from)));
+    return m;
+  };
+  const change = new Array<number>(n).fill(0);
+  for (let i = w; i <= n - w; i++) change[i] = frameDistance(mean(i - w, i), mean(i, i + w));
+  const inner = change.slice(w, n - w + 1).sort((a, b) => a - b);
+  const threshold = Math.max(0.12, inner[Math.floor(inner.length / 2)] * 1.4);
+  const peaks = new Set<number>();
+  for (let i = w; i <= n - w; i++) {
+    if (change[i] < threshold) continue;
+    let top = true;
+    for (let j = Math.max(0, i - gap); j <= Math.min(n - 1, i + gap); j++) if (change[j] > change[i] || (change[j] === change[i] && j < i)) top = false;
+    if (top) peaks.add(i);
+  }
+  const out: number[][] = [];
+  for (const scene of scenes) {
+    let run: number[] = [];
+    for (const i of scene) {
+      // Only cut well inside a scene, so a pan doesn't leave a sliver of the item before it.
+      if (peaks.has(i) && i - scene[0] >= w && scene[scene.length - 1] - i >= w - 1 && run.length) {
+        out.push(run);
+        run = [];
+      }
+      run.push(i);
+    }
+    out.push(run);
+  }
+  return out;
 }
 
 // Picks which samples to send to the AI: the sharpest sample in each slice of the video, plus the
@@ -116,12 +158,22 @@ export function pickFrames(samples: FrameSample[], scenes: number[][], max = MAX
 }
 
 // When AI is off (demo mode) each scene becomes one item, so the seller still gets a draft per item
-// with its snips and fills in the words.
-export function itemsFromScenes(scenes: number[][], picked: number[]): DetectedItem[] {
+// with its snips and fills in the words. The cover is the sharpest frame from the middle of the
+// scene, since the start and end are usually the camera moving between items; the other snips
+// follow, middle frames first, sharpest first.
+export function itemsFromScenes(scenes: number[][], picked: number[], samples?: FrameSample[]): DetectedItem[] {
   const pos = new Map(picked.map((s, i) => [s, i]));
   return scenes
     .map((run, n) => {
-      const frames = run.filter((s) => pos.has(s)).map((s) => pos.get(s)!);
+      const ids = run.filter((s) => pos.has(s));
+      if (samples && ids.length > 2) {
+        const t0 = samples[run[0]].t;
+        const len = samples[run[run.length - 1]].t - t0;
+        const middle = (s: number) => len <= 0 || Math.abs((samples[s].t - t0) / len - 0.5) <= 0.3;
+        const score = (s: number) => (middle(s) ? 1e9 : 0) + samples[s].sharpness;
+        ids.sort((a, b) => score(b) - score(a));
+      }
+      const frames = ids.map((s) => pos.get(s)!);
       return { label: `Item ${n + 1}`, frames, bestFrame: frames[0] };
     })
     .filter((i) => i.frames.length)
