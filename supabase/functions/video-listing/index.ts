@@ -172,19 +172,25 @@ async function describe(body: { images: Image[]; label?: string; instructions?: 
   return json({ listing: out });
 }
 
-// A studio-style photo of the same item. The prompt insists on keeping the real item as it is,
-// flaws included, since buyers rely on photos.
+// A cleaner photo of the same item that still looks like a real photo the seller took, not a
+// studio render or an ad. Buyers on resale apps distrust photos that look fake, and the item must
+// match what they receive, flaws included.
 async function photo(body: { image: Image; label?: string }) {
   const key = Deno.env.get("OPENAI_API_KEY");
   if (!key) return json({ error: "AI photos aren't set up yet.", unavailable: true }, 501);
   if (!body.image || "url" in body.image) return json({ error: "Send the snip as image data." }, 400);
   const bytes = Uint8Array.from(atob(body.image.data), (c) => c.charCodeAt(0));
   const form = new FormData();
-  form.append("model", Deno.env.get("IMAGE_MODEL") ?? "gpt-image-1");
+  form.append("model", Deno.env.get("IMAGE_MODEL") ?? "gpt-image-2"); // gpt-image-1 was shut down Oct 23, 2026
   form.append("image", new Blob([bytes], { type: body.image.media_type }), "snip.jpg");
   form.append(
     "prompt",
-    `Product photo for a resale listing of ${body.label ? `this ${body.label.slice(0, 120)}` : "this item"}. Keep the exact same item: same shape, color, pattern, logos, text, wear and any flaws. Do not add, remove or improve anything on the item. Remove hands, people and clutter. Show the whole item centered on a plain light background with soft even studio lighting and a gentle shadow. Square photo.`,
+    [
+      `A clear, honest phone photo of ${body.label ? `this ${body.label.slice(0, 120)}` : "this item"} for a secondhand resale listing, like a careful seller would take at home.`,
+      "Keep the exact same item: same shape, fit, true color, pattern, fabric texture, logos, tags, text, wrinkles, wear, pilling and any flaws. Do not add, remove, smooth, repair or improve anything on the item.",
+      "Make it look like a real photograph, not a studio shot, render or ad: natural daylight from a window, true-to-life colors, real fabric texture, a little natural shadow, slight imperfection is fine. No glow, no glossy retouching, no perfect symmetry, no floating or ghost-mannequin look.",
+      "Keep the item on its hanger or laid flat the way it is shown. Remove hands, people and clutter, and put it against a plain, real-looking background like a light wall or door. Show the whole item, filling most of the frame. Square photo.",
+    ].join(" "),
   );
   form.append("size", "1024x1024");
   form.append("quality", "medium");

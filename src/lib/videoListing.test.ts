@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { InventoryItem } from "./types";
 import type { FrameSample, VideoDraft } from "./videoListing";
-import { blockAverage } from "./videoFrames";
+import { blockAverage, touchUpPixels } from "./videoFrames";
 import { asCondition, cleanDetected, draftToItem, eachLimit, emptyListing, itemsFromScenes, orderedPhotos, padBox, pickFrames, salesHints, splitScenes } from "./videoListing";
 
 // A frame whose thumbnail is one flat color, with a little noise so frames of the same item differ slightly.
@@ -224,5 +224,36 @@ describe("itemsFromScenes covers", () => {
     const [item] = itemsFromScenes([ids], ids, samples);
     expect(item.bestFrame).toBe(5);
     expect(item.frames.slice(0, 3)).toEqual([5, 4, 6]);
+  });
+});
+
+describe("touchUpPixels", () => {
+  // A w×h image from a function giving each pixel's [r, g, b].
+  const img = (w: number, h: number, f: (x: number, y: number) => number[]) => {
+    const px: number[] = [];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) px.push(...f(x, y), 255);
+    return px;
+  };
+  const meanOf = (px: ArrayLike<number>, c: number) => {
+    let s = 0;
+    for (let i = c; i < px.length; i += 4) s += px[i];
+    return s / (px.length / 4);
+  };
+
+  it("brightens a dim, flat video frame", () => {
+    const dim = img(20, 20, (x, y) => Array(3).fill(30 + ((x + y) % 10) * 6));
+    expect(meanOf(touchUpPixels(dim, 20, 20), 1)).toBeGreaterThan(meanOf(dim, 1) * 1.2);
+  });
+
+  it("takes out most of a yellow light cast", () => {
+    const yellow = img(20, 20, (x) => [150 + x, 140 + x, 90 + x]);
+    const out = touchUpPixels(yellow, 20, 20);
+    expect(meanOf(out, 0) - meanOf(out, 2)).toBeLessThan(meanOf(yellow, 0) - meanOf(yellow, 2));
+  });
+
+  it("leaves a well-lit, balanced photo nearly as it was", () => {
+    const good = img(20, 20, (x, y) => Array(3).fill(10 + ((x * 20 + y) % 236)));
+    const out = touchUpPixels(good, 20, 20);
+    for (let c = 0; c < 3; c++) expect(Math.abs(meanOf(out, c) - meanOf(good, c))).toBeLessThan(8);
   });
 });

@@ -50,8 +50,10 @@ export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: 
       setStep({ kind: "working", label: "Cutting snips from the video" });
       const made: VideoDraft[] = [];
       for (const [n, it] of found.entries()) {
-        const best = await cropFrame(video.images[picked[it.bestFrame]], it.box);
-        const others = await Promise.all(it.frames.filter((f) => f !== it.bestFrame).slice(0, 3).map((f) => cropFrame(video.images[picked[f]])));
+        // Snips get a touch-up (light, contrast, color cast, a little sharpening) so they read as
+        // real photos of the item, not dim video stills.
+        const best = await cropFrame(video.images[picked[it.bestFrame]], it.box, 1024, { touchUp: true });
+        const others = await Promise.all(it.frames.filter((f) => f !== it.bestFrame).slice(0, 3).map((f) => cropFrame(video.images[picked[f]], undefined, 1024, { touchUp: true })));
         made.push({ id: `v${n}`, include: true, label: it.label, snips: [best, ...others], cover: best, listing: { ...emptyListing(), title: ai ? "" : it.label }, priceText: "", state: ai ? "waiting" : "done" });
       }
       setDrafts(made);
