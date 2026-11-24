@@ -1,34 +1,16 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { ComponentType, ReactNode } from "react";
-import {
-  ArrowRight,
-  BarChart3,
-  Boxes,
-  Check,
-  ChevronDown,
-  Landmark,
-  Menu,
-  Printer,
-  Radio,
-  Store,
-  RefreshCw,
-  Repeat2,
-  Shirt,
-  Sparkles,
-  Gift,
-  Undo2,
-  Video,
-  X,
-} from "lucide-react";
-import { ALL_PLATFORMS, type Platform } from "@/lib/types";
+import { ArrowRight, BarChart3, Boxes, Check, ChevronDown, Gift, Menu, Printer, ScanLine, Sparkles, X } from "lucide-react";
+import type { Platform } from "@/lib/types";
 import { MARKETPLACES as MARKETPLACE_INFO } from "@/lib/marketplaces";
 import { PlatformIcon } from "../ui";
 import { Logo as BrandLogo } from "../brand/Logo";
-import { PLANS as PLAN_INFO, PLAN_IDS, priceLabel } from "@/lib/plans";
-import { MISSION_HREF, freeGiftTip, minPriceLabel } from "@/lib/minPrice";
+import { MISSION_HREF, minPriceLabel } from "@/lib/minPrice";
 
-// Every marketplace SellSync works with, from the marketplace address book.
-const MARKETPLACES = ALL_PLATFORMS;
+// The homepage only promises what SellSync does today. Orders and labels sync automatically from
+// these marketplaces; the others come in from a CSV export or by hand.
+const SYNCED: Platform[] = ["Poshmark", "Mercari"];
+const BY_CSV: Platform[] = ["eBay", "Depop", "Etsy", "Facebook"];
 
 // Public homepage shown before sign-in. onSignIn/onSignUp open the account screen; demoHref opens
 // the demo with sample data.
@@ -40,13 +22,11 @@ export function HomePage({ onSignIn, onSignUp, demoHref = "/?demo" }: { onSignIn
         <Hero onSignUp={onSignUp} demoHref={demoHref} />
         <MarketplaceStrip />
         <FeaturePillars />
-        <FeatureVideo />
-        <FeaturePayouts />
         <FeatureLabels />
-        <MoreTools />
-        <ComingNext onSignUp={onSignUp} />
+        <FeatureInventory />
+        <FeatureProfit />
         <HowItWorks />
-        <Pricing onSignUp={onSignUp} />
+        <EarlyAccess onSignUp={onSignUp} />
         <Faq />
         <FinalCta onSignUp={onSignUp} demoHref={demoHref} />
       </main>
@@ -71,8 +51,7 @@ function Logo() {
 const NAV_LINKS = [
   { href: "#features", label: "Features" },
   { href: "#how", label: "How it works" },
-  { href: "#coming", label: "Coming in 2027" },
-  { href: "#pricing", label: "Pricing" },
+  { href: "#early", label: "Early access" },
   { href: "#faq", label: "FAQ" },
   { href: MISSION_HREF, label: "Mission" },
 ];
@@ -138,18 +117,18 @@ function Hero({ onSignUp, demoHref }: { onSignUp: () => void; demoHref: string }
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-14 pb-16 md:pt-20 md:pb-24 grid md:grid-cols-2 gap-12 items-center">
         <div>
           <Eyebrow>
-            <Sparkles className="w-3.5 h-3.5" /> The all-in-one reseller app
+            <Sparkles className="w-3.5 h-3.5" /> For resellers, now in early access
           </Eyebrow>
           <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-medium leading-[1.05] mt-5 tracking-tight">
-            List with a video.
+            Every label in one print.
             <br />
-            Cash out in one tap.
+            Every item in its place.
             <br />
-            <span className="text-accent">Ship in one print.</span>
+            <span className="text-accent">Every dollar counted.</span>
           </h1>
           <p className="mt-6 text-lg text-muted-foreground max-w-md">
-            SellSync turns a quick clip of your item into a ready-to-post listing, pulls your payouts from every marketplace together, and prints
-            every label you owe in a single batch.
+            SellSync prints all your marketplace labels in one batch, keeps track of every item and the bin it lives in, and shows your true profit
+            after fees, shipping and what you paid.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3">
             <button onClick={onSignUp} className={ctaPrimary}>
@@ -170,26 +149,13 @@ function Hero({ onSignUp, demoHref }: { onSignUp: () => void; demoHref: string }
 function HeroVisual() {
   return (
     <div className="relative mx-auto w-full max-w-md h-[420px] sm:h-[460px]">
-      <div className="absolute left-0 top-4 w-[58%] rotate-[-4deg]">
-        <PhoneFrame>
-          <VideoScreen step={4} compact />
-        </PhoneFrame>
+      <div className="absolute left-0 top-6 w-[56%] rotate-[-4deg]">
+        <ItemCard className="shadow-xl" />
       </div>
-      <div className="absolute right-0 top-0 w-[56%] bg-card border border-border rounded-2xl shadow-xl p-4 rotate-[3deg]">
-        <p className="text-[12px] uppercase tracking-wider text-muted-foreground">Ready to withdraw</p>
-        <p className="font-display text-3xl mt-1">$481.45</p>
-        <div className="mt-3 h-9 rounded-full bg-accent text-accent-foreground text-xs font-semibold flex items-center justify-center gap-1.5">
-          <Landmark className="w-3.5 h-3.5" /> Withdraw all
-        </div>
-        <div className="mt-3 flex -space-x-1">
-          {MARKETPLACES.slice(0, 4).map((p) => (
-            <span key={p} className="w-6 h-6 rounded-full bg-card border border-border flex items-center justify-center">
-              <PlatformIcon platform={p} className="w-3.5 h-3.5" />
-            </span>
-          ))}
-        </div>
+      <div className="absolute right-0 top-0 w-[52%] rotate-[3deg]">
+        <ProfitCard className="shadow-xl" />
       </div>
-      <div className="absolute right-4 bottom-0 w-[44%] rotate-[-2deg]">
+      <div className="absolute right-6 bottom-0 w-[42%] rotate-[-2deg]">
         <LabelCard sku="DN-0412" carrier="USPS Ground Advantage" className="shadow-xl" />
         <div className="absolute -top-3 -left-3 px-2.5 py-1 rounded-full bg-foreground text-background text-[12px] font-semibold flex items-center gap-1">
           <Printer className="w-3 h-3" /> 12 labels, 1 click
@@ -199,17 +165,75 @@ function HeroVisual() {
   );
 }
 
+// A sample inventory item: SKU, bin, cost and its barcode label.
+function ItemCard({ className = "" }: { className?: string }) {
+  return (
+    <div className={`bg-card border border-border rounded-2xl p-4 ${className}`}>
+      <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-accent/20 to-secondary flex items-center justify-center">
+        <Boxes className="w-8 h-8 text-accent/70" />
+      </div>
+      <p className="font-medium text-sm mt-3">Levi's 501 denim jacket</p>
+      <div className="mt-1.5 flex items-center gap-2 flex-wrap text-[12px] text-muted-foreground">
+        <span className="font-mono">DN-0412</span>
+        <span className="px-1.5 rounded bg-accent/10 text-accent font-medium">Bin 4</span>
+        <span>paid $8</span>
+      </div>
+      <div className="mt-3 h-7 flex items-end gap-[2px] overflow-hidden" aria-hidden>
+        {Array.from({ length: 30 }).map((_, i) => (
+          <span key={i} className="bg-foreground h-full shrink-0" style={{ width: (i * 5) % 3 === 0 ? 3 : 1 }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// A sample sale broken down into true profit.
+function ProfitCard({ className = "" }: { className?: string }) {
+  const rows: [string, string][] = [
+    ["Sold for", "$48.00"],
+    ["Marketplace fees", "-$9.60"],
+    ["Shipping you paid", "$0.00"],
+    ["What you paid", "-$8.00"],
+  ];
+  return (
+    <div className={`bg-card border border-border rounded-2xl p-4 ${className}`}>
+      <p className="text-[12px] uppercase tracking-wider text-muted-foreground">True profit</p>
+      <p className="font-display text-3xl mt-1 text-emerald-700">$30.40</p>
+      <dl className="mt-3 space-y-1 text-[12px]">
+        {rows.map(([k, v]) => (
+          <div key={k} className="flex justify-between gap-2">
+            <dt className="text-muted-foreground">{k}</dt>
+            <dd className="tabular-nums">{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+function MarketplaceChip({ p }: { p: Platform }) {
+  return (
+    <span className="flex items-center gap-2 text-sm font-medium text-foreground/80">
+      <PlatformIcon platform={p} className="w-4 h-4" />
+      {MARKETPLACE_INFO[p].name}
+    </span>
+  );
+}
+
 function MarketplaceStrip() {
   return (
     <section className="border-y border-border bg-card/60">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-col md:flex-row items-center gap-4 md:gap-8">
-        <p className="text-xs uppercase tracking-wider text-muted-foreground shrink-0">Works with your marketplaces</p>
-        <div className="flex flex-wrap justify-center md:justify-start gap-x-6 gap-y-3">
-          {MARKETPLACES.map((p) => (
-            <span key={p} className="flex items-center gap-2 text-sm font-medium text-foreground/80">
-              <PlatformIcon platform={p} className="w-4 h-4" />
-              {MARKETPLACE_INFO[p].name}
-            </span>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 grid md:grid-cols-2 gap-5">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <p className="w-full text-xs uppercase tracking-wider text-muted-foreground">Orders and labels sync automatically</p>
+          {SYNCED.map((p) => (
+            <MarketplaceChip key={p} p={p} />
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <p className="w-full text-xs uppercase tracking-wider text-muted-foreground">Bring in sales from a CSV export</p>
+          {BY_CSV.map((p) => (
+            <MarketplaceChip key={p} p={p} />
           ))}
         </div>
       </div>
@@ -219,22 +243,22 @@ function MarketplaceStrip() {
 
 const PILLARS: { icon: ComponentType<{ className?: string }>; title: string; body: string; href: string }[] = [
   {
-    icon: Video,
-    title: "Video listing",
-    body: "Film your item for a few seconds. SellSync writes the title, brand, size, condition and price, and picks the best photos.",
-    href: "#video",
-  },
-  {
-    icon: Landmark,
-    title: "One-button payouts",
-    body: "See what every marketplace owes you in one balance, and withdraw all of it with a single tap.",
-    href: "#payouts",
-  },
-  {
     icon: Printer,
-    title: "Easy shipping labels",
+    title: "Labels in one print",
     body: "Every sold order's label in one PDF, stamped with your SKU and followed by a packing slip. 4x6, Letter or A4.",
     href: "#labels",
+  },
+  {
+    icon: ScanLine,
+    title: "Inventory that knows where things are",
+    body: "Every item gets a SKU barcode label and a bin or shelf. Scan or search it to find it, move it, or see what it cost.",
+    href: "#inventory",
+  },
+  {
+    icon: BarChart3,
+    title: "True profit",
+    body: "See what you really made on each item after marketplace fees, shipping and what you paid, with a CSV ready for tax time.",
+    href: "#profit",
   },
 ];
 
@@ -242,9 +266,9 @@ function FeaturePillars() {
   return (
     <section id="features" className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
       <div className="text-center max-w-2xl mx-auto">
-        <Eyebrow>Why resellers switch</Eyebrow>
-        <h2 className="font-serif text-3xl sm:text-4xl font-medium mt-4">The three slowest parts of reselling, made fast</h2>
-        <p className="mt-4 text-muted-foreground">Less typing, fewer tabs, and no more printing labels one at a time.</p>
+        <Eyebrow>What SellSync does today</Eyebrow>
+        <h2 className="font-serif text-3xl sm:text-4xl font-medium mt-4">Shipping, inventory and money, in one place</h2>
+        <p className="mt-4 text-muted-foreground">Fewer tabs, no more printing labels one at a time, and no more guessing what you actually made.</p>
       </div>
       <div className="mt-12 grid md:grid-cols-3 gap-5">
         {PILLARS.map((p) => (
@@ -311,221 +335,6 @@ function FeatureRow({
   );
 }
 
-// Steps through a demo loop every `ms`, unless the visitor prefers reduced motion (then it shows the last step).
-function useLoopStep(count: number, ms: number) {
-  const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  const [step, setStep] = useState(reduce ? count - 1 : 0);
-  useEffect(() => {
-    if (reduce) return;
-    const t = setInterval(() => setStep((s) => (s + 1) % count), ms);
-    return () => clearInterval(t);
-  }, [count, ms, reduce]);
-  return step;
-}
-
-function FeatureVideo() {
-  const step = useLoopStep(6, 1100);
-  return (
-    <FeatureRow
-      id="video"
-      eyebrow="Video listing"
-      title="Film it once. The listing writes itself."
-      body="Hold your phone up, turn the item around, and say anything worth knowing. SellSync turns the clip into a complete listing you can post everywhere."
-      points={[
-        "Title, brand, size, color and condition filled in from the video",
-        "Sharp photos pulled straight from the clip, no photo shoot",
-        "Price suggestion based on what similar items sold for",
-        "Crosslist to every marketplace from the same draft",
-      ]}
-      visual={
-        <div className="flex items-center justify-center gap-4 sm:gap-6">
-          <div className="w-44 sm:w-52 shrink-0">
-            <PhoneFrame>
-              <VideoScreen step={step} />
-            </PhoneFrame>
-          </div>
-          <ListingDraft step={step} />
-        </div>
-      }
-    />
-  );
-}
-
-function PhoneFrame({ children }: { children: ReactNode }) {
-  return (
-    <div className="rounded-[2rem] bg-foreground p-2 shadow-2xl">
-      <div className="rounded-[1.6rem] overflow-hidden bg-[#2a1d24] aspect-[9/17] relative">{children}</div>
-    </div>
-  );
-}
-
-function VideoScreen({ step, compact = false }: { step: number; compact?: boolean }) {
-  const progress = Math.min(100, (step / 4) * 100);
-  return (
-    <div className="absolute inset-0 flex flex-col">
-      <div className="flex items-center justify-between px-3 pt-3 text-[11px] text-white/80">
-        <span className="flex items-center gap-1">
-          <span className={`w-2 h-2 rounded-full bg-red-500 ${step < 4 ? "animate-pulse" : ""}`} />
-          {step < 4 ? "REC" : "Done"}
-        </span>
-        <span className="font-mono">0:0{Math.min(step * 2, 8)}</span>
-      </div>
-      <div className="flex-1 flex items-center justify-center">
-        <div className="relative">
-          <div className="absolute inset-0 blur-2xl bg-accent/40 rounded-full" />
-          <Shirt
-            className={`relative text-[#F3D9E1] transition-transform duration-700 ${compact ? "w-20 h-20" : "w-24 h-24"}`}
-            style={{ transform: `rotateY(${step * 45}deg)` }}
-            strokeWidth={1.2}
-          />
-        </div>
-      </div>
-      <div className="px-3 pb-3 space-y-2">
-        <div className="h-1 rounded-full bg-white/15 overflow-hidden">
-          <div className="h-full bg-accent transition-all duration-700" style={{ width: `${progress}%` }} />
-        </div>
-        <div className="flex justify-center">
-          <span className="w-9 h-9 rounded-full border-2 border-white flex items-center justify-center">
-            <span className={`bg-red-500 transition-all ${step < 4 ? "w-6 h-6 rounded-full" : "w-3.5 h-3.5 rounded-sm"}`} />
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const DRAFT_FIELDS = [
-  { label: "Title", value: "Vintage Levi's 501 denim jacket" },
-  { label: "Brand", value: "Levi's" },
-  { label: "Size", value: "M" },
-  { label: "Condition", value: "Excellent, light fading" },
-  { label: "Price", value: "$58" },
-];
-
-function ListingDraft({ step }: { step: number }) {
-  return (
-    <div className="flex-1 max-w-[15rem] bg-card border border-border rounded-2xl shadow-xl p-4">
-      <div className="flex items-center gap-1.5 text-[12px] font-semibold text-accent">
-        <Sparkles className="w-3.5 h-3.5" /> Drafted from your video
-      </div>
-      <div className="mt-3 grid grid-cols-3 gap-1.5">
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className={`aspect-square rounded-lg bg-gradient-to-br from-[#E9D3DA] to-[#C9A0AE] flex items-center justify-center transition-opacity duration-500 ${
-              step > i ? "opacity-100" : "opacity-20"
-            }`}
-          >
-            <Shirt className="w-5 h-5 text-white/90" strokeWidth={1.5} />
-          </div>
-        ))}
-      </div>
-      <dl className="mt-3 space-y-2">
-        {DRAFT_FIELDS.map((f, i) => (
-          <div key={f.label}>
-            <dt className="text-[11px] uppercase tracking-wider text-muted-foreground">{f.label}</dt>
-            <dd className="text-xs font-medium h-4">
-              {step > i ? f.value : <span className="block h-2.5 mt-1 w-3/4 rounded bg-muted animate-pulse" />}
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </div>
-  );
-}
-
-const BALANCES: { platform: Platform; amount: number }[] = [
-  { platform: "Poshmark", amount: 214.5 },
-  { platform: "eBay", amount: 132.75 },
-  { platform: "Mercari", amount: 88.2 },
-  { platform: "Depop", amount: 46.0 },
-];
-const money = (n: number) => `$${n.toFixed(2)}`;
-
-function FeaturePayouts() {
-  return (
-    <FeatureRow
-      id="payouts"
-      eyebrow="One-button payouts"
-      title="Every marketplace balance. One withdraw button."
-      body="Stop logging in to four apps to move your money. SellSync adds up what each marketplace is holding for you and sends it all to your bank in one go."
-      points={[
-        "One running balance across all your marketplaces",
-        "Withdraw everything, or pick which marketplaces to cash out",
-        "Each payout is matched to the sales it came from",
-        "Payouts flow into your profit and tax reports automatically",
-      ]}
-      flip
-      tint
-      visual={<PayoutDemo />}
-    />
-  );
-}
-
-function PayoutDemo() {
-  const [state, setState] = useState<"ready" | "sending" | "sent">("ready");
-  const total = BALANCES.reduce((s, b) => s + b.amount, 0);
-  useEffect(() => {
-    if (state !== "sending") return;
-    const t = setTimeout(() => setState("sent"), 1400);
-    return () => clearTimeout(t);
-  }, [state]);
-  return (
-    <div className="max-w-sm mx-auto bg-card border border-border rounded-2xl shadow-xl p-5">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">Available to withdraw</p>
-          <p className="font-display text-4xl mt-1">{state === "sent" ? "$0.00" : money(total)}</p>
-        </div>
-        <span className="w-10 h-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
-          <Landmark className="w-5 h-5" />
-        </span>
-      </div>
-      <ul className="mt-5 divide-y divide-border">
-        {BALANCES.map((b, i) => (
-          <li key={b.platform} className="py-2.5 flex items-center justify-between text-sm">
-            <span className="flex items-center gap-2.5">
-              <PlatformIcon platform={b.platform} className="w-4 h-4" />
-              {b.platform}
-            </span>
-            <span className="font-mono text-sm flex items-center gap-2">
-              {state === "ready" && money(b.amount)}
-              {state === "sending" && (
-                <span className="text-muted-foreground flex items-center gap-1.5">
-                  <RefreshCw className="w-3 h-3 animate-spin" style={{ animationDelay: `${i * 80}ms` }} />
-                  {money(b.amount)}
-                </span>
-              )}
-              {state === "sent" && (
-                <span className="text-emerald-600 flex items-center gap-1">
-                  <Check className="w-3.5 h-3.5" /> Sent
-                </span>
-              )}
-            </span>
-          </li>
-        ))}
-      </ul>
-      {state === "sent" ? (
-        <div className="mt-4 rounded-xl bg-emerald-50 text-emerald-800 text-sm p-3 flex items-center justify-between">
-          <span>{money(total)} is on its way to your bank</span>
-          <button onClick={() => setState("ready")} className="text-xs font-semibold underline">
-            Replay
-          </button>
-        </div>
-      ) : (
-        <button
-          onClick={() => setState("sending")}
-          disabled={state === "sending"}
-          className={`${ctaPrimary} w-full mt-4 disabled:opacity-70`}
-        >
-          {state === "sending" ? "Sending…" : `Withdraw ${money(total)}`}
-        </button>
-      )}
-      <p className="mt-2 text-center text-[12px] text-muted-foreground">Try it: this is a demo, no money moves.</p>
-    </div>
-  );
-}
-
 function FeatureLabels() {
   const [printed, setPrinted] = useState(false);
   return (
@@ -533,12 +342,12 @@ function FeatureLabels() {
       id="labels"
       eyebrow="Easy shipping labels"
       title="Every label you owe, printed in one click."
-      body="SellSync collects the labels your marketplaces already generated for each sale, so there is nothing to buy or retype. Select your orders and print them all at once."
+      body="SellSync collects the prepaid labels your marketplaces already made for each sale, so there is nothing to buy or retype. Print the whole day in one go."
       points={[
         "One PDF for every marketplace's labels, sized for 4x6, Letter or A4",
         "Your SKU stamped on each label so you grab the right item",
         "A packing slip printed after each label, bundles included",
-        "Need a different carrier? Compare USPS, UPS and FedEx rates",
+        "Poshmark and Mercari labels come in by themselves through the SellSync extension",
       ]}
       visual={
         <div className="max-w-sm mx-auto">
@@ -592,84 +401,48 @@ function LabelCard({ sku, carrier, className = "" }: { sku: string; carrier: str
   );
 }
 
-const MORE: { icon: ComponentType<{ className?: string }>; title: string; body: string }[] = [
-  { icon: Repeat2, title: "Crosslisting", body: "Post one draft to Poshmark, Mercari, eBay, Depop and more." },
-  { icon: Boxes, title: "Inventory", body: "Know what's listed where, what sold, and what's sitting too long." },
-  { icon: BarChart3, title: "Profit analytics", body: "Real profit after fees, shipping and what you paid for each item." },
-  { icon: Undo2, title: "Returns", body: "Track returns and put items back into inventory in a tap." },
-];
-
-function MoreTools() {
+function FeatureInventory() {
   return (
-    <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
-      <div className="text-center max-w-2xl mx-auto">
-        <h2 className="font-serif text-3xl sm:text-4xl font-medium">Plus everything else your shop runs on</h2>
-        <p className="mt-4 text-muted-foreground">One app from the first photo to the money in your bank.</p>
-      </div>
-      <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {MORE.map((m) => (
-          <div key={m.title} className="bg-card border border-border rounded-2xl p-5">
-            <m.icon className="w-5 h-5 text-accent" />
-            <h3 className="font-semibold mt-3">{m.title}</h3>
-            <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{m.body}</p>
-          </div>
-        ))}
-      </div>
-    </section>
+    <FeatureRow
+      id="inventory"
+      eyebrow="Inventory"
+      title="Know what you have, and where it is."
+      body="Add an item once with its photo, cost, size and bin. Print a SKU barcode label for it, then scan or search it later to pull it up in a second."
+      points={[
+        "Automatic SKUs that never repeat, with barcode labels to print",
+        "Bin and shelf locations, so packing an order means grabbing, not searching",
+        "Scan a label with a barcode scanner (or your phone camera on Android) to find or move an item",
+        "A record of where each item is listed, and a reminder when something sold but is still up elsewhere",
+      ]}
+      visual={<ItemCard className="max-w-xs mx-auto shadow-lg" />}
+      flip
+      tint
+    />
   );
 }
 
-// What SellSync is building for 2027. Plans, not promises: dates and details can change.
-const COMING: { icon: ComponentType<{ className?: string }>; title: string; body: string; tag?: string }[] = [
-  {
-    icon: Radio,
-    title: "Live selling",
-    body: "Go live from SellSync and sell to your followers on video. Items sell straight from your inventory, so a live sale is delisted everywhere else at once.",
-  },
-  {
-    icon: Store,
-    title: "SellSource marketplace",
-    body: "Our own marketplace, where buyers shop sellers' items directly. Your SellSync inventory is already your storefront, with no extra listing work.",
-    tag: "3% seller fee",
-  },
-];
-
-function ComingNext({ onSignUp }: { onSignUp: () => void }) {
+function FeatureProfit() {
   return (
-    <section id="coming" className="scroll-mt-16 max-w-6xl mx-auto px-4 sm:px-6 pb-20">
-      <div className="rounded-3xl border border-border bg-secondary/60 px-5 sm:px-10 py-12">
-        <div className="text-center max-w-2xl mx-auto">
-          <Eyebrow>Coming in 2027</Eyebrow>
-          <h2 className="font-serif text-3xl sm:text-4xl font-medium mt-4">Sell live, and sell on SellSource</h2>
-          <p className="mt-4 text-muted-foreground">Two big things on the way next year. Sign up now and you'll be first in line.</p>
-        </div>
-        <div className="mt-10 grid md:grid-cols-2 gap-4">
-          {COMING.map((c) => (
-            <div key={c.title} className="bg-card border border-border rounded-2xl p-6">
-              <div className="flex items-center gap-2">
-                <c.icon className="w-5 h-5 text-accent" />
-                <h3 className="font-semibold">{c.title}</h3>
-                {c.tag && <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-accent/10 text-accent">{c.tag}</span>}
-              </div>
-              <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{c.body}</p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-8 text-center">
-          <button type="button" onClick={onSignUp} className={ctaPrimary}>
-            Get early access <ArrowRight className="w-4 h-4" />
-          </button>
-          <p className="mt-3 text-xs text-muted-foreground">Plans for 2027. Features, timing and fees may change before launch.</p>
-        </div>
-      </div>
-    </section>
+    <FeatureRow
+      id="profit"
+      eyebrow="Money"
+      title="What you really made, item by item."
+      body="SellSync takes out each marketplace's fees, the shipping you paid and what you paid for the item, so the number you see is the number you keep."
+      points={[
+        "Profit, margin and days to sell for any period",
+        "Marketplaces, brands and sourcing spots side by side",
+        "Business expenses next to your sales",
+        "CSV reports to hand to whoever does your taxes",
+      ]}
+      visual={<ProfitCard className="max-w-xs mx-auto shadow-lg" />}
+    />
   );
 }
 
 const STEPS = [
-  { title: "Connect your marketplaces", body: "Add the SellSync browser extension and stay logged in where you already sell. We never ask for your passwords." },
-  { title: "List and sell", body: "Film new items to create listings, and watch sold orders arrive in one dashboard." },
-  { title: "Ship and get paid", body: "Print the day's labels in one batch, then withdraw every balance with one tap." },
+  { title: "Add the extension", body: "Install the SellSync browser extension and stay logged in to Poshmark and Mercari. We never ask for your passwords." },
+  { title: "Bring in your items", body: "Add items by hand or import your listings, give each one a bin, and print SKU labels." },
+  { title: "Ship and see your profit", body: "Print the day's labels in one batch, then see what each sale really made you." },
 ];
 
 function HowItWorks() {
@@ -691,64 +464,29 @@ function HowItWorks() {
   );
 }
 
-// The plans come from src/lib/plans.ts, the same list the app and the affiliate program use.
-const PLANS = PLAN_IDS.map((id, i) => ({
-  id,
-  name: PLAN_INFO[id].name,
-  price: priceLabel(id),
-  pitch: PLAN_INFO[id].pitch,
-  features: [...(i > 0 ? [`Everything in ${PLAN_INFO[PLAN_IDS[i - 1]].name}`] : []), ...PLAN_INFO[id].adds],
-  featured: id === "flow",
-}));
-
-function Pricing({ onSignUp }: { onSignUp: () => void }) {
+// No plans or payments yet: SellSync is in early access. Pricing comes back once billing works.
+function EarlyAccess({ onSignUp }: { onSignUp: () => void }) {
   return (
-    <section id="pricing" className="scroll-mt-16 max-w-6xl mx-auto px-4 sm:px-6 py-20">
-      <div className="text-center max-w-2xl mx-auto">
-        <Eyebrow>Pricing</Eyebrow>
-        <h2 className="font-serif text-3xl sm:text-4xl font-medium mt-4">Start selling. Grow into everything.</h2>
-        <p className="mt-4 text-muted-foreground">Pick the plan that fits your shop today, and change it any time.</p>
-      </div>
-      <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-5 gap-4 items-stretch">
-        {PLANS.map((plan) => (
-          <div
-            key={plan.id}
-            className={`relative flex flex-col rounded-3xl p-6 ${
-              plan.featured ? "bg-foreground text-background shadow-2xl lg:-my-3" : "bg-card border border-border"
-            }`}
-          >
-            {plan.featured && (
-              <span className="absolute -top-3 left-6 px-3 py-1 rounded-full bg-accent text-accent-foreground text-xs font-semibold">Everything included</span>
-            )}
-            <p className="font-semibold text-lg">{plan.name}</p>
-            <p className={`mt-1 text-sm ${plan.featured ? "text-background/70" : "text-muted-foreground"}`}>{plan.pitch}</p>
-            <p className="mt-5">
-              <span className="font-display text-4xl">{plan.price}</span>
-              <span className={plan.featured ? "text-background/70" : "text-muted-foreground"}> / month</span>
-            </p>
-            <ul className="mt-6 space-y-3 flex-1">
-              {plan.features.map((f) => (
-                <li key={f} className="flex gap-3 text-sm">
-                  <Check className={`w-4 h-4 shrink-0 mt-0.5 ${plan.featured ? "text-accent" : "text-accent"}`} />
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <button onClick={onSignUp} className={`${plan.featured ? ctaPrimary : ctaSecondary} w-full mt-8`}>
-              Choose {plan.name} <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        ))}
-      </div>
-      <p className="mt-6 text-center text-xs text-muted-foreground">Cancel any time.</p>
-      <div className="mt-8 max-w-2xl mx-auto flex items-start gap-3 rounded-2xl border border-accent/30 bg-accent/5 px-5 py-4 text-sm">
-        <Gift className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-        <p>
-          <span className="font-semibold">Every item lists at {minPriceLabel} or more.</span> {freeGiftTip}{" "}
-          <a href={MISSION_HREF} className="text-accent font-medium hover:underline">
-            Why we have a minimum
-          </a>
+    <section id="early" className="scroll-mt-16 max-w-6xl mx-auto px-4 sm:px-6 py-20">
+      <div className="rounded-3xl border border-border bg-secondary/60 px-5 sm:px-10 py-12 text-center">
+        <Eyebrow>Early access</Eyebrow>
+        <h2 className="font-serif text-3xl sm:text-4xl font-medium mt-4">Join while we're building it with sellers</h2>
+        <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
+          SellSync is in early access, and no payment is needed to try it. Your feedback decides what we build next.
         </p>
+        <button type="button" onClick={onSignUp} className={`${ctaPrimary} mt-8`}>
+          Get early access <ArrowRight className="w-4 h-4" />
+        </button>
+        <div className="mt-10 max-w-2xl mx-auto flex items-start gap-3 rounded-2xl border border-accent/30 bg-accent/5 px-5 py-4 text-sm text-left">
+          <Gift className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+          <p>
+            <span className="font-semibold">Every item lists at {minPriceLabel} or more.</span> Smaller items sell well bundled together or as a free gift with
+            another item.{" "}
+            <a href={MISSION_HREF} className="text-accent font-medium hover:underline">
+              Why we have a minimum
+            </a>
+          </p>
+        </div>
       </div>
     </section>
   );
@@ -761,23 +499,27 @@ const FAQS = [
   },
   {
     q: "Which marketplaces work?",
-    a: "Poshmark and Mercari orders and labels sync automatically today. You can bring in orders from Depop, Vinted, Whatnot, Etsy and eBay with a CSV export, and automatic sync for them is on the way.",
+    a: "Poshmark and Mercari orders and labels sync automatically today. You can bring in sales from eBay, Depop, Etsy, Facebook Marketplace and others with a CSV export, and automatic sync for more marketplaces is on the way.",
   },
   {
     q: "Do I have to buy labels through SellSync?",
-    a: "No. SellSync prints the prepaid labels your marketplaces already made for each sale. If you want a different carrier, you can compare rates for USPS, UPS and FedEx.",
+    a: "No. SellSync prints the prepaid labels your marketplaces already made for each sale. You can also upload a label you bought somewhere else.",
   },
   {
     q: "What label sizes can I print?",
     a: "4x6 thermal labels, US Letter and A4. SellSync crops and rotates marketplace labels to fit, and can add a packing slip after each one.",
   },
   {
+    q: "Does SellSync post my listings to marketplaces?",
+    a: "Not yet. Today SellSync keeps the record of where each item is listed and reminds you when something sold but is still up elsewhere. Posting for you is on the way.",
+  },
+  {
     q: `Why is there a ${minPriceLabel} minimum price?`,
-    a: `A seller's labor is not free. Very low-priced items leave nothing for the work behind them, clog the shipping channels and the marketplaces, and undervalue quality brands. Every item listed through SellSync is priced at ${minPriceLabel} or more. Smaller items sell well bundled together, or as a free gift with another item, using the FREE GIFT WITH ORDER cover banner. Read more on our Mission page.`,
+    a: `A seller's labor is not free. Very low-priced items leave nothing for the work behind them, clog the shipping channels and the marketplaces, and undervalue quality brands. Every item listed through SellSync is priced at ${minPriceLabel} or more. Read more on our Mission page.`,
   },
   {
     q: "Does it work on my phone?",
-    a: "Yes. SellSync works in your phone's browser, which is also the easiest way to film items for video listings.",
+    a: "Yes. SellSync works in your phone's browser. Scanning SKU labels with the camera works on Android today, and iPhone support is on the way.",
   },
 ];
 
@@ -808,7 +550,7 @@ function FinalCta({ onSignUp, demoHref }: { onSignUp: () => void; demoHref: stri
       <div className="rounded-3xl bg-accent text-accent-foreground px-6 py-14 sm:px-12 text-center relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.18),transparent_45%)]" />
         <h2 className="relative font-display text-3xl sm:text-4xl font-medium">Spend your time finding inventory, not doing paperwork.</h2>
-        <p className="relative mt-4 text-white/85 max-w-xl mx-auto">List faster, ship in one batch, and cash out in one tap.</p>
+        <p className="relative mt-4 text-white/85 max-w-xl mx-auto">Ship in one batch, find every item fast, and know your real profit.</p>
         <div className="relative mt-8 flex flex-col sm:flex-row gap-3 justify-center">
           <button onClick={onSignUp} className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white text-accent text-sm font-semibold hover:bg-white/90">
             Get started <ArrowRight className="w-4 h-4" />

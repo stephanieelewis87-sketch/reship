@@ -1,6 +1,14 @@
 # SellSync
 
-A shipping dashboard for resellers: see sold orders from Poshmark, Vinted, Depop, Mercari, Whatnot, Etsy and eBay in one place, print the labels those marketplaces already generated (with SKUs and packing slips) in one batch, and track what has shipped. Built from the SellSync design in Figma Make.
+The one-stop app for resellers. Today it prints every marketplace label in one batch, keeps track of each item and where it's stored, and shows true profit after fees, shipping and cost of goods.
+
+## What's switched on
+
+SellSync is built in phases, and each phase has to work end to end before the next one starts. The rule: if it's on the screen, it works for real.
+
+Features that aren't finished are switched off in `src/lib/features.ts`, not deleted. Today that covers crosslisting (posting to marketplaces), AI listing (video, photos, Generate listing), the cover photo editor, views and watchers, Research, Automations, buying labels, the AI helper, Community, Affiliates and plan limits. The sections below still describe how each one works for when it's switched back on.
+
+The browser extension syncs Poshmark and Mercari. Vinted sync was removed because it read Vinted in a way its terms don't allow.
 
 ## Run it
 
