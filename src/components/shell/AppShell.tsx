@@ -20,6 +20,7 @@ import { ThemeToggle } from "../brand/ThemeToggle";
 import { LockedSection, PlanTag, currentPlan } from "../plans/PlanGate";
 import { type Feature, hasFeature, type PlanId } from "@/lib/plans";
 import { MISSION_HREF } from "@/lib/minPrice";
+import { type FeatureSwitch, isOn } from "@/lib/features";
 
 type Data = ReturnType<typeof useReshipData>;
 
@@ -57,10 +58,22 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     ],
   },
 ];
+// Sections whose feature is switched off stay out of the menu, and their address opens Home.
+const SECTION_SWITCH: Partial<Record<Section, FeatureSwitch>> = {
+  automations: "automations",
+  research: "research",
+  community: "community",
+  affiliates: "affiliates",
+};
+const sectionOn = (s: Section) => {
+  const f = SECTION_SWITCH[s];
+  return !f || isOn(f);
+};
+for (const g of NAV_GROUPS) g.items = g.items.filter((i) => sectionOn(i.section));
 const NAV = NAV_GROUPS.flatMap((g) => g.items);
 
-// The phone's bottom bar keeps the most used sections and Affiliates; the rest sit under More.
-const PHONE_TABS: Section[] = ["home", "inventory", "orders", "analytics", "affiliates"];
+// The phone's bottom bar keeps the most used sections; the rest sit under More.
+const PHONE_TABS: Section[] = ["home", "inventory", "orders", "analytics", "affiliates"].filter((s) => sectionOn(s as Section)) as Section[];
 const MORE: NavItem[] = [
   ...NAV.filter((n) => !PHONE_TABS.includes(n.section)),
   { section: "settings", label: "Settings", icon: SettingsIcon },
@@ -81,7 +94,8 @@ export function AppShell({
   onSignOut: () => void;
   onResetDemo?: () => void;
 }) {
-  const route = useRoute();
+  const raw = useRoute();
+  const route = sectionOn(raw.section) ? raw : { ...raw, section: "home" as Section };
   const plan = currentPlan(data.settings);
   const toPrint = data.orders.filter((o) => o.status === "pending").length;
   const issues = data.inventory.filter(isPartiallyDelisted).length;
@@ -94,7 +108,7 @@ export function AppShell({
           <Logo />
         </button>
         <nav className="px-3 py-4 flex flex-col gap-5">
-          {NAV_GROUPS.map((group) => (
+          {NAV_GROUPS.filter((g) => g.items.length).map((group) => (
             <div key={group.title} className="flex flex-col gap-0.5">
               <p className="px-2.5 pb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">{group.title}</p>
               {group.items.map((item) => (
@@ -188,7 +202,7 @@ export function AppShell({
       </main>
 
       <PhoneNav route={route.section} badge={badge} />
-      {!data.loading && <AssistantPanel data={data} section={route.section} demoMode={demoMode} />}
+      {!data.loading && isOn("assistant") && <AssistantPanel data={data} section={route.section} demoMode={demoMode} />}
     </div>
   );
 }
@@ -256,7 +270,7 @@ function PhoneNav({ route, badge }: { route: Section; badge: Partial<Record<Sect
           </div>
         </div>
       )}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-card border-t border-border grid grid-cols-6">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-card border-t border-border grid" style={{ gridTemplateColumns: `repeat(${PHONE_TABS.length + 1}, minmax(0, 1fr))` }}>
         {NAV.filter((n) => PHONE_TABS.includes(n.section)).map(({ section, label, icon: Icon }) => {
           const active = route === section;
           return (

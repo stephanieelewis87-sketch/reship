@@ -14,14 +14,14 @@ import { Card, Pills } from "../analytics/parts";
 import { CHART, fmtMoney } from "../analytics/charts";
 import { go } from "../shell/route";
 import { WithdrawShortcuts } from "../WithdrawShortcuts";
-import { EmptyState, Modal, ModalHeader, inputClass, orderTitle, selectClass } from "../ui";
+import { isOn } from "@/lib/features";
+import { EmptyState, inputClass, orderTitle, selectClass } from "../ui";
 
 type Data = ReturnType<typeof useReshipData>;
 
 export function HomePage({ data }: { data: Data }) {
   const today = isoDay(new Date());
   const [notice, setNotice] = useState<PrintNotice | null>(null);
-  const [newsOpen, setNewsOpen] = useState(false);
   const greeting = new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening";
   return (
     <div>
@@ -40,19 +40,10 @@ export function HomePage({ data }: { data: Data }) {
             </h1>
           </div>
           <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={() => setNewsOpen(true)}
-              className="relative flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-border bg-card/60 text-sm text-foreground hover:bg-muted"
-            >
-              <Sparkles className="w-4 h-4 text-accent" /> What's new
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-accent ring-2 ring-background" aria-label="New updates" />
-            </button>
             <PrintAllButton data={data} onNotice={setNotice} />
           </div>
         </div>
       </header>
-      {newsOpen && <WhatsNew onClose={() => setNewsOpen(false)} />}
       {notice && (
         <div className={`px-4 md:px-8 py-2 border-b text-xs flex items-center gap-2 ${notice.ok ? "bg-emerald-50 border-emerald-200 text-emerald-900" : "bg-amber-50 border-amber-200 text-amber-900"}`}>
           <span className="flex-1">{notice.text}</span>
@@ -68,7 +59,7 @@ export function HomePage({ data }: { data: Data }) {
           <NeedsAttention data={data} today={today} />
           <Goals data={data} today={today} />
         </div>
-        <AffiliatesCard />
+        {isOn("affiliates") && <AffiliatesCard />}
         <WithdrawShortcuts platforms={[...new Set(data.orders.map((o) => o.platform))]} />
       </div>
     </div>
@@ -113,9 +104,9 @@ function GettingStarted({ data }: { data: Data }) {
     { id: "connect", label: "Connect your marketplaces", done: data.orders.some((o) => o.source === "sync"), href: "#/settings?tab=connections" },
     { id: "ship-from", label: "Add your ship-from address", done: isAddressComplete(settings.shipFrom), href: "#/settings?tab=shipping" },
     { id: "inventory", label: "Add or import your inventory", done: data.inventory.length > 0, href: "#/inventory" },
-    { id: "video", label: "List up to 25 items from one video", done: data.inventory.some((i) => i.notes?.includes("Made with List with a video.")), href: "#/inventory?video" },
-    { id: "crosslist", label: "Crosslist an item to a second marketplace", done: data.inventory.some((i) => listedOn(i).length > 1), href: "#/inventory" },
-    { id: "automation", label: "Turn on an automation", done: automationOn(settings.automations), href: "#/automations" },
+    ...(isOn("aiListing") ? [{ id: "video", label: "List up to 25 items from one video", done: data.inventory.some((i) => i.notes?.includes("Made with List with a video.")), href: "#/inventory?video" }] : []),
+    ...(isOn("crosslisting") ? [{ id: "crosslist", label: "Crosslist an item to a second marketplace", done: data.inventory.some((i) => listedOn(i).length > 1), href: "#/inventory" }] : []),
+    ...(isOn("automations") ? [{ id: "automation", label: "Turn on an automation", done: automationOn(settings.automations), href: "#/automations" }] : []),
     { id: "goal", label: "Set a goal", done: settings.goals.length > 0, href: "#/home" },
     { id: "expense", label: "Log a business expense", done: data.expenses.length > 0, href: "#/analytics?tab=expenses" },
   ].map((s) => ({ ...s, done: s.done || settings.gettingStartedDone.includes(s.id) }));
@@ -204,7 +195,7 @@ function TodaySummary({ data, today }: { data: Data; today: string }) {
         <Stat label="Revenue" value={fmtMoney(m.revenue)} hint="before fees" href="#/analytics" icon={DollarSign} />
         <Stat label="Profit" value={fmtMoney(m.profit)} hint="after fees and cost" href="#/analytics" icon={TrendingUp} />
       </div>
-      <a href="#/automations" className="mt-3 flex items-center gap-3 flex-wrap bg-card border border-border rounded-2xl px-4 py-3 text-sm hover:border-accent/50">
+      {isOn("automations") && <a href="#/automations" className="mt-3 flex items-center gap-3 flex-wrap bg-card border border-border rounded-2xl px-4 py-3 text-sm hover:border-accent/50">
         <span className="flex items-center gap-1.5 text-foreground font-medium">
           <Zap className="w-3.5 h-3.5 text-accent" /> Automations
         </span>
@@ -223,7 +214,7 @@ function TodaySummary({ data, today }: { data: Data; today: string }) {
           );
         })}
         <span className="ml-auto text-xs text-accent">{automationOn(autos) ? "Manage" : "Turn on"}</span>
-      </a>
+      </a>}
     </section>
   );
 }
@@ -288,7 +279,7 @@ function NeedsAttention({ data, today }: { data: Data; today: string }) {
       id: `ready-${ready}`,
       icon: <Sparkles className="w-3.5 h-3.5" />,
       title: `${ready} draft${ready !== 1 ? "s are" : " is"} ready to list`,
-      detail: "Publish them from Inventory.",
+      detail: isOn("crosslisting") ? "Publish them from Inventory." : "Once they're up on a marketplace, mark them listed in Inventory.",
       href: "#/inventory?status=draft",
       tone: "info",
     });
@@ -463,44 +454,6 @@ function Goals({ data, today }: { data: Data; today: string }) {
         )}
       </Card>
     </div>
-  );
-}
-
-// --- What's new ---------------------------------------------------------------------------------
-
-const RELEASES = [
-  { date: "Nov 3, 2026", text: "Bundle comments and buyer messages, in Automations: comment on Poshmark shoppers' bundles, thank and check in with past buyers on their order page, and message interested shoppers on Depop, Vinted and Facebook, from templates. SellSync shows what each marketplace allows, and you press Send yourself." },
-  { date: "Nov 3, 2026", text: "A simpler look: the menu is grouped into Sell and Grow, Inventory has one Add button for every way to add items, and Settings is grouped into four sections. Shares and follows are gone from Automations, since Poshmark no longer rewards them." },
-  { date: "Oct 31, 2026", text: "List from photos: upload photos of up to 25 items at once, and AI sorts them into one listing per item, then writes each one with a suggested price." },
-  { date: "Oct 30, 2026", text: "List with a video: film up to 25 items, and AI finds each one, keeps snips from the video, makes a clean photo, and writes the listing with a suggested price." },
-  { date: "Oct 29, 2026", text: "A new layout: Home, Inventory, Automations, Orders, Analytics and Settings, with goals and a needs-attention list here on Home." },
-  { date: "Oct 28, 2026", text: "Analytics: true profit after fees, shipping and item cost, marketplaces side by side, inventory aging with suggested markdowns, and sourcing returns." },
-  { date: "Oct 26, 2026", text: "Mercari orders and labels sync through the browser extension." },
-];
-
-function WhatsNew({ onClose }: { onClose: () => void }) {
-  return (
-    <Modal label="What's new" onClose={onClose} maxWidth="max-w-lg">
-      <ModalHeader
-        title="What's new"
-        subtitle="The latest changes to SellSync"
-        onClose={onClose}
-        icon={
-          <span className="w-8 h-8 rounded-lg bg-accent/15 text-accent flex items-center justify-center">
-            <Sparkles className="w-4 h-4" />
-          </span>
-        }
-      />
-      <ul className="px-5 sm:px-6 py-4 space-y-4 overflow-y-auto">
-        {RELEASES.map((r, i) => (
-          <li key={r.date} className="relative pl-5">
-            <span className={`absolute left-0 top-1.5 w-2 h-2 rounded-full ${i === 0 ? "bg-accent" : "bg-muted-foreground/40"}`} />
-            <p className="text-[12px] text-muted-foreground">{r.date}</p>
-            <p className="text-sm text-foreground mt-0.5">{r.text}</p>
-          </li>
-        ))}
-      </ul>
-    </Modal>
   );
 }
 

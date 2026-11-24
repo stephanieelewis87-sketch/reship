@@ -99,7 +99,7 @@ async function renderCrosslist() {
 
   const { data: settingsRow } = await reship.from("settings").select("data").maybeSingle();
   const settings = (settingsRow?.data ?? {}) as { autoDelist?: Partial<Record<Platform, boolean>> };
-  for (const platform of ["Mercari", "Vinted"] as const) {
+  for (const platform of ["Mercari"] as const) {
     const box = $<HTMLInputElement>(`autodelist-${platform}`);
     box.checked = !!settings.autoDelist?.[platform];
     box.onchange = async () => {
@@ -174,7 +174,7 @@ $("capture").addEventListener("click", async () => {
   }
 });
 
-for (const platform of ["Poshmark", "Mercari", "Vinted"] as const) {
+for (const platform of ["Poshmark", "Mercari"] as const) {
   const button = $<HTMLButtonElement>(`check-${platform.toLowerCase()}`);
   button.addEventListener("click", async () => {
     button.disabled = true;

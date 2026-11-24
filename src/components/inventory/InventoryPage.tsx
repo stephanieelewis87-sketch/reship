@@ -56,6 +56,12 @@ import { type Feature, crosslistTargets, hasFeature, yourMarketplaces } from "@/
 import { BrandMark } from "../brand/Logo";
 import { checkInventory } from "@/lib/guardian";
 import { minPriceLabel, minPriceMessage, underMinimum } from "@/lib/minPrice";
+import { isOn } from "@/lib/features";
+
+// Until SellSync posts to marketplaces itself, listings here are a record the seller keeps:
+// where an item is listed, at what price, and whether it was taken down.
+const POSTS = isOn("crosslisting");
+const STATS = isOn("listingStats");
 
 type Data = ReturnType<typeof useReshipData>;
 type StatusFilter = "all" | "draft" | "listed" | "sold";
@@ -132,7 +138,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
   const [quick, setQuick] = useState<InventoryItem | null>(null);
   const [statsFor, setStatsFor] = useState<InventoryItem | null>(null);
   const [statsImport, setStatsImport] = useState(false);
-  const [showStats, setShowStatsState] = useState(readShowStats);
+  const [showStats, setShowStatsState] = useState(() => STATS && readShowStats());
   const setShowStats = (v: boolean) => {
     setShowStatsState(v);
     try {
@@ -142,15 +148,15 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
     }
   };
   // #/inventory?video opens List with a video straight away (the Home page and homepage link here).
-  const [video, setVideo] = useState(route.params.has("video"));
+  const [video, setVideo] = useState(isOn("aiListing") && route.params.has("video"));
   useEffect(() => {
-    if (route.params.has("video")) setVideo(true);
+    if (isOn("aiListing") && route.params.has("video")) setVideo(true);
   }, [route]);
   // #/inventory?photos opens List from photos the same way.
-  const [photoUpload, setPhotoUpload] = useState(route.params.has("photos"));
+  const [photoUpload, setPhotoUpload] = useState(isOn("aiListing") && route.params.has("photos"));
   const [importing, setImporting] = useState(false);
   useEffect(() => {
-    if (route.params.has("photos")) setPhotoUpload(true);
+    if (isOn("aiListing") && route.params.has("photos")) setPhotoUpload(true);
   }, [route]);
   const [notice, setNotice] = useState<string | null>(null);
   const [view, setViewState] = useState<View>(readView);
@@ -331,7 +337,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
       <EmptyState
         icon={Shirt}
         title="No items yet"
-        text="Add your first item, list a pile at once from photos or a video, or sync your marketplaces with the SellSync extension."
+        text="Add your first item, import your listings, or bring in your Poshmark and Mercari sales with the SellSync extension."
         action={{ label: "Add an item", onClick: () => setForm({ item: blank(), isNew: true }) }}
       />
     ) : (
@@ -376,32 +382,26 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                 <MenuItem
                   onClick={() => {
                     close();
-                    setNotice("Full sync reads every listing and sale from your marketplaces. Open the SellSync extension and press Sync now; it also runs every 15 minutes.");
+                    setNotice("Sync brings in your Poshmark and Mercari sales. Open the SellSync extension and press Sync now; it also runs every 15 minutes.");
                   }}
                 >
-                  Full sync
+                  Sync sales
                 </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    close();
-                    setNotice("Quick sync checks for new sales only. Open the SellSync extension and press Sync now.");
-                  }}
-                >
-                  Quick sync
-                </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    close();
-                    setStatsImport(true);
-                  }}
-                >
-                  Import eBay views and watchers
-                </MenuItem>
+                {STATS && (
+                  <MenuItem
+                    onClick={() => {
+                      close();
+                      setStatsImport(true);
+                    }}
+                  >
+                    Import eBay views and watchers
+                  </MenuItem>
+                )}
                 <MenuItem onClick={() => window.location.reload()}>Refresh this page</MenuItem>
               </>
             )}
           </Menu>
-          <button
+          {isOn("aiListing") && <button
             type="button"
             onClick={gated("videoListing", () => setVideo(true))}
             className="flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-lg bg-amber-400 text-amber-950 text-sm font-bold shadow-md shadow-amber-400/30 ring-2 ring-amber-300 hover:bg-amber-300 hover:shadow-lg transition"
@@ -410,7 +410,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
             <span className="hidden sm:inline">List with a video</span>
             <span className="sm:hidden">Video</span>
             {!can("videoListing") && <PlanTag feature="videoListing" />}
-          </button>
+          </button>}
           <Menu
             align="right"
             button={(toggle) => (
@@ -426,8 +426,12 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
             {(close) => (
               <div className="min-w-56">
                 <AddOption icon={Plus} title="One item" hint="Fill in the details yourself" onClick={() => (close(), setForm({ item: blank(), isNew: true }))} />
-                <AddOption icon={Images} title="From photos" hint={can("ai") ? "Up to 25 items, one listing each" : "AI listing, on Flow"} onClick={() => (close(), gated("ai", () => setPhotoUpload(true))())} />
-                <AddOption icon={Clapperboard} title="From a video" hint={can("videoListing") ? "Film your pile, get drafts" : "Video listing, on Flow"} onClick={() => (close(), gated("videoListing", () => setVideo(true))())} />
+                {isOn("aiListing") && (
+                  <>
+                    <AddOption icon={Images} title="From photos" hint={can("ai") ? "Up to 25 items, one listing each" : "AI listing, on Flow"} onClick={() => (close(), gated("ai", () => setPhotoUpload(true))())} />
+                    <AddOption icon={Clapperboard} title="From a video" hint={can("videoListing") ? "Film your pile, get drafts" : "Video listing, on Flow"} onClick={() => (close(), gated("videoListing", () => setVideo(true))())} />
+                  </>
+                )}
                 <AddOption icon={Download} title="Import listings" hint="From links or a marketplace export" onClick={() => (close(), setImporting(true))} />
                 <AddOption icon={ScanLine} title="Scan a barcode" hint="Find or add an item by its SKU" onClick={() => (close(), setScan(true))} />
               </div>
@@ -475,8 +479,8 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
             <option value="name">Item name</option>
             <option value="price">Price, high to low</option>
             <option value="sold">Sale detected at</option>
-            <option value="views">Most viewed</option>
-            <option value="watchers">Most watched</option>
+            {STATS && <option value="views">Most viewed</option>}
+            {STATS && <option value="watchers">Most watched</option>}
           </select>
           <button
             type="button"
@@ -557,10 +561,12 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                 })}
               </div>
             </div>
-            <label className="flex items-center gap-2 sm:col-span-2">
-              <input type="checkbox" checked={showStats} onChange={(e) => setShowStats(e.target.checked)} />
-              <span>Show views and watchers on items</span>
-            </label>
+            {STATS && (
+              <label className="flex items-center gap-2 sm:col-span-2">
+                <input type="checkbox" checked={showStats} onChange={(e) => setShowStats(e.target.checked)} />
+                <span>Show views and watchers on items</span>
+              </label>
+            )}
           </div>
         )}
       </div>
@@ -613,7 +619,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                     />
                   </th>
                   <th className="text-left px-2 py-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground font-normal min-w-[240px]">Item</th>
-                  <th
+                  {POSTS && <th
                     className="px-3 py-2 font-normal border-x border-border/60"
                     title={mine.length ? `Lists the item on ${mine.join(", ")}` : "List an item on a marketplace first, then Crosslist to all copies it to the rest"}
                   >
@@ -622,8 +628,9 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                       <br />
                       to all
                     </span>
-                  </th>
-                  {ALL_PLATFORMS.map((p) => (
+                  </th>}
+                  {!POSTS && <th className="text-left px-2 py-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground font-normal">Listed on</th>}
+                  {POSTS && ALL_PLATFORMS.map((p) => (
                     <th key={p} className="px-1.5 py-2 font-normal" title={`${everListed(p)} of these items have been listed on ${p}`}>
                       <span className="flex flex-col items-center gap-0.5">
                         <PlatformIcon platform={p} className="w-4 h-4" />
@@ -637,7 +644,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
               <tbody>
                 {shown.length === 0 && (
                   <tr>
-                    <td colSpan={3 + ALL_PLATFORMS.length}>{emptyInventory}</td>
+                    <td colSpan={POSTS ? 3 + ALL_PLATFORMS.length : 3}>{emptyInventory}</td>
                   </tr>
                 )}
                 {shown.map((item) => (
@@ -678,10 +685,15 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-2 text-center border-x border-border/60">
+                    {!POSTS && (
+                      <td className="px-2 py-2">
+                        <ListedOn item={item} today={today} actionsFor={(l) => listingActions(item, l)} />
+                      </td>
+                    )}
+                    {POSTS && <td className="px-3 py-2 text-center border-x border-border/60">
                       <CrosslistAllButton item={item} targets={pricedOk(item, crosslistTargets(item, mine), settings)} tooLow={underMinimum(item.listPrice)} locked={!can("crosslisting")} onClick={() => crosslistAll(item)} />
-                    </td>
-                    {ALL_PLATFORMS.map((p) => {
+                    </td>}
+                    {POSTS && ALL_PLATFORMS.map((p) => {
                       const l = item.listings.find((x) => x.platform === p);
                       return (
                         <td key={p} className="px-1.5 py-2 text-center">
@@ -844,6 +856,37 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
   );
 }
 
+// List view while SellSync doesn't post to marketplaces: the marketplaces the item is recorded on,
+// each with its own menu (view it, mark it delisted or relisted).
+function ListedOn({ item, today, actionsFor }: { item: InventoryItem; today: string; actionsFor: (l: Listing) => ListingActions }) {
+  if (!item.listings.length) return <span className="text-[12px] text-muted-foreground">Not listed yet</span>;
+  return (
+    <div className="flex items-center gap-1 flex-wrap">
+      {item.listings.map((l) => (
+        <ListingMenu
+          key={l.platform}
+          item={item}
+          listing={l}
+          {...actionsFor(l)}
+          button={(toggle) => (
+            <button
+              type="button"
+              onClick={toggle}
+              aria-label={`${l.platform} listing: ${l.status}`}
+              title={`${l.platform}: ${LISTING_LABEL[l.status].toLowerCase()}${l.price != null ? ` at $${l.price}` : ""}`}
+              className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[12px] ${l.status === "delisted" ? "border-border text-muted-foreground line-through" : l.status === "sold" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-border text-foreground"}`}
+            >
+              <PlatformIcon platform={l.platform} className="w-3.5 h-3.5" />
+              {l.platform === "WhatNot" ? "Whatnot" : l.platform}
+              <RelistBadge listing={l} today={today} />
+            </button>
+          )}
+        />
+      ))}
+    </div>
+  );
+}
+
 function StatusChip({ item }: { item: InventoryItem }) {
   if (isPartiallyDelisted(item)) return <span className="px-1.5 rounded bg-amber-50 text-amber-800">Sold · still listed</span>;
   const cfg = {
@@ -886,21 +929,23 @@ function ItemMenu({
       {(close) => (
         <>
           <MenuItem onClick={run(close, onEdit)}>Edit</MenuItem>
-          {listedOn(item).length > 0 && <MenuItem onClick={run(close, onDelistAll)}>Delist everywhere</MenuItem>}
+          {listedOn(item).length > 0 && <MenuItem onClick={run(close, onDelistAll)}>{POSTS ? "Delist everywhere" : "Mark delisted everywhere"}</MenuItem>}
           <MenuItem onClick={run(close, onCopy)}>
             <Copy className="w-3.5 h-3.5" /> Copy
           </MenuItem>
           <MenuItem onClick={run(close, onLabel)}>
             <ScanLine className="w-3.5 h-3.5" /> Print SKU label
           </MenuItem>
-          {item.listings.length > 0 && (
+          {STATS && item.listings.length > 0 && (
             <MenuItem onClick={run(close, onStats)}>
               <Eye className="w-3.5 h-3.5" /> Views and watchers
             </MenuItem>
           )}
-          <MenuItem onClick={run(close, () => go("research", { q: compQuery(item) }))}>
-            <Search className="w-3.5 h-3.5" /> Find comps
-          </MenuItem>
+          {isOn("research") && (
+            <MenuItem onClick={run(close, () => go("research", { q: compQuery(item) }))}>
+              <Search className="w-3.5 h-3.5" /> Find comps
+            </MenuItem>
+          )}
           <MenuItem danger onClick={run(close, onDelete)}>
             <Trash2 className="w-3.5 h-3.5" /> Delete
           </MenuItem>
@@ -946,10 +991,10 @@ function ListingMenu({
               <ExternalLink className="w-3.5 h-3.5" /> View on {listing.platform}
             </a>
           )}
-          {listing.status === "active" && <MenuItem onClick={run(close, onDelist)}>Delist</MenuItem>}
+          {listing.status === "active" && <MenuItem onClick={run(close, onDelist)}>{POSTS ? "Delist" : "Mark delisted"}</MenuItem>}
           {listing.status !== "sold" && (
             <MenuItem onClick={run(close, onRelist)}>
-              <RotateCcw className="w-3.5 h-3.5" /> Relist
+              <RotateCcw className="w-3.5 h-3.5" /> {POSTS ? "Relist" : "Mark relisted"}
             </MenuItem>
           )}
           {item.listings.length > 1 && <MenuItem onClick={run(close, onMove)}>Move to new item</MenuItem>}
@@ -1096,7 +1141,7 @@ function BoardCard({
             </li>
           ))}
         </ul>
-        {item.status !== "sold" && notOn.length > 0 && (
+        {POSTS && item.status !== "sold" && notOn.length > 0 && (
           <div className="mt-auto flex items-center gap-1 flex-wrap pt-1">
             <span className="text-[12px] text-muted-foreground mr-0.5">List on</span>
             {notOn.map((p) => (
@@ -1234,13 +1279,13 @@ function BulkBar({
     <div className="fixed bottom-16 md:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-3xl bg-foreground text-background rounded-xl shadow-2xl p-3 text-sm">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="font-medium mr-2">{items.length} selected on this page</span>
-        <button
+        {POSTS && <button
           type="button"
           onClick={() => (canCrosslist ? setMode(mode === "crosslist" ? "" : "crosslist") : upgradeFor("crosslisting"))}
           className="px-2.5 py-1 rounded-md bg-background/10 hover:bg-background/20 flex items-center gap-1"
         >
           Crosslist {!canCrosslist && <PlanTag feature="crosslisting" />}
-        </button>
+        </button>}
         <button type="button" onClick={() => setMode(mode === "label" ? "" : "label")} className="px-2.5 py-1 rounded-md bg-background/10 hover:bg-background/20 flex items-center gap-1">
           <Tag className="w-3.5 h-3.5" /> Labels
         </button>
@@ -1251,7 +1296,7 @@ function BulkBar({
           <ScanLine className="w-3.5 h-3.5" /> SKU labels
         </button>
         <button type="button" onClick={onDelist} className="px-2.5 py-1 rounded-md bg-background/10 hover:bg-background/20">
-          Delist
+          {POSTS ? "Delist" : "Mark delisted"}
         </button>
         <button
           type="button"

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { isOn } from "@/lib/features";
 import { ExternalLink, FileText, Plus, ShoppingCart, Trash2, Upload, X } from "lucide-react";
 import type { LabelStatus, Order, OrderItem, PackageType, Platform } from "@/lib/types";
 import { ALL_PLATFORMS, CARRIER_SERVICES, PACKAGE_TYPES, emptyAddress } from "@/lib/types";
@@ -186,7 +187,7 @@ export function OrderDrawer({
                   }}
                 />
               </label>
-              {!isNew && (
+              {!isNew && (isOn("buyLabels") || order.ownLabel) && (
                 <button type="button" onClick={() => onBuyLabel(order)} className="text-xs text-muted-foreground hover:text-foreground hover:underline flex items-center gap-1">
                   <ShoppingCart className="w-3 h-3" />{" "}
                   {order.ownLabel ? "SellSync label & tracking" : { compare: "Buy a label", reship: "Buy a label", marketplace: "Prepaid label help" }[labelPolicy(order)]}

@@ -3,6 +3,10 @@ import { ChevronDown, ChevronUp, ExternalLink, Printer, RotateCcw, ShoppingCart,
 import type { Order } from "@/lib/types";
 import { trackingUrl } from "@/lib/tracking";
 import { canBuySellSyncLabel, labelPolicy } from "@/lib/labelPolicy";
+import { isOn } from "@/lib/features";
+
+// Buying labels inside SellSync waits for a shipping label account.
+const BUY = isOn("buyLabels");
 import { BundleBadge, OrderStatusCell, PhotoCollage, PlatformBadge, SkuCell, isBundle, orderTitle } from "./ui";
 
 const LIST_COLUMNS = "2rem 3rem minmax(0,1.6fr) 7.5rem minmax(0,1fr) 7.5rem 6.5rem 11rem";
@@ -22,7 +26,7 @@ export interface OrderListProps {
 }
 
 // A pending order without its label yet, on a marketplace where SellSync can buy one.
-const canBuyNow = (o: Order) => o.status === "pending" && !o.label && !o.ownLabel && canBuySellSyncLabel(o);
+const canBuyNow = (o: Order) => BUY && o.status === "pending" && !o.label && !o.ownLabel && canBuySellSyncLabel(o);
 
 // The print, reprint or tracking action for one order.
 function RowAction({ order, onPrint, onBuyLabel }: { order: Order; onPrint: (o: Order) => void; onBuyLabel: (o: Order) => void }) {
@@ -53,7 +57,7 @@ function RowAction({ order, onPrint, onBuyLabel }: { order: Order; onPrint: (o: 
       >
         <Printer className="w-3 h-3" /> Print
       </button>
-      {labelPolicy(order) === "compare" && !order.ownLabel && (
+      {BUY && labelPolicy(order) === "compare" && !order.ownLabel && (
         <button
           type="button"
           onClick={(e) => {

@@ -2,12 +2,28 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { mercariLister } from "./mercari";
 import { delistStep, fillSellForm, type FillPayload } from "./page";
-import { vintedLister } from "./vinted";
+import type { Lister } from "./types";
+
+// A sample sell form and delist flow for exercising the page helpers.
+const sample: Pick<Lister, "fields" | "photoSelectors" | "delist"> = {
+  fields: [
+    { key: "title", selectors: ['[data-testid="title--input"]', "#title", 'input[name="title"]'], labels: ["^title"] },
+    { key: "description", selectors: ['[data-testid="description--input"]', "#description", 'textarea[name="description"]'], labels: ["^describe|^description"] },
+    { key: "price", selectors: ['[data-testid="price-input--input"]', "#price", 'input[name="price"]'], labels: ["^price"] },
+  ],
+  photoSelectors: ['input[type="file"][accept*="image"]', 'input[type="file"]'],
+  delist: {
+    steps: ["^hide$", "^(hide|yes|confirm)$"],
+    doneButton: "^(unhide|show)$",
+    doneText: "(this )?item is hidden|hidden from (other )?members",
+    goneText: "page (could not be |not )found|no longer available|has been (deleted|removed)|doesn.t exist",
+  },
+};
 
 const payload = (over: Partial<FillPayload> = {}): FillPayload => ({
-  fields: vintedLister.fields.map((f) => ({ ...f, value: { title: "Linen shirt", description: "Barely worn", price: "24" }[f.key] ?? "" })),
+  fields: sample.fields.map((f) => ({ ...f, value: { title: "Linen shirt", description: "Barely worn", price: "24" }[f.key] ?? "" })),
   photos: [],
-  photoSelectors: vintedLister.photoSelectors,
+  photoSelectors: sample.photoSelectors,
   condition: "Very good",
   waitFor: "title",
   ...over,
@@ -58,15 +74,15 @@ describe("delistStep", () => {
     document.body.innerHTML = `<button>Activate</button>`;
     expect(delistStep(mercariLister.delist)).toBe("done");
     document.body.innerHTML = `<h1>This item is hidden</h1>`;
-    expect(delistStep(vintedLister.delist)).toBe("done");
+    expect(delistStep(sample.delist)).toBe("done");
     document.body.innerHTML = `<h1>Page not found</h1>`;
-    expect(delistStep(vintedLister.delist)).toBe("gone");
+    expect(delistStep(sample.delist)).toBe("gone");
     document.body.innerHTML = `<div><span>Sold</span></div><button>Hide</button>`;
-    expect(delistStep(vintedLister.delist)).toBe("sold");
+    expect(delistStep(sample.delist)).toBe("sold");
   });
 
   it("waits when nothing matches yet", () => {
     document.body.innerHTML = `<p>Loading…</p>`;
-    expect(delistStep(vintedLister.delist)).toBe("waiting");
+    expect(delistStep(sample.delist)).toBe("waiting");
   });
 });

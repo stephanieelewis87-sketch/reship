@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "SellSync",
-  "description": "Brings your sold orders and shipping labels from Poshmark, Mercari, Depop, Vinted and Whatnot into SellSync, crosslists and delists your items on Mercari and Vinted, and adds your message templates to Poshmark and Depop comment boxes.",
-  "version": "0.8.0",
+  "description": "Brings your sold orders and shipping labels from Poshmark and Mercari into SellSync, using the marketplace sign-ins already in your browser.",
+  "version": "0.9.0",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -34,8 +34,6 @@
     "https://www.mercari.com/*",
     "https://www.depop.com/*",
     "https://webapi.depop.com/*",
-    "https://www.vinted.com/*",
-    "https://*.vinted.net/*",
     "https://www.whatnot.com/*",
     "https://*.supabase.co/*"
   ],

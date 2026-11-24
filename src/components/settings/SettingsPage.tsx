@@ -16,6 +16,8 @@ import { PlanPicker } from "../plans/PlanPicker";
 
 type Data = ReturnType<typeof useReshipData>;
 
+import { type FeatureSwitch, isOn } from "@/lib/features";
+
 export type SettingsTab = "connections" | "sale" | "guardian" | "labels" | "marketplaces" | "pricing" | "shipping" | "ai" | "subscription" | "account";
 // Ten sections in four groups, so the list reads as a few topics instead of a long row of tabs.
 const GROUPS: { title: string; tabs: { key: SettingsTab; label: string }[] }[] = [
@@ -50,6 +52,9 @@ const GROUPS: { title: string; tabs: { key: SettingsTab; label: string }[] }[] =
     ],
   },
 ];
+// Sections for features that are switched off stay hidden.
+const TAB_SWITCH: Partial<Record<SettingsTab, FeatureSwitch>> = { ai: "aiListing", subscription: "plans" };
+for (const g of GROUPS) g.tabs = g.tabs.filter((t) => !TAB_SWITCH[t.key] || isOn(TAB_SWITCH[t.key]!));
 const TABS = GROUPS.flatMap((g) => g.tabs);
 
 const LABEL_COLORS = ["#d03b3b", "#eda100", "#2a78d6", "#1f9d6b", "#7a4fd0", "#D99B7A", "#5d6b7a"];
@@ -130,7 +135,7 @@ export function SettingsPage({
         <div className="flex-1 min-w-0 px-4 md:px-8 py-5 max-w-2xl space-y-6">
           {tab === "connections" && <Connections />}
           {tab === "sale" && (
-            <Section title="Sale detection" text="When an item sells on one marketplace, SellSync marks it sold and can take it down everywhere else.">
+            <Section title="Sale detection" text={isOn("crosslisting") ? "When an item sells on one marketplace, SellSync marks it sold and can take it down everywhere else." : "When an item sells on one marketplace, SellSync marks it sold and reminds you on Home to take it down everywhere else."}>
               <Row title="Adjust quantity on sale" text="For items with more than one in stock, take one off the count instead of marking the item sold.">
                 {can("quantitySync") ? (
                   <Toggle label="Adjust quantity on sale" checked={draft.autoAdjustQuantity} onChange={() => set("autoAdjustQuantity", !draft.autoAdjustQuantity)} />
@@ -140,7 +145,7 @@ export function SettingsPage({
                   </button>
                 )}
               </Row>
-              <p className="text-xs font-medium text-foreground pt-2 flex items-center gap-2">
+              {isOn("crosslisting") && <><p className="text-xs font-medium text-foreground pt-2 flex items-center gap-2">
                 Delist from these marketplaces when an item sells elsewhere {!can("delisting") && <PlanTag feature="delisting" />}
               </p>
               {can("delisting") ? (
@@ -152,7 +157,7 @@ export function SettingsPage({
               ) : (
                 <LockedCard feature="delisting" text="Take an item down everywhere else the moment it sells, so nobody buys it twice." compact />
               )}
-              <Note>Delisting runs through the browser extension. Until it does, items that sold show as "partially delisted" on Home and in Inventory so you can take them down yourself.</Note>
+              <Note>Delisting runs through the browser extension. Until it does, items that sold show as "partially delisted" on Home and in Inventory so you can take them down yourself.</Note></>}
             </Section>
           )}
           {tab === "guardian" && (
@@ -250,7 +255,7 @@ export function SettingsPage({
             </Section>
           )}
           {tab === "pricing" && (
-            <Section title="Pricing rules" text="Raise or lower the price on each marketplace from your base price, for example to cover higher fees. Applied when you crosslist.">
+            <Section title="Pricing rules" text="Raise or lower the price on each marketplace from your base price, for example to cover higher fees. Used as the suggested price when you record a listing.">
               {ALL_PLATFORMS.map((p) => (
                 <Row key={p} title={<PlatformName p={p} />}>
                   <div className="flex items-center gap-1.5">
@@ -387,9 +392,9 @@ function Connections() {
     <Section title="Connections" text="SellSync works with your marketplace accounts through its browser extension, using the sign-ins you already have.">
       <div className="rounded-lg border border-amber-200 bg-amber-50 text-amber-900 text-xs px-3 py-2.5 flex gap-2">
         <Puzzle className="w-4 h-4 shrink-0" />
-        <p>The extension isn't connected yet. Until it is, use Add orders on the Orders page to add them by hand or from a CSV file, and add inventory by hand.</p>
+        <p>Poshmark and Mercari orders and labels come in through the SellSync browser extension. For other marketplaces, use Add orders on the Orders page to add them by hand or from a CSV export.</p>
       </div>
-      <p className="text-xs text-muted-foreground">Each marketplace allows different things. Here is how orders, labels, listings, and views and watchers work on each one.</p>
+      <p className="text-xs text-muted-foreground">Each marketplace allows different things. Here is how orders, labels and listings work on each one.</p>
       {ALL_PLATFORMS.map((p) => {
         const info = PLATFORM_INFO[p];
         return (
@@ -399,7 +404,7 @@ function Connections() {
                 <PlatformIcon platform={p} className="w-4 h-4" /> {info.name}
               </span>
               <span className="flex items-center gap-2 text-[12px] text-muted-foreground">
-                {CONNECTOR_PLATFORMS.includes(p) ? "Extension not connected" : "Manual and CSV"}
+                {CONNECTOR_PLATFORMS.includes(p) ? "Syncs with the extension" : "Manual and CSV"}
                 <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
               </span>
             </summary>
@@ -410,8 +415,8 @@ function Connections() {
               <dd className="text-foreground">{info.label}</dd>
               <dt className="text-muted-foreground">Listings</dt>
               <dd className="text-foreground">{info.listing}</dd>
-              <dt className="text-muted-foreground">Views</dt>
-              <dd className="text-foreground">{STATS_SOURCE[p]}</dd>
+              {isOn("listingStats") && <><dt className="text-muted-foreground">Views</dt>
+              <dd className="text-foreground">{STATS_SOURCE[p]}</dd></>}
               {info.note && <dd className="col-span-2 text-muted-foreground pt-1">{info.note}</dd>}
             </dl>
           </details>

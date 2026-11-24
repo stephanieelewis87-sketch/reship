@@ -15,6 +15,11 @@ import { CoverPhotoEditor } from "./CoverPhotoEditor";
 import { Field, PlatformIcon, SectionLabel, Toggle, inputClass, primaryButton, secondaryButton } from "../ui";
 import { LabelChips } from "./LabelChips";
 import { MinPriceNote } from "./MinPriceNote";
+import { isOn } from "@/lib/features";
+
+const POSTS = isOn("crosslisting");
+const COVER = isOn("coverPhoto");
+const AI = isOn("aiListing");
 import { atLeastMinimum, underMinimum } from "@/lib/minPrice";
 import { PLANS, type PlanId, listingRoom, marketplacesInUse, nextPlanFor } from "@/lib/plans";
 import { PlanTag, upgradeFor, upgradeTo } from "../plans/PlanGate";
@@ -188,7 +193,7 @@ export function ListingForm({
         <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-card z-10 sm:rounded-t-xl">
           <div>
             <h2 className="font-display text-sm font-semibold text-foreground">{isNew ? "Add item" : "Edit item"}</h2>
-            <p className="text-xs text-muted-foreground">Enter it once. SellSync fills in each marketplace.</p>
+            <p className="text-xs text-muted-foreground">{POSTS ? "Enter it once. SellSync fills in each marketplace." : "Everything about this item in one place: cost, location and where it's listed."}</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 rounded-md hover:bg-muted">
             <X className="w-4 h-4 text-muted-foreground" />
@@ -199,7 +204,7 @@ export function ListingForm({
           <section className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <SectionLabel>Photos</SectionLabel>
-              <button
+              {COVER && <button
                 type="button"
                 disabled={!photos.length}
                 onClick={() => setCoverOpen(true)}
@@ -207,8 +212,8 @@ export function ListingForm({
                 className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border text-xs text-accent hover:bg-rose-50 disabled:text-muted-foreground disabled:opacity-60 disabled:hover:bg-transparent"
               >
                 <Tag className="w-3.5 h-3.5" /> {coverEdit ? "Edit brand tag & banner" : "Brand tag & banner"}
-              </button>
-              <button
+              </button>}
+              {AI && <button
                 type="button"
                 disabled={!aiLocked && (!ai || !photos.length || gen.busy)}
                 onClick={() => (aiLocked ? upgradeFor("ai") : void generate())}
@@ -217,14 +222,14 @@ export function ListingForm({
               >
                 {gen.busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />} Generate listing
                 {aiLocked && <PlanTag feature="ai" />}
-              </button>
+              </button>}
             </div>
             {gen.message && <p className="text-[12px] text-muted-foreground">{gen.message}</p>}
             <div className="flex gap-2 flex-wrap">
               {photos.map((p, i) => (
                 <div key={p + i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
                   <img src={p} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                  {i === 0 && (
+                  {i === 0 && COVER && (
                     <button type="button" onClick={() => setCoverOpen(true)} className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px] text-center hover:bg-black/70" title="Customize cover photo">
                       Cover{coverEdit ? " ✓" : ""}
                     </button>
@@ -259,7 +264,7 @@ export function ListingForm({
               </label>
             </div>
             <PhotoCount count={photos.length} platforms={[...new Set([...chosen, ...item.listings.map((l) => l.platform)])]} />
-            <button
+            {COVER && <button
               type="button"
               onClick={() => photos.length && setCoverOpen(true)}
               aria-disabled={!photos.length}
@@ -276,7 +281,7 @@ export function ListingForm({
                     : "Add a photo first, then put a brand tag and a sale banner like BOGO or 50% OFF on it."}
                 </span>
               </span>
-            </button>
+            </button>}
           </section>
 
           <section className="space-y-3">
@@ -362,7 +367,7 @@ export function ListingForm({
           </section>
 
           <section className="space-y-2">
-            <SectionLabel>Marketplaces</SectionLabel>
+            <SectionLabel>{POSTS ? "Marketplaces" : "Where it's listed"}</SectionLabel>
             <div className="grid sm:grid-cols-2 gap-2">
               {ALL_PLATFORMS.map((p) => {
                 const sold = item.listings.find((l) => l.platform === p)?.status === "sold";
@@ -438,7 +443,11 @@ export function ListingForm({
                 <p className="text-[12px] text-muted-foreground">Linking each listing to this item lets Inventory Guardian spot duplicates and listings that come apart.</p>
               </div>
             )}
-            <p className="text-[12px] text-muted-foreground">Prices start from your pricing rules in Settings. SellSync records each listing here; posting to the marketplace itself runs through the SellSync browser extension.</p>
+            <p className="text-[12px] text-muted-foreground">
+              {POSTS
+                ? "Prices start from your pricing rules in Settings. SellSync records each listing here; posting to the marketplace itself runs through the SellSync browser extension."
+                : "Tick the marketplaces where you've listed this item, so you can see it all in one place. SellSync keeps the record; it doesn't post to the marketplace for you yet."}
+            </p>
           </section>
 
           <section className="space-y-3">
@@ -506,10 +515,10 @@ export function ListingForm({
             <button
               type="button"
               disabled={!valid || chosen.size === 0 || dailyFull || baseTooLow || lowMarkets.length > 0}
-              onClick={() => onSave(build(true), `Listed on ${[...chosen].join(", ")}.`)}
+              onClick={() => onSave(build(true), POSTS ? `Listed on ${[...chosen].join(", ")}.` : `Saved as listed on ${[...chosen].join(", ")}.`)}
               className={primaryButton}
             >
-              List item{chosen.size ? ` (${chosen.size})` : ""}
+              {POSTS ? "List item" : "Save as listed"}{chosen.size ? ` (${chosen.size})` : ""}
             </button>
           </div>
         </div>

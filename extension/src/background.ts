@@ -2,7 +2,6 @@ import type { Platform } from "../../src/lib/types";
 import { CONNECTORS } from "./connectors";
 import { describeLabelResponse } from "./connectors/poshmark";
 import { lastRead as mercariRead } from "./connectors/mercari";
-import { lastRead as vintedRead } from "./connectors/vinted";
 import { onTabRemoved, onTabUpdated, runJobs } from "./jobs";
 import { reship, supabaseJobStore, supabaseSink } from "./reship";
 import { syncAll, type PlatformResult } from "./sync";
@@ -64,8 +63,6 @@ async function checkPlatform(platform: Platform): Promise<string> {
     for (const order of orders) if (await connector.downloadLabel(order).catch(() => null)) labels++;
     const withSku = orders.filter((o) => o.items.some((i) => i.sku)).length;
     const summary = `Found ${orders.length} order${orders.length === 1 ? "" : "s"} to ship on ${platform}, with ${labels} label${labels === 1 ? "" : "s"} ready and ${withSku} SKU${withSku === 1 ? "" : "s"}.`;
-    if (platform === "Vinted")
-      return `${summary}\nDetails for Claude: in progress=${vintedRead.listed} read=${vintedRead.read} statuses=${vintedRead.statuses.join("|")} fields=${vintedRead.keys.join(",")}`;
     if (platform === "Mercari") return `${summary}\nDetails for Claude: in progress=${mercariRead.listed} read=${mercariRead.read} steps=${mercariRead.steps.join("|")}`;
     if (platform !== "Poshmark" || labels === orders.length || !orders[0].labelUrl) return summary;
     return `${summary}\nDetails for Claude: ${await describeLabelResponse(orders[0].labelUrl)}`;
@@ -128,7 +125,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
 // Setup helper: when the seller clicks a marketplace's own label Download button, note where the
 // file came from (address pattern only: long ids and query values are blanked) so the connector
 // can fetch labels the same way. Downloads from other sites are ignored.
-const MARKETPLACE_HOSTS = /(^|\.)(poshmark\.com|mercari\.com|mercdn\.net|vinted\.com)$/;
+const MARKETPLACE_HOSTS = /(^|\.)(poshmark\.com|mercari\.com|mercdn\.net)$/;
 chrome.downloads.onCreated.addListener(async (item) => {
   const urls = [item.url, item.finalUrl, item.referrer].filter(Boolean).map((u) => new URL(u));
   if (!urls.some((u) => MARKETPLACE_HOSTS.test(u.hostname))) return;

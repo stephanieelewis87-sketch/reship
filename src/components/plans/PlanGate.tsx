@@ -2,10 +2,12 @@ import { Lock, Sparkles } from "lucide-react";
 import { FEATURE_NAMES, FEATURE_PLAN, PLANS, type Feature, type PlanId, planOf, priceLabel } from "@/lib/plans";
 import type { Settings } from "@/lib/types";
 import { go } from "../shell/route";
+import { isOn } from "@/lib/features";
 import { PageHeader } from "../shell/PageHeader";
 import { primaryButton } from "../ui";
 
-export const currentPlan = (settings: Pick<Settings, "plan">): PlanId => planOf(settings.plan);
+// Until payments work, plans are off and everyone has every feature that is switched on.
+export const currentPlan = (settings: Pick<Settings, "plan">): PlanId => (isOn("plans") ? planOf(settings.plan) : "flow");
 
 // Opens Subscription in Settings, pointing at the plan that has this feature.
 export const upgradeFor = (feature: Feature) => go("settings", { tab: "subscription", need: feature });
