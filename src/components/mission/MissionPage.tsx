@@ -3,17 +3,17 @@ import { ArrowRight, Award, Hammer, LayoutGrid, Package, Recycle, Store } from "
 import { Logo } from "../brand/Logo";
 import { freeGiftTip, minPriceLabel } from "@/lib/minPrice";
 
-// The public page with SellSync's mission and philosophy (sellsync…/?mission), for anyone,
+// The public page with Hubby's mission and philosophy (hubby…/?mission), for anyone,
 // signed in or not.
 export function MissionPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="max-w-5xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
-        <a href="/" aria-label="SellSync home">
+        <a href="/" aria-label="Hubby home">
           <Logo />
         </a>
         <a href="/" className="text-sm font-medium text-accent hover:underline">
-          Back to SellSync
+          Back to Hubby
         </a>
       </header>
 
@@ -24,7 +24,7 @@ export function MissionPage() {
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-semibold tracking-wide">Our mission</span>
             <h1 className="mt-5 font-serif text-4xl sm:text-5xl font-medium leading-tight">Freedom to run your own business.</h1>
             <p className="mt-6 text-lg text-muted-foreground leading-relaxed">
-              SellSync exists so everyday people can build and run a business of their own, on their own terms. We believe deeply in the resale of used goods:
+              Hubby exists so everyday people can build and run a business of their own, on their own terms. We believe deeply in the resale of used goods:
               every pre-owned item that finds a new home is something that didn't have to be made new, and something that stayed out of a landfill.
             </p>
           </div>
@@ -45,7 +45,7 @@ export function MissionPage() {
           <h2 className="mt-4 font-serif text-3xl sm:text-4xl font-medium">A seller's labor is not free.</h2>
           <p className="mt-5 text-muted-foreground leading-relaxed">
             Every listing is real work: finding the item, cleaning it, photographing it, measuring it, writing it up, answering questions, packing it and getting
-            it to the post office. That work has value. SellSync does not condone free labor, and we won't build tools that ask anyone to give their work away. That's why every item sold through SellSync is
+            it to the post office. That work has value. Hubby does not condone free labor, and we won't build tools that ask anyone to give their work away. That's why every item sold through Hubby is
             priced at <strong className="text-foreground">{minPriceLabel} or more</strong>.
           </p>
           <p className="mt-4 text-muted-foreground leading-relaxed">Items listed for less than {minPriceLabel} do more harm than good:</p>
@@ -73,14 +73,14 @@ export function MissionPage() {
               “We honor the quality products of brands like Nike and Under Armour that have been devalued over time due to low prices on resale platforms. That's
               why we strive to keep a sustainable system, as a responsible partner in the resale industry.”
             </p>
-            <footer className="mt-4 text-sm text-muted-foreground">The SellSync team</footer>
+            <footer className="mt-4 text-sm text-muted-foreground">The Hubby team</footer>
           </blockquote>
         </section>
 
         <section className="max-w-3xl mx-auto px-4 md:px-8 pt-14">
-          <h2 className="font-serif text-2xl font-medium">What this means in SellSync</h2>
+          <h2 className="font-serif text-2xl font-medium">What this means in Hubby</h2>
           <ul className="mt-4 space-y-2 text-muted-foreground leading-relaxed list-disc pl-5">
-            <li>Every item you list, crosslist or import through SellSync is priced at {minPriceLabel} or more, on every marketplace.</li>
+            <li>Every item you list, crosslist or import through Hubby is priced at {minPriceLabel} or more, on every marketplace.</li>
             <li>Price suggestions never start below {minPriceLabel}.</li>
             <li>Have smaller items? Bundle a few similar ones into a single listing. Buyers love a good bundle, and your time is paid for.</li>
             <li>{freeGiftTip}</li>
@@ -89,7 +89,7 @@ export function MissionPage() {
             href="/"
             className="mt-8 inline-flex items-center gap-2 px-5 py-3 rounded-full bg-accent text-accent-foreground text-sm font-semibold hover:bg-accent/90 transition-colors"
           >
-            Start selling with SellSync <ArrowRight className="w-4 h-4" />
+            Start selling with Hubby <ArrowRight className="w-4 h-4" />
           </a>
         </section>
       </main>

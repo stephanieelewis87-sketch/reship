@@ -32,7 +32,7 @@ export function ImportListingsModal({
     setError("");
     const parsed = parseCsv(await file.text());
     if (!parsed.headers.length || !parsed.rows.length) {
-      setError("That file has no rows SellSync can read. Is it a CSV export?");
+      setError("That file has no rows Hubby can read. Is it a CSV export?");
       return;
     }
     setFileName(file.name);
@@ -51,7 +51,7 @@ export function ImportListingsModal({
     [
       r.added && `${r.added} new item${r.added !== 1 ? "s" : ""}`,
       r.linked && `${r.linked} linked to items you already had (same SKU)`,
-      r.skipped && `${r.skipped} already in SellSync, skipped`,
+      r.skipped && `${r.skipped} already in Hubby, skipped`,
     ]
       .filter(Boolean)
       .join(", ");

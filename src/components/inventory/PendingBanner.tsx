@@ -13,7 +13,7 @@ export function PendingBanner({ data }: { data: Data }) {
   const byId = new Map(data.inventory.map((i) => [i.id, i]));
   const rows =
     p.kind === "delete"
-      ? p.ids.map((id) => ({ id, sku: byId.get(id)?.sku ?? "", title: byId.get(id)?.title ?? "", what: "Delete from SellSync" }))
+      ? p.ids.map((id) => ({ id, sku: byId.get(id)?.sku ?? "", title: byId.get(id)?.title ?? "", what: "Delete from Hubby" }))
       : p.items.map((i) => {
           const before = byId.get(i.id);
           const changes = before ? diffItem(before, i) : [];

@@ -1,13 +1,13 @@
 import { useState } from "react";
 import type { ComponentType, ReactNode } from "react";
-import { ArrowRight, BarChart3, Boxes, Check, ChevronDown, Gift, Menu, Printer, ScanLine, Sparkles, X } from "lucide-react";
+import { ArrowRight, BarChart3, Boxes, Check, ChevronDown, Gift, Menu, Printer, Radio, ScanLine, ShoppingBag, Sparkles, Store, X } from "lucide-react";
 import type { Platform } from "@/lib/types";
 import { MARKETPLACES as MARKETPLACE_INFO } from "@/lib/marketplaces";
 import { PlatformIcon } from "../ui";
-import { Logo as BrandLogo } from "../brand/Logo";
+import { Logo as BrandLogo, SellSyncMark, SellSyncWordmark, TAGLINE } from "../brand/Logo";
 import { MISSION_HREF, minPriceLabel } from "@/lib/minPrice";
 
-// The homepage only promises what SellSync does today. Orders and labels sync automatically from
+// The homepage only promises what Hubby does today. Orders and labels sync automatically from
 // these marketplaces; the others come in from a CSV export or by hand.
 const SYNCED: Platform[] = ["Poshmark", "Mercari"];
 const BY_CSV: Platform[] = ["eBay", "Depop", "Etsy", "Facebook"];
@@ -25,6 +25,7 @@ export function HomePage({ onSignIn, onSignUp, demoHref = "/?demo" }: { onSignIn
         <FeatureLabels />
         <FeatureInventory />
         <FeatureProfit />
+        <SellSyncSection />
         <HowItWorks />
         <EarlyAccess onSignUp={onSignUp} />
         <Faq />
@@ -42,7 +43,7 @@ const ctaSecondary =
 
 function Logo() {
   return (
-    <a href="#top" className="flex items-center gap-2.5" aria-label="SellSync">
+    <a href="#top" className="flex items-center gap-2.5" aria-label="Hubby">
       <BrandLogo />
     </a>
   );
@@ -50,6 +51,7 @@ function Logo() {
 
 const NAV_LINKS = [
   { href: "#features", label: "Features" },
+  { href: "#sellsync", label: "SellSync" },
   { href: "#how", label: "How it works" },
   { href: "#early", label: "Early access" },
   { href: "#faq", label: "FAQ" },
@@ -117,7 +119,7 @@ function Hero({ onSignUp, demoHref }: { onSignUp: () => void; demoHref: string }
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-14 pb-16 md:pt-20 md:pb-24 grid md:grid-cols-2 gap-12 items-center">
         <div>
           <Eyebrow>
-            <Sparkles className="w-3.5 h-3.5" /> For resellers, now in early access
+            <Sparkles className="w-3.5 h-3.5" /> {TAGLINE} Now in early access.
           </Eyebrow>
           <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-medium leading-[1.05] mt-5 tracking-tight">
             Every label in one print.
@@ -127,8 +129,9 @@ function Hero({ onSignUp, demoHref }: { onSignUp: () => void; demoHref: string }
             <span className="text-accent">Every dollar counted.</span>
           </h1>
           <p className="mt-6 text-lg text-muted-foreground max-w-md">
-            SellSync prints all your marketplace labels in one batch, keeps track of every item and the bin it lives in, and shows your true profit
-            after fees, shipping and what you paid.
+            Hubby is the hub for your whole reselling business, and the helpful other half your shop has been missing. It prints all your
+            marketplace labels in one batch, keeps track of every item and the bin it lives in, and shows your true profit after fees, shipping
+            and what you paid.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3">
             <button onClick={onSignUp} className={ctaPrimary}>
@@ -266,7 +269,7 @@ function FeaturePillars() {
   return (
     <section id="features" className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
       <div className="text-center max-w-2xl mx-auto">
-        <Eyebrow>What SellSync does today</Eyebrow>
+        <Eyebrow>What Hubby does today</Eyebrow>
         <h2 className="font-serif text-3xl sm:text-4xl font-medium mt-4">Shipping, inventory and money, in one place</h2>
         <p className="mt-4 text-muted-foreground">Fewer tabs, no more printing labels one at a time, and no more guessing what you actually made.</p>
       </div>
@@ -342,12 +345,12 @@ function FeatureLabels() {
       id="labels"
       eyebrow="Easy shipping labels"
       title="Every label you owe, printed in one click."
-      body="SellSync collects the prepaid labels your marketplaces already made for each sale, so there is nothing to buy or retype. Print the whole day in one go."
+      body="Hubby collects the prepaid labels your marketplaces already made for each sale, so there is nothing to buy or retype. Print the whole day in one go."
       points={[
         "One PDF for every marketplace's labels, sized for 4x6, Letter or A4",
         "Your SKU stamped on each label so you grab the right item",
         "A packing slip printed after each label, bundles included",
-        "Poshmark and Mercari labels come in by themselves through the SellSync extension",
+        "Poshmark and Mercari labels come in by themselves through the Hubby extension",
       ]}
       visual={
         <div className="max-w-sm mx-auto">
@@ -427,7 +430,7 @@ function FeatureProfit() {
       id="profit"
       eyebrow="Money"
       title="What you really made, item by item."
-      body="SellSync takes out each marketplace's fees, the shipping you paid and what you paid for the item, so the number you see is the number you keep."
+      body="Hubby takes out each marketplace's fees, the shipping you paid and what you paid for the item, so the number you see is the number you keep."
       points={[
         "Profit, margin and days to sell for any period",
         "Marketplaces, brands and sourcing spots side by side",
@@ -440,7 +443,7 @@ function FeatureProfit() {
 }
 
 const STEPS = [
-  { title: "Add the extension", body: "Install the SellSync browser extension and stay logged in to Poshmark and Mercari. We never ask for your passwords." },
+  { title: "Add the extension", body: "Install the Hubby browser extension and stay logged in to Poshmark and Mercari. We never ask for your passwords." },
   { title: "Bring in your items", body: "Add items by hand or import your listings, give each one a bin, and print SKU labels." },
   { title: "Ship and see your profit", body: "Print the day's labels in one batch, then see what each sale really made you." },
 ];
@@ -464,7 +467,7 @@ function HowItWorks() {
   );
 }
 
-// No plans or payments yet: SellSync is in early access. Pricing comes back once billing works.
+// No plans or payments yet: Hubby is in early access. Pricing comes back once billing works.
 function EarlyAccess({ onSignUp }: { onSignUp: () => void }) {
   return (
     <section id="early" className="scroll-mt-16 max-w-6xl mx-auto px-4 sm:px-6 py-20">
@@ -472,7 +475,7 @@ function EarlyAccess({ onSignUp }: { onSignUp: () => void }) {
         <Eyebrow>Early access</Eyebrow>
         <h2 className="font-serif text-3xl sm:text-4xl font-medium mt-4">Join while we're building it with sellers</h2>
         <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
-          SellSync is in early access, and no payment is needed to try it. Your feedback decides what we build next.
+          Hubby is in early access, and no payment is needed to try it. Your feedback decides what we build next.
         </p>
         <button type="button" onClick={onSignUp} className={`${ctaPrimary} mt-8`}>
           Get early access <ArrowRight className="w-4 h-4" />
@@ -494,32 +497,32 @@ function EarlyAccess({ onSignUp }: { onSignUp: () => void }) {
 
 const FAQS = [
   {
-    q: "Do I have to give SellSync my marketplace passwords?",
-    a: "No. The SellSync browser extension works through the marketplace accounts you're already logged in to in Chrome, so your passwords stay with you.",
+    q: "Do I have to give Hubby my marketplace passwords?",
+    a: "No. The Hubby browser extension works through the marketplace accounts you're already logged in to in Chrome, so your passwords stay with you.",
   },
   {
     q: "Which marketplaces work?",
     a: "Poshmark and Mercari orders and labels sync automatically today. You can bring in sales from eBay, Depop, Etsy, Facebook Marketplace and others with a CSV export, and automatic sync for more marketplaces is on the way.",
   },
   {
-    q: "Do I have to buy labels through SellSync?",
-    a: "No. SellSync prints the prepaid labels your marketplaces already made for each sale. You can also upload a label you bought somewhere else.",
+    q: "Do I have to buy labels through Hubby?",
+    a: "No. Hubby prints the prepaid labels your marketplaces already made for each sale. You can also upload a label you bought somewhere else.",
   },
   {
     q: "What label sizes can I print?",
-    a: "4x6 thermal labels, US Letter and A4. SellSync crops and rotates marketplace labels to fit, and can add a packing slip after each one.",
+    a: "4x6 thermal labels, US Letter and A4. Hubby crops and rotates marketplace labels to fit, and can add a packing slip after each one.",
   },
   {
-    q: "Does SellSync post my listings to marketplaces?",
-    a: "Not yet. Today SellSync keeps the record of where each item is listed and reminds you when something sold but is still up elsewhere. Posting for you is on the way.",
+    q: "Does Hubby post my listings to marketplaces?",
+    a: "Not yet. Today Hubby keeps the record of where each item is listed and reminds you when something sold but is still up elsewhere. Posting for you is on the way.",
   },
   {
     q: `Why is there a ${minPriceLabel} minimum price?`,
-    a: `A seller's labor is not free. Very low-priced items leave nothing for the work behind them, clog the shipping channels and the marketplaces, and undervalue quality brands. Every item listed through SellSync is priced at ${minPriceLabel} or more. Read more on our Mission page.`,
+    a: `A seller's labor is not free. Very low-priced items leave nothing for the work behind them, clog the shipping channels and the marketplaces, and undervalue quality brands. Every item listed through Hubby is priced at ${minPriceLabel} or more. Read more on our Mission page.`,
   },
   {
     q: "Does it work on my phone?",
-    a: "Yes. SellSync works in your phone's browser. Scanning SKU labels with the camera works on Android today, and iPhone support is on the way.",
+    a: "Yes. Hubby works in your phone's browser. Scanning SKU labels with the camera works on Android today, and iPhone support is on the way.",
   },
 ];
 
@@ -564,6 +567,61 @@ function FinalCta({ onSignUp, demoHref }: { onSignUp: () => void; demoHref: stri
   );
 }
 
+// SellSync is Hubby's selling side: shopping across marketplaces, the SellSource storefront and
+// live shows. Each card says honestly whether it works today or can be tried in the demo.
+const SELLSYNC_CARDS: { icon: ComponentType<{ className?: string }>; title: string; body: string; status: string }[] = [
+  {
+    icon: ShoppingBag,
+    title: "Shop every marketplace",
+    body: "One search box for sourcing. Results from SellSource, eBay and Etsy show right in Hubby, and every other marketplace's search is one tap away.",
+    status: "Works today",
+  },
+  {
+    icon: Store,
+    title: "Your SellSource storefront",
+    body: "Publish items from your inventory to your own shop page. Buyers check out without an account, and when an item sells anywhere else it comes down by itself.",
+    status: "Try it in the demo",
+  },
+  {
+    icon: Radio,
+    title: "Live shows",
+    body: "Go live with your storefront items: quick auctions, Buy now, chat, and every win in a show ships together in one package.",
+    status: "Try it in the demo",
+  },
+];
+
+function SellSyncSection() {
+  return (
+    <section id="sellsync" className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
+      <div className="text-center max-w-2xl mx-auto">
+        <span className="inline-flex items-center gap-2">
+          <SellSyncMark className="w-7 h-7" />
+          <SellSyncWordmark className="text-lg" />
+        </span>
+        <h2 className="font-serif text-3xl sm:text-4xl font-medium mt-4">Selling and buying, built into Hubby</h2>
+        <p className="mt-4 text-muted-foreground">
+          SellSync is the selling side of Hubby. Everything you sell, all in sync: find stock, open your own storefront and sell live, all from the
+          same inventory.
+        </p>
+      </div>
+      <div className="mt-12 grid md:grid-cols-3 gap-5">
+        {SELLSYNC_CARDS.map((c) => (
+          <div key={c.title} className="bg-card border border-border rounded-2xl p-6">
+            <div className="flex items-center justify-between">
+              <span className="w-11 h-11 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
+                <c.icon className="w-5 h-5" />
+              </span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{c.status}</span>
+            </div>
+            <h3 className="font-display text-xl font-medium mt-5">{c.title}</h3>
+            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{c.body}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function Footer({ onSignIn }: { onSignIn: () => void }) {
   return (
     <footer className="border-t border-border">
@@ -579,7 +637,7 @@ function Footer({ onSignIn }: { onSignIn: () => void }) {
             Sign in
           </button>
         </nav>
-        <p>© {new Date().getFullYear()} SellSync</p>
+        <p>© {new Date().getFullYear()} Hubby</p>
       </div>
     </footer>
   );

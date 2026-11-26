@@ -1,4 +1,4 @@
--- Community: SellSync sellers post tips, questions and ideas, reply, and like each other's posts.
+-- Community: Hubby sellers post tips, questions and ideas, reply, and like each other's posts.
 -- Moderation: anyone can report a post or reply, and three reports hide it until an admin looks;
 -- admins (app_admins, from 0006) remove or restore posts and replies and can ban someone from
 -- posting; anyone can block a seller so they stop seeing that seller's posts and replies.

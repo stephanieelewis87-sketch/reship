@@ -2,12 +2,12 @@ import { MARKETPLACES } from "./marketplaces";
 import type { InventoryItem, Order, Platform } from "./types";
 
 // Research: price comps for an item across marketplaces, from sources each marketplace allows.
-//  - Your own sales in SellSync, always.
+//  - Your own sales in Hubby, always.
 //  - eBay's official Browse API (active listings) and, once eBay approves the account, its
 //    Marketplace Insights API (sold prices). Called by the comps-search Edge Function.
 //  - Etsy's official Open API (active listings), also through comps-search.
 //  - Everything else opens the marketplace's own search in a new tab, where the seller looks at it
-//    themselves and can save a comp by hand. SellSync never scrapes a marketplace.
+//    themselves and can save a comp by hand. Hubby never scrapes a marketplace.
 
 export type CompState = "sold" | "active";
 export type CompSource = "yours" | "api" | "manual" | "sample";
@@ -51,7 +51,7 @@ export interface CompsApi {
   search(query: string): Promise<LiveCompsResult>;
 }
 
-// How each marketplace's comps reach the Research tab. `inApp` is what SellSync can show on the
+// How each marketplace's comps reach the Research tab. `inApp` is what Hubby can show on the
 // page itself; anything else is a button to the marketplace's own search.
 export interface CompCoverage {
   platform: Platform;
@@ -85,12 +85,12 @@ export const COMP_COVERAGE: CompCoverage[] = ([
   {
     platform: "Poshmark",
     inApp: { sold: "no", active: "no" },
-    why: "Poshmark has no public API for searching listings, so SellSync opens Poshmark's own sold search for you.",
+    why: "Poshmark has no public API for searching listings, so Hubby opens Poshmark's own sold search for you.",
   },
   {
     platform: "Mercari",
     inApp: { sold: "no", active: "no" },
-    why: "Mercari has no public API for searching listings, so SellSync opens Mercari's own sold search for you.",
+    why: "Mercari has no public API for searching listings, so Hubby opens Mercari's own sold search for you.",
   },
   {
     platform: "Depop",
@@ -100,12 +100,12 @@ export const COMP_COVERAGE: CompCoverage[] = ([
   {
     platform: "Vinted",
     inApp: { sold: "no", active: "no" },
-    why: "Vinted has no public API and its terms don't allow tools to read its site, so SellSync only opens Vinted's search. Vinted doesn't show sold prices.",
+    why: "Vinted has no public API and its terms don't allow tools to read its site, so Hubby only opens Vinted's search. Vinted doesn't show sold prices.",
   },
   {
     platform: "WhatNot",
     inApp: { sold: "no", active: "no" },
-    why: "Whatnot has no public API for searching listings, so SellSync opens Whatnot's search.",
+    why: "Whatnot has no public API for searching listings, so Hubby opens Whatnot's search.",
   },
   {
     platform: "Facebook",
@@ -115,7 +115,7 @@ export const COMP_COVERAGE: CompCoverage[] = ([
   {
     platform: "ThredUp",
     inApp: { sold: "no", active: "no" },
-    why: "ThredUp has no public API for searching listings, so SellSync opens ThredUp's search.",
+    why: "ThredUp has no public API for searching listings, so Hubby opens ThredUp's search.",
   },
   {
     platform: "OfferUp",
@@ -130,12 +130,12 @@ export const COMP_COVERAGE: CompCoverage[] = ([
   {
     platform: "Grailed",
     inApp: { sold: "no", active: "no" },
-    why: "Grailed has no public API for searching listings, so SellSync opens Grailed's search. Grailed shows sold listings with a Sold filter there.",
+    why: "Grailed has no public API for searching listings, so Hubby opens Grailed's search. Grailed shows sold listings with a Sold filter there.",
   },
   {
     platform: "Vestiaire",
     inApp: { sold: "no", active: "no" },
-    why: "Vestiaire has no public API for searching listings, so SellSync opens Vestiaire's search.",
+    why: "Vestiaire has no public API for searching listings, so Hubby opens Vestiaire's search.",
   },
 ] as Omit<CompCoverage, "soldUrl" | "activeUrl">[]).map(withLinks);
 

@@ -1,4 +1,4 @@
-// SellSync's plans (Sell $15, Ship $25, Sync $50, Grow $65, Flow $95), in one place: names, monthly prices, what each one includes, and the checks
+// Hubby's plans (Sell $15, Ship $25, Sync $50, Grow $65, Flow $95), in one place: names, monthly prices, what each one includes, and the checks
 // the app uses to lock features. Each plan includes everything in the plans before it.
 // The homepage, the Subscription settings, the upgrade prompts and the affiliate math all read this.
 

@@ -1,14 +1,16 @@
-# SellSync
+# Hubby
+
+The hub for your reselling business (and the helpful other half every shop deserves). **SellSync** is Hubby's selling side: Shop across marketplaces, SellSource storefronts and live shows. It was the app's name before the rebrand, and the S emblem stays as its mark.
 
 The one-stop app for resellers. Today it prints every marketplace label in one batch, keeps track of each item and where it's stored, and shows true profit after fees, shipping and cost of goods.
 
 ## What's switched on
 
-SellSync is built in phases, and each phase has to work end to end before the next one starts. The rule: if it's on the screen, it works for real.
+Hubby is built in phases, and each phase has to work end to end before the next one starts. The rule: if it's on the screen, it works for real.
 
 Features that aren't finished are switched off in `src/lib/features.ts`, not deleted. Today that covers crosslisting (posting to marketplaces), AI listing (video, photos, Generate listing), the cover photo editor, views and watchers, Research, Automations, buying labels, the AI helper, Community, Affiliates and plan limits. The sections below still describe how each one works for when it's switched back on.
 
-**Shop** is on: SellSource, eBay and Etsy results show inside SellSync once their keys are set, and every other marketplace opens its own search. **SellSource** and **Live shows** are on in demo mode (practice checkouts, your own camera) and switch on for real accounts with `VITE_SELLSOURCE=on` and `VITE_LIVE_SHOWS=on` once Stripe and LiveKit are set up (see below).
+**Shop** is on: SellSource, eBay and Etsy results show inside Hubby once their keys are set, and every other marketplace opens its own search. **SellSource** and **Live shows** are on in demo mode (practice checkouts, your own camera) and switch on for real accounts with `VITE_SELLSOURCE=on` and `VITE_LIVE_SHOWS=on` once Stripe and LiveKit are set up (see below).
 
 The browser extension syncs Poshmark and Mercari. Vinted sync was removed because it read Vinted in a way its terms don't allow.
 
@@ -21,24 +23,24 @@ npm run dev
 
 Open the address it prints (usually http://localhost:5173).
 
-Without any setup, SellSync runs in **demo mode**: it starts with sample orders and saves everything in your browser only.
+Without any setup, Hubby runs in **demo mode**: it starts with sample orders and saves everything in your browser only.
 
 ## Use real accounts and a shared database (Supabase)
 
 1. Create a free project at [supabase.com](https://supabase.com).
 2. In the project's SQL editor, run the files in `supabase/migrations/` in order (0004 adds inventory and profit tracking for Analytics, 0009 the affiliate program, 0011 the current plans, 0013 the AI helper, 0014 the Community).
 3. Copy `.env.example` to `.env.local` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from Settings > API.
-4. Restart `npm run dev`. SellSync now asks you to sign in, and each account only sees its own orders.
+4. Restart `npm run dev`. Hubby now asks you to sign in, and each account only sees its own orders.
 
 ## What works today
 
 - Order dashboard from the design: status and marketplace filters, search, list and grid views, bundles, inline SKU editing
 - Add and edit orders by hand, including buyer address and package weight
 - Import orders from a marketplace CSV export, with automatic column matching and bundle grouping
-- Poshmark orders and their prepaid labels come in automatically through the SellSync browser extension (see below)
+- Poshmark orders and their prepaid labels come in automatically through the Hubby browser extension (see below)
 - Upload an order's label PDF by hand from the order drawer when needed
 - Print all selected labels in one PDF, optionally stamped with the SKUs, with a packing slip after each label (4x6, Letter or A4)
-- Label helper per order, by marketplace: on Mercari and Depop orders, **Buy label** compares the marketplace's label price with SellSync's and, when SellSync's is cheaper, buys it and gives you the tracking number to paste into the marketplace. eBay, Etsy and direct sales always use a SellSync label. Poshmark, Whatnot and Vinted keep their prepaid label; SellSync shows it and never buys a second one
+- Label helper per order, by marketplace: on Mercari and Depop orders, **Buy label** compares the marketplace's label price with Hubby's and, when Hubby's is cheaper, buys it and gives you the tracking number to paste into the marketplace. eBay, Etsy and direct sales always use a Hubby label. Poshmark, Whatnot and Vinted keep their prepaid label; Hubby shows it and never buys a second one
 - Settings saved per account: ship-from address, label format, default carrier
 - Works on phones
 - **Analytics**: sales, true profit (after marketplace fees, shipping you paid and item cost), margin, days to sell, sell-through and money tied up in inventory, for any period and compared with the one before. Pages for profit (where the money went), marketplaces side by side, brands and categories, inventory health with suggested markdowns for stale listings, sourcing (which thrift stores pay off), a monthly profit goal, "what to do next" tips, and CSV reports for taxes. Click any point or row to see the sales behind it. Fees are estimated from each marketplace's fee schedule when an order doesn't say. The demo has a made-up year of sales so every page has something to show.
@@ -54,11 +56,11 @@ Without any setup, SellSync runs in **demo mode**: it starts with sample orders 
 
 Each item shows its views and watchers (likes, favorites or saves, in each marketplace's own word) from all its marketplaces as one small line in Inventory, with a per-marketplace breakdown and the change since the last reading when you click it. Sort by Most viewed or Most watched; turn the line off under Filter if you'd rather not see it. Items without numbers show nothing extra.
 
-SellSync only gets these numbers in ways the marketplaces allow:
+Hubby only gets these numbers in ways the marketplaces allow:
 
 - **eBay**: Inventory > Sync > Import eBay views and watchers takes Seller Hub's listings traffic report (page views) and active listings download (watchers), matched to items by eBay item ID or listing link. eBay's official Analytics and Trading APIs have both numbers, for an automatic connection later.
-- **Etsy**: typed in for now. Etsy's official API has listing views and favorites, so they can update on their own once SellSync's Etsy app key is approved.
-- **Poshmark, Mercari, Depop, Vinted, Whatnot, Facebook Marketplace, ThredUp**: typed in from the listing (item menu > Views and watchers). None of them offers a seller API with these numbers, and SellSync doesn't scrape them.
+- **Etsy**: typed in for now. Etsy's official API has listing views and favorites, so they can update on their own once Hubby's Etsy app key is approved.
+- **Poshmark, Mercari, Depop, Vinted, Whatnot, Facebook Marketplace, ThredUp**: typed in from the listing (item menu > Views and watchers). None of them offers a seller API with these numbers, and Hubby doesn't scrape them.
 
 The numbers are stored on each listing in the existing `listings` column, so no migration is needed.
 
@@ -69,7 +71,7 @@ Inventory > **Guardian** keeps the master record of every item safe. Run `supaba
 - **Listing links**: each marketplace listing on an item can hold the marketplace's listing link or ID, so the item is the one master record those listings belong to.
 - **Backups**: a dated copy of every item each day the app opens (the last 30 are kept), plus Back up now. Download any backup, or the current inventory, as a spreadsheet.
 - **Listing checks**: duplicate SKUs, items without a SKU, one marketplace listing linked to two items, items that look entered twice (with one-click merge), open orders that match no item, sold items still listed elsewhere, and listings without a marketplace link.
-- **Recovery**: pick a backup, see exactly which items would come back or change, untick any you don't want, and restore. A backup of how things were is made first. Restoring only changes SellSync's records; it never edits, relists or deletes anything on a marketplace.
+- **Recovery**: pick a backup, see exactly which items would come back or change, untick any you don't want, and restore. A backup of how things were is made first. Restoring only changes Hubby's records; it never edits, relists or deletes anything on a marketplace.
 - **Change history**: every edit, sale, bulk change, merge and restore is recorded per item (open an item, then History), and the latest changes show on the Guardian page.
 - **Sync protection**: a change that would delete, delist, mark sold or overwrite 10 or more items at once (adjustable) is paused with a banner. Review it, drop it, or back up and apply it.
 
@@ -77,10 +79,10 @@ Inventory > **Guardian** keeps the master record of every item safe. Run `supaba
 
 Research (in the sidebar under Tools, or Find comps from any item's menu) shows what an item sells for and what it's listed at, side by side across marketplaces, with a suggested price range (the middle half of sold prices, or of asking prices when there are fewer than three sales). It only uses sources each marketplace allows:
 
-- **Your own sales** in SellSync, always.
+- **Your own sales** in Hubby, always.
 - **eBay**: active listings from eBay's official Browse API. Sold prices come from eBay's Marketplace Insights API, which eBay only opens to approved apps; until then the eBay card links to eBay's own sold search.
 - **Etsy**: active listings from Etsy's official Open API. Etsy doesn't share other shops' sold prices.
-- **Poshmark, Mercari, Depop, Vinted, Whatnot, Facebook Marketplace, ThredUp**: none of them offer an API for this, and SellSync doesn't scrape them, so each gets buttons that open the marketplace's own sold or for-sale search in a new tab. Add a comp you find there by hand and it counts toward the range.
+- **Poshmark, Mercari, Depop, Vinted, Whatnot, Facebook Marketplace, ThredUp**: none of them offer an API for this, and Hubby doesn't scrape them, so each gets buttons that open the marketplace's own sold or for-sale search in a new tab. Add a comp you find there by hand and it counts toward the range.
 
 Save comps to keep them with a search; saved research is stored with your settings. Demo mode shows sample eBay and Etsy results, marked as samples.
 
@@ -97,7 +99,7 @@ Marketplaces don't offer label APIs, so the extension in `extension/` reads sold
 
 - `node extension/build.mjs` builds it into `extension/dist` (it reads the same Supabase settings from `.env.local`).
 - In Chrome, open `chrome://extensions`, turn on Developer mode, click Load unpacked and pick `extension/dist`.
-- Sign in with your SellSync account, turn on a marketplace and press Sync now. It also syncs every 15 minutes.
+- Sign in with your Hubby account, turn on a marketplace and press Sync now. It also syncs every 15 minutes.
 - New seller setup checklist (also shown in the extension popup):
   1. Log in to each marketplace in the same Chrome profile that has the extension.
   2. Make sure Chrome isn't blocking third-party cookies. Go to Settings, then Privacy and security, then Third-party cookies, and choose "Allow third-party cookies" (or add each marketplace under "Allowed to use third-party cookies"). When they're blocked, marketplace pages such as Mercari may not load and syncs fail.
@@ -113,11 +115,11 @@ Automations > **Comments and messages** helps sellers keep in touch, within each
 - **Past buyers**: everyone who bought from you on a marketplace, with a template that fits where their order is (thanks, on its way, did it arrive). On Poshmark it opens the order page. A note about new items is allowed once a month per buyer, and a buyer can be marked "don't contact".
 - **Potential buyers**: on Depop, Vinted, Facebook Marketplace and Whatnot, message people who liked or asked about an item. Poshmark, Mercari, eBay and Etsy don't allow messages to shoppers before they buy, and the page says so with a link to the rule.
 
-SellSync never posts or sends for you: every marketplace here bans bots that comment or message. With the extension, a "SellSync templates" button appears in Poshmark and Depop comment boxes and types a template in; you press Post.
+Hubby never posts or sends for you: every marketplace here bans bots that comment or message. With the extension, a "Hubby templates" button appears in Poshmark and Depop comment boxes and types a template in; you press Post.
 
 ## AI helper
 
-The **Ask SellSync** button in the corner of every page opens a chat that answers how-to questions about SellSync and reselling (pricing, listing, shipping, marketplace rules). Answers link straight to the part of the app they mention.
+The **Ask Hubby** button in the corner of every page opens a chat that answers how-to questions about Hubby and reselling (pricing, listing, shipping, marketplace rules). Answers link straight to the part of the app they mention.
 
 - **Sell**: no helper (the button shows what it does and which plan has it).
 - **Ship, Sync and Grow**: how-to and reselling answers, 15 questions a day.
@@ -153,10 +155,10 @@ Users send feedback from the Feedback tab. The `feedback-digest` Edge Function r
 
 ## List with a video (AI)
 
-Inventory > **List with a video**: the seller films up to 25 items (up to 5 minutes), one after another. SellSync reads frames out of the video in the browser (the video itself is never uploaded), then:
+Inventory > **List with a video**: the seller films up to 25 items (up to 5 minutes), one after another. Hubby reads frames out of the video in the browser (the video itself is never uploaded), then:
 
 1. Claude finds each distinct item and marks where it is in its clearest frame.
-2. SellSync cuts snips of each item from the video.
+2. Hubby cuts snips of each item from the video.
 3. Claude writes each listing from its snips: title, description, brand, category, size, color, condition, flaws, tags, and a suggested price with the usual sold range and a one-line reason. It also gets the seller's AI instructions from Settings and the median sold prices of their own most common brands and categories.
 4. Optionally, an image model turns the best snip into a clean studio-style photo (it's told to keep the item exactly as it is, flaws included). The real snips are always kept with it.
 5. The seller checks each draft, edits anything, and saves them as inventory drafts, ready to crosslist.
@@ -170,7 +172,7 @@ Setup:
 3. Deploy: `supabase functions deploy video-listing`.
 4. Optional daily caps per user: `VIDEO_LISTING_DAILY_VIDEOS` (20), `VIDEO_LISTING_DAILY_ITEMS` (600), `VIDEO_LISTING_DAILY_PHOTOS` (300).
 
-In demo mode there's no AI: SellSync splits the video into items by scene and makes a draft with snips for each, for the seller to fill in.
+In demo mode there's no AI: Hubby splits the video into items by scene and makes a draft with snips for each, for the seller to fill in.
 
 ## List from photos (AI)
 
@@ -183,7 +185,7 @@ Inventory > **List from photos**: the seller uploads up to 100 photos of up to 2
 
 Setup is the same as List with a video, plus `supabase/migrations/0008_photo_listing.sql` (lets the daily cap count photo batches). Optional cap: `VIDEO_LISTING_DAILY_PHOTO_BATCHES` (20). Redeploy `video-listing`.
 
-In demo mode there's no AI: SellSync groups photos by when they were taken (a long pause between shots starts a new item), or by how they look when the photos carry no times.
+In demo mode there's no AI: Hubby groups photos by when they were taken (a long pause between shots starts a new item), or by how they look when the photos carry no times.
 
 ## Affiliates
 
@@ -204,7 +206,7 @@ Setup: run `supabase/migrations/0009_affiliates.sql`. The terms live in the one-
 When billing is built, its webhook calls these with the service role key: `record_subscription_payment(user_id, plan, amount_cents, invoice_id)` on every paid invoice (safe to repeat), `record_subscription_refund(invoice_id)` on a refund, and `record_subscription_canceled(user_id)` on a cancellation.
 ## Community
 
-Tools > **Community** is where SellSync sellers swap tips, ask questions and share wins. Run `supabase/migrations/0014_community.sql` to turn it on with accounts (needs 0006 for admins). Demo mode has sample discussions saved in the browser, and you're the moderator there.
+Tools > **Community** is where Hubby sellers swap tips, ask questions and share wins. Run `supabase/migrations/0014_community.sql` to turn it on with accounts (needs 0006 for admins). Demo mode has sample discussions saved in the browser, and you're the moderator there.
 
 - **Posts and replies** in eight categories (Tips, Questions, Shipping, Sourcing, Wins, Marketplace news, Ideas, Just chatting), with likes, search, and sorting by recently active, newest or top. Authors can edit and delete their own posts. Posts show the shop name from Settings, never the email address.
 - **Report**: anyone can report a post or reply (spam, scam, harassment, off topic, other). Reports from three different sellers hide it automatically until a moderator decides.
@@ -214,7 +216,7 @@ Tools > **Community** is where SellSync sellers swap tips, ask questions and sha
 
 ## Buying labels (EasyPost)
 
-SellSync buys its own labels through EasyPost at EasyPost's discounted carrier rates, from the edge function in `supabase/functions/labels`.
+Hubby buys its own labels through EasyPost at EasyPost's discounted carrier rates, from the edge function in `supabase/functions/labels`.
 
 1. Run `supabase/migrations/0012_own_label.sql`.
 2. Create an EasyPost account and copy an API key (start with the test key, which makes free test labels).
@@ -226,32 +228,32 @@ Until the function is deployed, the app shows estimated prices and can't buy. In
 
 - Run `supabase/migrations/0005_crosslist.sql` first.
 - The app queues an item for Mercari or Vinted with `queueCrosslist(draft, ["Mercari", "Vinted"])` from `src/lib/listingJobs.ts`. Titles, descriptions and photos are trimmed to each marketplace's limits, and conditions are renamed to each marketplace's wording (`src/lib/crosslist.ts`).
-- Within about 30 seconds the extension opens each marketplace's sell form in a background tab with the title, description, price, photos and condition filled in. The toolbar icon shows how many are waiting. Pick the category, brand and size from the marketplace's own lists and press List. SellSync notices the new listing's page and records it.
-- Delisting is `queueDelist(platform, listingId)`. SellSync deactivates Mercari listings and hides Vinted listings rather than deleting them, so either can be turned back on. If a page doesn't go the way SellSync expects, it leaves the tab open for you to finish.
-- Auto-delist: in the extension popup, choose which marketplaces to take an item down from when it sells somewhere else. It works for items SellSync listed, matched by listing or SKU.
+- Within about 30 seconds the extension opens each marketplace's sell form in a background tab with the title, description, price, photos and condition filled in. The toolbar icon shows how many are waiting. Pick the category, brand and size from the marketplace's own lists and press List. Hubby notices the new listing's page and records it.
+- Delisting is `queueDelist(platform, listingId)`. Hubby deactivates Mercari listings and hides Vinted listings rather than deleting them, so either can be turned back on. If a page doesn't go the way Hubby expects, it leaves the tab open for you to finish.
+- Auto-delist: in the extension popup, choose which marketplaces to take an item down from when it sells somewhere else. It works for items Hubby listed, matched by listing or SKU.
 
 ## Shop: buy across marketplaces
 
 Shop (in the menu under Buy and sell) is one search box for buying, to wear or to resell.
 
-| Marketplace | In SellSync | Where you pay |
+| Marketplace | In Hubby | Where you pay |
 |---|---|---|
-| SellSource | Results and checkout | In SellSync (Stripe) |
+| SellSource | Results and checkout | In Hubby (Stripe) |
 | eBay | Results, through eBay's official Browse API | On eBay. eBay's Order API, which lets an app check out, is limited to partners eBay picks. |
 | Etsy | Results, through Etsy's Open API | On Etsy. Etsy has no checkout API for other apps. |
-| Poshmark, Mercari, Depop, Vinted, Facebook Marketplace, ThredUp, Grailed, Curtsy, OfferUp, Vestiaire | A button that opens the marketplace's own search for the same words | On that marketplace. None of them has a public search or buying API, and reading their pages from SellSync would break their terms. |
+| Poshmark, Mercari, Depop, Vinted, Facebook Marketplace, ThredUp, Grailed, Curtsy, OfferUp, Vestiaire | A button that opens the marketplace's own search for the same words | On that marketplace. None of them has a public search or buying API, and reading their pages from Hubby would break their terms. |
 
 "I bought it" on a result adds it to Inventory as a draft with what you paid, so its profit is right when it sells.
 
-Setup: run `supabase/migrations/0015_sellsource_and_live.sql`, then `supabase secrets set EBAY_CLIENT_ID=... EBAY_CLIENT_SECRET=... ETSY_API_KEY=... ETSY_SHARED_SECRET=...` (the same keys Research uses) and `supabase functions deploy shop-search`. Optional: `EBAY_CAMPAIGN_ID` from the eBay Partner Network, so eBay pays SellSync a small commission on purchases made through Shop's links, at no cost to the buyer.
+Setup: run `supabase/migrations/0015_sellsource_and_live.sql`, then `supabase secrets set EBAY_CLIENT_ID=... EBAY_CLIENT_SECRET=... ETSY_API_KEY=... ETSY_SHARED_SECRET=...` (the same keys Research uses) and `supabase functions deploy shop-search`. Optional: `EBAY_CAMPAIGN_ID` from the eBay Partner Network, so eBay pays Hubby a small commission on purchases made through Shop's links, at no cost to the buyer.
 
-## SellSource: SellSync's own marketplace
+## SellSource: Hubby's own marketplace
 
 Sellers open a storefront (`/?shop=their-name`) and turn SellSource on for any inventory item with a price and a photo. Buyers browse everything at `/?market`, without an account, add items from one shop to a bag and pay on Stripe's checkout page.
 
-- **Money:** Stripe Connect (Express accounts, destination charges). The seller's share goes straight to their own Stripe account; SellSource keeps 3% of the item price plus card processing (2.9% + $0.30 on what the buyer pays). SellSync never sees a card or bank number.
+- **Money:** Stripe Connect (Express accounts, destination charges). The seller's share goes straight to their own Stripe account; SellSource keeps 3% of the item price plus card processing (2.9% + $0.30 on what the buyer pays). Hubby never sees a card or bank number.
 - **Holds:** items are held for 30 minutes while a buyer is on the checkout page, so two people can't buy the same thing. An abandoned checkout puts them back on sale.
-- **Orders:** a paid checkout becomes an order in the seller's Orders, with the buyer's address. The item is marked sold, and when an item sells anywhere else SellSync takes it off SellSource by itself.
+- **Orders:** a paid checkout becomes an order in the seller's Orders, with the buyer's address. The item is marked sold, and when an item sells anywhere else Hubby takes it off SellSource by itself.
 - **Combined shipping:** each seller sets a first-item shipping price and an extra-item price (usually $0). A bag ships as one package, and every win in the same live show joins the buyer's first package.
 
 Setup:
@@ -261,7 +263,7 @@ Setup:
 4. In Stripe, add a webhook to the sellsource-webhook URL for `checkout.session.completed`, `checkout.session.expired` and (listening to connected accounts) `account.updated`, then `supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_...`.
 5. Build with `VITE_SELLSOURCE=on`. Test with Stripe's test keys first.
 
-Before taking real money: SellSource is a marketplace, so it needs its own buyer terms, a returns and disputes policy, a prohibited items list, and sales tax collection (marketplace facilitator laws make SellSync responsible for collecting sales tax in most US states; Stripe Tax can do this).
+Before taking real money: SellSource is a marketplace, so it needs its own buyer terms, a returns and disputes policy, a prohibited items list, and sales tax collection (marketplace facilitator laws make Hubby responsible for collecting sales tax in most US states; Stripe Tax can do this).
 
 ## Live shows
 
@@ -279,7 +281,7 @@ The goal: cheaper shipping on SellSource and live show sales by routing through 
 1. **Combined shipping (built).** One package per shop per checkout, and one package per buyer per live show. This is the biggest saving on live sales, where buyers often win several items.
 2. **Discounted labels (built, switched off).** Buying labels through EasyPost gets commercial carrier rates, well below retail for USPS Ground Advantage. Turning `buyLabels` on for SellSource orders is the cheapest next step.
 3. **Local pickup at hubs.** Buyers near the seller pick up at a set place (a partner store or a carrier pickup point), for $0 shipping. Needs pickup codes and a no-show policy.
-4. **Multi-seller consolidation at SellSync hubs.** Sellers in a metro drop off at a SellSync hub; orders from several sellers to the same buyer go out as one box, and hubs ship to each other in bulk. This only saves money at volume (roughly thousands of packages a day per metro), adds a day or two to delivery, and needs space, staff and insurance, so it belongs after SellSource has steady sales in a few cities.
+4. **Multi-seller consolidation at Hubby hubs.** Sellers in a metro drop off at a Hubby hub; orders from several sellers to the same buyer go out as one box, and hubs ship to each other in bulk. This only saves money at volume (roughly thousands of packages a day per metro), adds a day or two to delivery, and needs space, staff and insurance, so it belongs after SellSource has steady sales in a few cities.
 
 ## Coming next
 

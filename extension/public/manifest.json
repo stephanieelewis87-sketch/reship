@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "SellSync",
-  "description": "Brings your sold orders and shipping labels from Poshmark and Mercari into SellSync, using the marketplace sign-ins already in your browser.",
+  "name": "Hubby",
+  "description": "Brings your sold orders and shipping labels from Poshmark and Mercari into Hubby, using the marketplace sign-ins already in your browser.",
   "version": "0.9.0",
   "icons": {
     "16": "icons/icon16.png",
@@ -14,7 +14,7 @@
       "48": "icons/icon48.png"
     },
     "default_popup": "popup.html",
-    "default_title": "SellSync"
+    "default_title": "Hubby"
   },
   "background": {
     "service_worker": "background.js",

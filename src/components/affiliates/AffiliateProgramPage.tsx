@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { loadProgram } from "@/lib/affiliateStore";
 import { EarningsCalculator, HowItWorks, ProgramHero, ProgramTerms } from "./ProgramPitch";
 
-// The public page about the affiliate program (reship…/?affiliates), for anyone, signed in or not.
+// The public page about the affiliate program (hubby…/?affiliates), for anyone, signed in or not.
 export function AffiliateProgramPage() {
   const [program, setProgram] = useState<AffiliateProgram>(DEFAULT_PROGRAM);
   useEffect(() => {
@@ -17,7 +17,7 @@ export function AffiliateProgramPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="max-w-5xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
-        <a href="/" aria-label="SellSync home">
+        <a href="/" aria-label="Hubby home">
           <Logo />
         </a>
         <a href={join} className="text-sm font-medium text-accent hover:underline">

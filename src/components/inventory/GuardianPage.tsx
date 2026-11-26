@@ -71,7 +71,7 @@ export function GuardianPage({ data, onOpenItem }: { data: Data; onOpenItem: (it
           <Stat
             icon={<History className="w-4 h-4 text-accent" />}
             title={last ? `Last backup ${when(last.createdAt)}` : backups ? "No backups yet" : "Loading backups…"}
-            text={g.dailyBackup ? "A new one is made each day you open SellSync." : "Daily backups are off."}
+            text={g.dailyBackup ? "A new one is made each day you open Hubby." : "Daily backups are off."}
           />
           <Stat
             icon={<AlertTriangle className={`w-4 h-4 ${issues.some((i) => i.severity === "high") ? "text-rose-600" : "text-muted-foreground"}`} />}
@@ -105,7 +105,7 @@ export function GuardianPage({ data, onOpenItem }: { data: Data; onOpenItem: (it
               </button>
             </div>
           </div>
-          {backups && backups.length === 0 && <p className="text-sm text-muted-foreground">No backups yet. Press Back up now, or open SellSync tomorrow for the first daily one.</p>}
+          {backups && backups.length === 0 && <p className="text-sm text-muted-foreground">No backups yet. Press Back up now, or open Hubby tomorrow for the first daily one.</p>}
           {backups && backups.length > 0 && (
             <div className="bg-card border border-border rounded-xl divide-y divide-border">
               {backups.slice(0, 15).map((b) => (
@@ -126,7 +126,7 @@ export function GuardianPage({ data, onOpenItem }: { data: Data; onOpenItem: (it
               ))}
             </div>
           )}
-          <p className="text-[12px] text-muted-foreground">Restoring puts SellSync's records back. It doesn't change, relist or delete anything on your marketplaces.</p>
+          <p className="text-[12px] text-muted-foreground">Restoring puts Hubby's records back. It doesn't change, relist or delete anything on your marketplaces.</p>
         </section>
 
         <section className="space-y-2">
@@ -187,7 +187,7 @@ function IssueRow({ issue, data, onOpenItem, onMessage }: { issue: GuardianIssue
   const merge = (items: InventoryItem[]) => {
     const sorted = [...items].sort((a, b) => (a.createdAt ?? a.purchasedAt ?? "").localeCompare(b.createdAt ?? b.purchasedAt ?? ""));
     const [keep, ...rest] = sorted;
-    if (!window.confirm(`Merge ${items.length} items into ${keep.sku}? The others are removed from SellSync; their listings move to ${keep.sku}. A backup is made first.`)) return;
+    if (!window.confirm(`Merge ${items.length} items into ${keep.sku}? The others are removed from Hubby; their listings move to ${keep.sku}. A backup is made first.`)) return;
     void data
       .backUp(`Before merging into ${keep.sku}`)
       .then(() => {
@@ -360,7 +360,7 @@ function RestoreDialog({ backup, data, onClose, onDone }: { backup: InventoryBac
             </div>
           )}
           {plan && plan.added.length > 0 && <p className="text-xs text-muted-foreground">{plan.added.length} item{plan.added.length > 1 ? "s" : ""} added since this backup stay as they are.</p>}
-          <p className="text-[12px] text-muted-foreground">This only changes SellSync's records. Your marketplace listings stay as they are; relist or edit them there if needed.</p>
+          <p className="text-[12px] text-muted-foreground">This only changes Hubby's records. Your marketplace listings stay as they are; relist or edit them there if needed.</p>
         </div>
         <div className="px-5 py-3 border-t border-border flex justify-end gap-2">
           <button type="button" className={secondaryButton} onClick={onClose}>

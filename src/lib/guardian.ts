@@ -3,10 +3,10 @@ import type { InventoryItem, ItemChange, Listing, Order } from "./types";
 import { ALL_PLATFORMS } from "./types";
 import { duplicateSkus, isPartiallyDelisted } from "./inventory";
 
-// Inventory Guardian: SellSync's own record of every item is the master copy. It keeps dated
+// Inventory Guardian: Hubby's own record of every item is the master copy. It keeps dated
 // backups of it, a history of every change, watches for listings that lost their link to an
 // item, and pauses big destructive changes until the owner says yes. Restoring only changes
-// SellSync's records; it never edits or relists anything on a marketplace.
+// Hubby's records; it never edits or relists anything on a marketplace.
 
 // ---- Change history ----
 
@@ -119,7 +119,7 @@ export function checkInventory(inventory: InventoryItem[], orders: Order[]): Gua
   }
 
   const noSku = inventory.filter((i) => !i.sku.trim());
-  if (noSku.length) issues.push({ kind: "no-sku", severity: "high", title: `${noSku.length} item${noSku.length > 1 ? "s have" : " has"} no SKU`, detail: "Without a SKU, SellSync can't match a sale to the item.", itemIds: noSku.map((i) => i.id) });
+  if (noSku.length) issues.push({ kind: "no-sku", severity: "high", title: `${noSku.length} item${noSku.length > 1 ? "s have" : " has"} no SKU`, detail: "Without a SKU, Hubby can't match a sale to the item.", itemIds: noSku.map((i) => i.id) });
 
   // The same marketplace listing linked to two items.
   const byListing = new Map<string, InventoryItem[]>();
@@ -164,7 +164,7 @@ export function checkInventory(inventory: InventoryItem[], orders: Order[]): Gua
 
   const loose = inventory.filter((i) => i.listings.some((l) => l.status === "active" && !l.listingId && !l.url));
   if (loose.length)
-    issues.push({ kind: "not-connected", severity: "low", title: `${loose.length} item${loose.length > 1 ? "s have" : " has"} listings without a marketplace link`, detail: "Add the listing link or ID so SellSync can always find the listing again.", itemIds: loose.map((i) => i.id) });
+    issues.push({ kind: "not-connected", severity: "low", title: `${loose.length} item${loose.length > 1 ? "s have" : " has"} listings without a marketplace link`, detail: "Add the listing link or ID so Hubby can always find the listing again.", itemIds: loose.map((i) => i.id) });
 
   const rank = { high: 0, medium: 1, low: 2 };
   return issues.sort((a, b) => rank[a.severity] - rank[b.severity]);
@@ -258,7 +258,7 @@ export function inventoryCsv(items: InventoryItem[]): string {
       ),
       Description: i.description ?? "",
       Notes: i.notes ?? "",
-      "SellSync ID": i.id,
+      "Hubby ID": i.id,
     })),
   );
 }

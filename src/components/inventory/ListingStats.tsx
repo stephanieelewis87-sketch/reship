@@ -212,7 +212,7 @@ export function StatsImportModal({
             ) : (
               <>
                 <p className="text-foreground">
-                  {parsed.rows.length} eBay listings with {what}. {result.matched} match items in SellSync.
+                  {parsed.rows.length} eBay listings with {what}. {result.matched} match items in Hubby.
                 </p>
                 {result.unmatched.length > 0 && (
                   <p className="text-muted-foreground">

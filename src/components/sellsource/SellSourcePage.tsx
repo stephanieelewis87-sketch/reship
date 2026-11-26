@@ -110,7 +110,7 @@ export function SellSourcePage({ data, route }: { data: Data; route: Route }) {
 
   return (
     <div>
-      <PageHeader title="SellSource" subtitle="Your own storefront on SellSync's marketplace. Buyers check out here, and you keep all but 3%.">
+      <PageHeader title="SellSource" subtitle="Your own storefront in SellSync, Hubby's marketplace. Buyers check out here, and you keep all but 3%.">
         {profile && (
           <a href={storefrontUrl(profile.handle)} target="_blank" rel="noreferrer" className={secondaryButton}>
             <Store className="w-4 h-4" /> View storefront
@@ -144,7 +144,7 @@ export function SellSourcePage({ data, route }: { data: Data; route: Route }) {
                 <div>
                   <h2 className="text-sm font-semibold text-foreground">Items on SellSource</h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {activeIds.size} for sale. When an item sells anywhere else, SellSync takes it off SellSource for you.
+                    {activeIds.size} for sale. When an item sells anywhere else, Hubby takes it off SellSource for you.
                   </p>
                 </div>
                 <button type="button" disabled={!ready.length || busy === "publish"} onClick={() => publish(ready)} className={primaryButton}>

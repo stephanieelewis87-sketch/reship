@@ -90,7 +90,7 @@ export function AutomationsPage({ data }: { data: Data }) {
         <p className="text-xs text-muted-foreground flex gap-2">
           <Puzzle className="w-4 h-4 shrink-0 text-accent" />
           <span>
-            Automations run through the SellSync browser extension while you're signed in to each marketplace. {anyOn ? "Nothing runs until the extension is connected." : "Your choices save here, and the extension picks them up."}
+            Automations run through the Hubby browser extension while you're signed in to each marketplace. {anyOn ? "Nothing runs until the extension is connected." : "Your choices save here, and the extension picks them up."}
           </span>
         </p>
         <div className="flex gap-1.5 overflow-x-auto max-w-full">

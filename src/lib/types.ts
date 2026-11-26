@@ -40,7 +40,7 @@ export type ShipmentStatus = "label_created" | "in_transit" | "delivered" | "can
 
 export interface Shipment {
   status: ShipmentStatus;
-  updatedAt: string; // ISO time SellSync last saw this status
+  updatedAt: string; // ISO time Hubby last saw this status
 }
 
 export interface Order {
@@ -99,7 +99,7 @@ export interface Listing {
   views?: number;
   watchers?: number;
   statsAt?: string; // YYYY-MM-DD the numbers are from
-  statsHistory?: ListingStatsPoint[]; // earlier readings, oldest first, so SellSync can show the change
+  statsHistory?: ListingStatsPoint[]; // earlier readings, oldest first, so Hubby can show the change
 }
 
 export interface ListingStatsPoint {
@@ -170,7 +170,7 @@ export interface LabelDef {
   description?: string;
 }
 
-// Poshmark no longer rewards closet shares or follows, so SellSync automates only relists and offers.
+// Poshmark no longer rewards closet shares or follows, so Hubby automates only relists and offers.
 export type AutomationKind = "relists" | "offers";
 export interface AutomationSetting {
   enabled: boolean;
@@ -358,7 +358,7 @@ export interface FeedbackSummary {
 }
 
 // Whether an automation is on anywhere (or just this kind). Settings saved before shares and follows
-// were dropped can still hold them, so only the kinds SellSync runs count.
+// were dropped can still hold them, so only the kinds Hubby runs count.
 export function automationOn(automations: Automations, kind?: AutomationKind): boolean {
   const kinds = kind ? [kind] : AUTOMATION_KINDS;
   return Object.values(automations).some((p) => kinds.some((k) => p?.[k]?.enabled));

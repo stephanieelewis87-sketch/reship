@@ -471,7 +471,7 @@ function AffiliatesCard() {
         <Gift className="w-5 h-5" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block font-display text-sm font-semibold text-foreground">Earn with SellSync Affiliates</span>
+        <span className="block font-display text-sm font-semibold text-foreground">Earn with Hubby Affiliates</span>
         <span className="block text-xs text-muted-foreground mt-0.5">Get a seller's first month, then 5% of what they pay, for life. Your link and earnings are on your Affiliates dashboard.</span>
       </span>
       <span className="flex items-center gap-1 text-xs font-medium text-accent">

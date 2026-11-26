@@ -72,7 +72,7 @@ async function checkPlatform(platform: Platform): Promise<string> {
 }
 
 // The seller's message templates for one marketplace, for the Templates button in comment boxes.
-// Falls back to SellSync's default templates when the seller isn't signed in.
+// Falls back to Hubby's default templates when the seller isn't signed in.
 async function messageTemplates(platform: Platform) {
   let saved: Partial<Settings> | undefined;
   const { data } = await reship.auth.getSession();

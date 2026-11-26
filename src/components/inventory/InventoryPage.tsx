@@ -58,7 +58,7 @@ import { checkInventory } from "@/lib/guardian";
 import { minPriceLabel, minPriceMessage, underMinimum } from "@/lib/minPrice";
 import { isOn } from "@/lib/features";
 
-// Until SellSync posts to marketplaces itself, listings here are a record the seller keeps:
+// Until Hubby posts to marketplaces itself, listings here are a record the seller keeps:
 // where an item is listed, at what price, and whether it was taken down.
 const POSTS = isOn("crosslisting");
 const STATS = isOn("listingStats");
@@ -254,7 +254,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
       isNew: true,
     });
   const deleteItem = (item: InventoryItem) => {
-    if (window.confirm(`Delete ${item.title} from SellSync? Live listings on marketplaces stay up.`)) deleteInventory([item.id]);
+    if (window.confirm(`Delete ${item.title} from Hubby? Live listings on marketplaces stay up.`)) deleteInventory([item.id]);
   };
   const moveListing = (item: InventoryItem, l: Listing) =>
     saveInventory([
@@ -337,7 +337,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
       <EmptyState
         icon={Shirt}
         title="No items yet"
-        text="Add your first item, import your listings, or bring in your Poshmark and Mercari sales with the SellSync extension."
+        text="Add your first item, import your listings, or bring in your Poshmark and Mercari sales with the Hubby extension."
         action={{ label: "Add an item", onClick: () => setForm({ item: blank(), isNew: true }) }}
       />
     ) : (
@@ -382,7 +382,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                 <MenuItem
                   onClick={() => {
                     close();
-                    setNotice("Sync brings in your Poshmark and Mercari sales. Open the SellSync extension and press Sync now; it also runs every 15 minutes.");
+                    setNotice("Sync brings in your Poshmark and Mercari sales. Open the Hubby extension and press Sync now; it also runs every 15 minutes.");
                   }}
                 >
                   Sync sales
@@ -856,7 +856,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
   );
 }
 
-// List view while SellSync doesn't post to marketplaces: the marketplaces the item is recorded on,
+// List view while Hubby doesn't post to marketplaces: the marketplaces the item is recorded on,
 // each with its own menu (view it, mark it delisted or relisted).
 function ListedOn({ item, today, actionsFor }: { item: InventoryItem; today: string; actionsFor: (l: Listing) => ListingActions }) {
   if (!item.listings.length) return <span className="text-[12px] text-muted-foreground">Not listed yet</span>;
@@ -1191,7 +1191,7 @@ function CrosslistAllButton({ item, targets, tooLow, locked, onClick }: { item: 
   );
 }
 
-// The marketplaces where the item's price, after the seller's pricing rule, meets SellSync's minimum.
+// The marketplaces where the item's price, after the seller's pricing rule, meets Hubby's minimum.
 // An item with no price yet isn't held back here; the listing form asks for one.
 function pricedOk(i: InventoryItem, platforms: Platform[], settings: Data["settings"]): Platform[] {
   return platforms.filter((p) => !underMinimum(priceFor(i.listPrice, p, settings)));
@@ -1301,7 +1301,7 @@ function BulkBar({
         <button
           type="button"
           onClick={() => {
-            if (window.confirm(`Delete ${items.length} items from SellSync? Live listings on marketplaces stay up.`)) {
+            if (window.confirm(`Delete ${items.length} items from Hubby? Live listings on marketplaces stay up.`)) {
               deleteInventory(items.map((i) => i.id));
               onDone();
             }

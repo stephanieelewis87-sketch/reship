@@ -37,12 +37,12 @@ export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: 
         try {
           const frames = await Promise.all(picked.map((i) => shrinkImage(video.images[i], AI_IMAGE_SIDE).then(toAi)));
           found = cleanDetected(await ai.detect(frames, picked.map((i) => video.samples[i].t)), picked.length);
-          if (!found.length) setNotice("The AI didn't spot any items, so SellSync split the video by scene instead.");
+          if (!found.length) setNotice("The AI didn't spot any items, so Hubby split the video by scene instead.");
         } catch (e) {
-          setNotice(`${(e as Error).message} SellSync split the video by scene instead.`);
+          setNotice(`${(e as Error).message} Hubby split the video by scene instead.`);
         }
       } else {
-        setNotice("AI is off in demo mode, so SellSync split your video into items by scene. With your SellSync account, AI names, describes and prices each item and makes clean photos.");
+        setNotice("AI is off in demo mode, so Hubby split your video into items by scene. With your Hubby account, AI names, describes and prices each item and makes clean photos.");
       }
       if (!found.length) found = itemsFromScenes(scenes, picked, video.samples);
       if (cancelled.current) return;
@@ -85,7 +85,7 @@ export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: 
     <Modal onClose={step.kind === "review" || step.kind === "pick" ? close : () => {}} maxWidth="max-w-5xl" label="List with a video">
       <ModalHeader
         title="List with a video"
-        subtitle={step.kind === "review" ? `${drafts.length} item${drafts.length === 1 ? "" : "s"} found. Check each one, then save them as drafts.` : `Film up to ${MAX_ITEMS} items. SellSync finds each one and writes its listing.`}
+        subtitle={step.kind === "review" ? `${drafts.length} item${drafts.length === 1 ? "" : "s"} found. Check each one, then save them as drafts.` : `Film up to ${MAX_ITEMS} items. Hubby finds each one and writes its listing.`}
         onClose={close}
         icon={<Clapperboard className="w-5 h-5 text-accent" />}
       />

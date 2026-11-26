@@ -135,7 +135,7 @@ export function SettingsPage({
         <div className="flex-1 min-w-0 px-4 md:px-8 py-5 max-w-2xl space-y-6">
           {tab === "connections" && <Connections />}
           {tab === "sale" && (
-            <Section title="Sale detection" text={isOn("crosslisting") ? "When an item sells on one marketplace, SellSync marks it sold and can take it down everywhere else." : "When an item sells on one marketplace, SellSync marks it sold and reminds you on Home to take it down everywhere else."}>
+            <Section title="Sale detection" text={isOn("crosslisting") ? "When an item sells on one marketplace, Hubby marks it sold and can take it down everywhere else." : "When an item sells on one marketplace, Hubby marks it sold and reminds you on Home to take it down everywhere else."}>
               <Row title="Adjust quantity on sale" text="For items with more than one in stock, take one off the count instead of marking the item sold.">
                 {can("quantitySync") ? (
                   <Toggle label="Adjust quantity on sale" checked={draft.autoAdjustQuantity} onChange={() => set("autoAdjustQuantity", !draft.autoAdjustQuantity)} />
@@ -374,7 +374,7 @@ export function SettingsPage({
           {tab === "subscription" && (
             <Section title="Subscription" text="Each plan includes everything in the plans before it.">
               <PlanPicker current={plan} need={need} onChoose={choosePlan} />
-              <Note>SellSync is in early access, so there's no charge yet and you can switch plans freely. You'll hear from us before billing starts.</Note>
+              <Note>Hubby is in early access, so there's no charge yet and you can switch plans freely. You'll hear from us before billing starts.</Note>
             </Section>
           )}
           {tab === "account" && <Account data={data} draft={draft} set={set} email={email} demoMode={demoMode} onSignOut={onSignOut} />}
@@ -389,10 +389,10 @@ const CONNECTOR_PLATFORMS: Platform[] = ["Poshmark", "Mercari"];
 
 function Connections() {
   return (
-    <Section title="Connections" text="SellSync works with your marketplace accounts through its browser extension, using the sign-ins you already have.">
+    <Section title="Connections" text="Hubby works with your marketplace accounts through its browser extension, using the sign-ins you already have.">
       <div className="rounded-lg border border-amber-200 bg-amber-50 text-amber-900 text-xs px-3 py-2.5 flex gap-2">
         <Puzzle className="w-4 h-4 shrink-0" />
-        <p>Poshmark and Mercari orders and labels come in through the SellSync browser extension. For other marketplaces, use Add orders on the Orders page to add them by hand or from a CSV export.</p>
+        <p>Poshmark and Mercari orders and labels come in through the Hubby browser extension. For other marketplaces, use Add orders on the Orders page to add them by hand or from a CSV export.</p>
       </div>
       <p className="text-xs text-muted-foreground">Each marketplace allows different things. Here is how orders, labels and listings work on each one.</p>
       {ALL_PLATFORMS.map((p) => {
@@ -464,7 +464,7 @@ function Account({
       <Section title="Danger zone">
         <div className="rounded-xl border border-rose-200 p-4 space-y-3">
           {samples.length > 0 && (
-            <Row title={`Remove ${samples.length} sample order${samples.length !== 1 ? "s" : ""}`} text="Clears the examples SellSync started you with.">
+            <Row title={`Remove ${samples.length} sample order${samples.length !== 1 ? "s" : ""}`} text="Clears the examples Hubby started you with.">
               <button type="button" className={secondaryButton} onClick={() => data.deleteOrders(samples.map((o) => o.id))}>
                 Remove
               </button>

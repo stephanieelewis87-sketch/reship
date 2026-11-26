@@ -4,14 +4,14 @@ import { nextSku } from "./sku";
 import type { Condition, InventoryItem, Platform, SkuFormat } from "./types";
 import { CONDITIONS } from "./types";
 
-// Bringing listings a seller already has on a marketplace into SellSync's inventory, two ways:
+// Bringing listings a seller already has on a marketplace into Hubby's inventory, two ways:
 //  - A spreadsheet the marketplace exports (eBay Seller Hub's active listings report, Etsy's
 //    listings CSV, Shopify's products export), or any sheet the seller made.
 //  - Listing links pasted one per line, for marketplaces with no export (Poshmark, Mercari, Depop,
-//    OfferUp, Curtsy and others). SellSync doesn't read those sites, so the item comes in with its
+//    OfferUp, Curtsy and others). Hubby doesn't read those sites, so the item comes in with its
 //    link and ID and the seller fills in the rest.
-// Either way, a listing already in SellSync is skipped, and a listing whose SKU matches an item
-// already in SellSync is linked to that item instead of making a duplicate.
+// Either way, a listing already in Hubby is skipped, and a listing whose SKU matches an item
+// already in Hubby is linked to that item instead of making a duplicate.
 
 export const LISTING_CSV_FIELDS = [
   { key: "title", label: "Title", required: true },
@@ -57,7 +57,7 @@ const price = (v: string) => {
 
 const strip = (html: string) => html.replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>/gi, "\n\n").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/\n{3,}/g, "\n\n").trim();
 
-// Maps marketplace condition words onto SellSync's scale.
+// Maps marketplace condition words onto Hubby's scale.
 export function toCondition(text: string): Condition | undefined {
   const t = text.toLowerCase();
   if (!t) return undefined;
@@ -82,8 +82,8 @@ const num = (h: string) => Number(h.match(/\d+/)?.[0] ?? 0);
 export interface ImportResult {
   items: InventoryItem[]; // new items, plus existing items with a listing linked
   added: number;
-  linked: number; // listings attached to an item already in SellSync by SKU
-  skipped: number; // listings already in SellSync
+  linked: number; // listings attached to an item already in Hubby by SKU
+  skipped: number; // listings already in Hubby
   problems: string[]; // links that couldn't be used, with why
 }
 
@@ -208,7 +208,7 @@ export function linksToItems(text: string, existing: InventoryItem[], skuFormat?
   for (const line of text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)) {
     const platform = platformOfUrl(line);
     if (!platform) {
-      state.result.problems.push(`${short(line)}: SellSync doesn't recognize this marketplace. Use a spreadsheet import for your own store.`);
+      state.result.problems.push(`${short(line)}: Hubby doesn't recognize this marketplace. Use a spreadsheet import for your own store.`);
       continue;
     }
     const parsed = parseListingLink(platform, line);

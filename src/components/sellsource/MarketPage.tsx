@@ -42,7 +42,7 @@ function useParams() {
 }
 
 // SellSource for buyers: browse every seller, a seller's storefront, one item, the cart and checkout.
-// Open to anyone, no SellSync account needed. Addresses: /?market, /?market&item=id, /?shop=handle.
+// Open to anyone, no Hubby account needed. Addresses: /?market, /?market&item=id, /?shop=handle.
 export function MarketPage({ api, demo }: { api: SellSourceApi; demo: boolean }) {
   const params = useParams();
   const itemId = params.get("item");
@@ -410,7 +410,7 @@ function ThankYou({ demo }: { demo: boolean }) {
       </span>
       <h1 className="font-serif text-3xl mt-4">Thank you!</h1>
       <p className="text-muted-foreground mt-2">
-        {demo ? "Practice order placed. Open the SellSync demo and you'll find it under Orders, ready to ship." : "Your order is in. The seller ships it in one package, and Stripe emailed you a receipt."}
+        {demo ? "Practice order placed. Open the Hubby demo and you'll find it under Orders, ready to ship." : "Your order is in. The seller ships it in one package, and Stripe emailed you a receipt."}
       </p>
       <div className="flex justify-center gap-2 mt-6">
         <button type="button" onClick={() => setUrl({ market: "" })} className={secondaryButton}>

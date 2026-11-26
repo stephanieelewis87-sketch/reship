@@ -116,7 +116,7 @@ function SendFeedback({ data, mine, onSent }: { data: Data; mine: Feedback[]; on
             </button>
           ))}
         </div>
-        <Field label="Which part of SellSync?">
+        <Field label="Which part of Hubby?">
           <select className={inputClass} value={area} onChange={(e) => setArea(e.target.value)}>
             {FEEDBACK_AREAS.map((a) => (
               <option key={a}>{a}</option>
@@ -136,7 +136,7 @@ function SendFeedback({ data, mine, onSent }: { data: Data; mine: Feedback[]; on
           />
         </Field>
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-1" aria-label="How happy are you with SellSync overall?">
+          <div className="flex items-center gap-1" aria-label="How happy are you with Hubby overall?">
             <span className="text-xs text-muted-foreground mr-1">Overall</span>
             {[1, 2, 3, 4, 5].map((n) => (
               <button key={n} type="button" aria-label={`${n} star${n > 1 ? "s" : ""}`} aria-pressed={rating === n} onClick={() => setRating(rating === n ? undefined : n)} className="p-0.5">

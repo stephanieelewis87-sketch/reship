@@ -121,7 +121,7 @@ export function ResearchPage({ data, initialQuery }: { data: Data; initialQuery:
             {live?.comps.some((c) => c.source === "sample") && (
               <p className="text-xs text-muted-foreground flex gap-2">
                 <Info className="w-3.5 h-3.5 shrink-0 mt-px" />
-                <span>Demo mode: the eBay and Etsy results are made-up samples. With your account, eBay and Etsy listings come in live, and eBay sold prices once eBay approves SellSync.</span>
+                <span>Demo mode: the eBay and Etsy results are made-up samples. With your account, eBay and Etsy listings come in live, and eBay sold prices once eBay approves Hubby.</span>
               </p>
             )}
             {error && <p className="text-xs text-destructive">{error} Your own sales and the marketplace searches below still work.</p>}
@@ -197,7 +197,7 @@ export function ResearchPage({ data, initialQuery }: { data: Data; initialQuery:
             <section>
               <h2 className="text-sm font-medium mb-1">Check every marketplace</h2>
               <p className="text-xs text-muted-foreground mb-3">
-                Marketplaces without an official API open in a new tab with your search already typed in. SellSync never reads those sites for you, so add the comps you find with “Add a comp”.
+                Marketplaces without an official API open in a new tab with your search already typed in. Hubby never reads those sites for you, so add the comps you find with “Add a comp”.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {COMP_COVERAGE.map((cov) => (
@@ -205,7 +205,7 @@ export function ResearchPage({ data, initialQuery }: { data: Data; initialQuery:
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <PlatformIcon platform={cov.platform} className="w-4 h-4" /> {PLATFORM_INFO[cov.platform].name}
                       <span className={`ml-auto text-[11px] px-1.5 py-0.5 rounded-full ${cov.inApp.active === "yes" ? "bg-emerald-50 text-emerald-700" : "bg-muted text-muted-foreground"}`}>
-                        {cov.inApp.active === "yes" ? "Live in SellSync" : "Opens the site"}
+                        {cov.inApp.active === "yes" ? "Live in Hubby" : "Opens the site"}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground flex-1">{cov.why}</p>

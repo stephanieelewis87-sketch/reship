@@ -15,12 +15,12 @@ import { SupabaseSellSource } from "./lib/sellsourceStore";
 import { isOn } from "./lib/features";
 
 const demoStore = new LocalStore();
-// sellsync…/?demo opens the demo with sample orders even where accounts are set up, for showing
-// SellSync to people without signing in.
+// hubby…/?demo opens the demo with sample orders even where accounts are set up, for showing
+// Hubby to people without signing in.
 const demoRequested = new URLSearchParams(window.location.search).has("demo");
-// sellsync…/?affiliates is the public page about the affiliate program, for sharing.
+// hubby…/?affiliates is the public page about the affiliate program, for sharing.
 const programPageRequested = new URLSearchParams(window.location.search).has("affiliates");
-// sellsync…/?mission is the public page with SellSync's mission and philosophy.
+// hubby…/?mission is the public page with Hubby's mission and philosophy.
 const missionRequested = new URLSearchParams(window.location.search).has("mission");
 // SellSource for buyers, no account needed: /?market (everything), /?shop=handle (one seller's
 // storefront) and /?live=id (a live show).
@@ -29,10 +29,10 @@ const marketRequested = isOn("sellsource") && (query.has("market") || query.has(
 const liveShowId = isOn("liveShows") ? query.get("live") : null;
 const demoMarket = !supabase || demoRequested;
 const buyerSellSource = marketRequested || liveShowId ? (demoMarket ? demoStore.sellsource : new SupabaseSellSource(null)) : null;
-// sellsync…/?welcome shows the public homepage even when signed in or running without accounts.
+// hubby…/?welcome shows the public homepage even when signed in or running without accounts.
 const welcomeRequested = new URLSearchParams(window.location.search).has("welcome");
 
-// sellsync…/?ref=code is an affiliate's link: remember who sent this visitor and count the visit.
+// hubby…/?ref=code is an affiliate's link: remember who sent this visitor and count the visit.
 const referredBy = captureReferral();
 if (referredBy) void supabase?.rpc("record_referral_click", { p_code: referredBy });
 
@@ -49,7 +49,7 @@ export default function App() {
     const enter = supabase ? setAuthMode : () => window.location.assign("/?demo");
     return <HomePage onSignIn={() => enter("signin")} onSignUp={() => enter("signup")} />;
   }
-  if (!supabase || demoRequested) return <SellSyncApp store={demoStore} email={null} demoMode onSignOut={() => {}} />;
+  if (!supabase || demoRequested) return <HubbyApp store={demoStore} email={null} demoMode onSignOut={() => {}} />;
   return <SignedInGate initialAuthMode={authMode} />;
 }
 
@@ -85,10 +85,10 @@ function SignedInGate({ initialAuthMode }: { initialAuthMode: AuthMode | null })
     if (!authMode) return <HomePage onSignIn={() => setAuthMode("signin")} onSignUp={() => setAuthMode("signup")} />;
     return <AuthScreen key={authMode} initialMode={authMode} onBack={() => setAuthMode(null)} />;
   }
-  return <SellSyncApp key={userId} store={store} email={session.user.email ?? null} demoMode={false} onSignOut={() => supabase!.auth.signOut()} />;
+  return <HubbyApp key={userId} store={store} email={session.user.email ?? null} demoMode={false} onSignOut={() => supabase!.auth.signOut()} />;
 }
 
-function SellSyncApp({
+function HubbyApp({
   store,
   email,
   demoMode,

@@ -1,5 +1,5 @@
 // SellSource payouts: signs a seller up for a Stripe Express account (Stripe collects their ID and
-// bank details; SellSync never sees them), and reads back whether Stripe says they can be paid.
+// bank details; Hubby never sees them), and reads back whether Stripe says they can be paid.
 //   POST {action: "start", returnUrl} → {url} of Stripe's sign-up page
 //   POST {action: "refresh"}          → {payouts}
 // Secrets: STRIPE_SECRET_KEY.

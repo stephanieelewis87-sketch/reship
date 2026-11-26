@@ -12,7 +12,7 @@ export const CATEGORIES: { id: CommunityCategory; label: string; hint: string }[
   { id: "sourcing", label: "Sourcing", hint: "Where and what to buy" },
   { id: "wins", label: "Wins", hint: "Big sales and milestones" },
   { id: "news", label: "Marketplace news", hint: "Fee and policy changes" },
-  { id: "ideas", label: "Ideas", hint: "Thoughts on reselling or SellSync" },
+  { id: "ideas", label: "Ideas", hint: "Thoughts on reselling or Hubby" },
   { id: "chat", label: "Just chatting", hint: "Anything else" },
 ];
 export const categoryLabel = (c: CommunityCategory) => CATEGORIES.find((x) => x.id === c)?.label ?? c;
@@ -124,7 +124,7 @@ export function replyProblem(body: string): string | null {
 // The name shown on posts: the shop name from Settings, never the email address.
 export function authorNameFrom(displayName: string | undefined): string {
   const name = (displayName ?? "").trim().slice(0, LIMITS.name);
-  return name || "SellSync seller";
+  return name || "Hubby seller";
 }
 
 // "Top" favours likes and replies but lets new posts compete: score fades with age in days.

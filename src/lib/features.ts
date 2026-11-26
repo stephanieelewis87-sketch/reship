@@ -1,11 +1,11 @@
-// What SellSync shows today. The rule: if it's on the screen, it works for real.
+// What Hubby shows today. The rule: if it's on the screen, it works for real.
 //
 // Features that aren't finished yet are switched off here instead of deleted, so their code
 // waits for its turn. Each one comes back by flipping its switch once it works end to end
 // with real accounts and real data (not sample numbers).
 export const FEATURES = {
-  // Posting to marketplaces from SellSync. Today "Crosslist to all" and "List item" only record
-  // a listing inside SellSync; nothing is posted to the marketplace yet.
+  // Posting to marketplaces from Hubby. Today "Crosslist to all" and "List item" only record
+  // a listing inside Hubby; nothing is posted to the marketplace yet.
   crosslisting: false,
   // AI listing: List with a video, List from photos and Generate listing.
   aiListing: false,
@@ -17,19 +17,19 @@ export const FEATURES = {
   research: false,
   // Automations: relists, offers, bundle comments and buyer messages.
   automations: false,
-  // Buying a new label inside SellSync (needs a shipping label account).
+  // Buying a new label inside Hubby (needs a shipping label account).
   buyLabels: false,
-  // The Ask SellSync AI helper.
+  // The Ask Hubby AI helper.
   assistant: false,
   community: false,
   affiliates: false,
   // Plans and plan limits. Off until payments work: everyone gets everything that's switched on.
   plans: false,
-  // Shop: search for things to buy across marketplaces. eBay and Etsy results show in SellSync
+  // Shop: search for things to buy across marketplaces. eBay and Etsy results show in Hubby
   // once their app keys are set on the shop-search function; every other marketplace opens its own
   // search, which works today.
   shop: true,
-  // SellSource, SellSync's own marketplace. Needs Stripe Connect set up (see the README), so it's
+  // SellSource, Hubby's own marketplace. Needs Stripe Connect set up (see the README), so it's
   // on for real accounts only when VITE_SELLSOURCE=on. Demo mode always shows it, with practice
   // checkouts that charge nothing.
   sellsource: import.meta.env.VITE_SELLSOURCE === "on",

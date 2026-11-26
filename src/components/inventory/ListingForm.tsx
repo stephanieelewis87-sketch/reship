@@ -193,7 +193,7 @@ export function ListingForm({
         <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-card z-10 sm:rounded-t-xl">
           <div>
             <h2 className="font-display text-sm font-semibold text-foreground">{isNew ? "Add item" : "Edit item"}</h2>
-            <p className="text-xs text-muted-foreground">{POSTS ? "Enter it once. SellSync fills in each marketplace." : "Everything about this item in one place: cost, location and where it's listed."}</p>
+            <p className="text-xs text-muted-foreground">{POSTS ? "Enter it once. Hubby fills in each marketplace." : "Everything about this item in one place: cost, location and where it's listed."}</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 rounded-md hover:bg-muted">
             <X className="w-4 h-4 text-muted-foreground" />
@@ -217,7 +217,7 @@ export function ListingForm({
                 type="button"
                 disabled={!aiLocked && (!ai || !photos.length || gen.busy)}
                 onClick={() => (aiLocked ? upgradeFor("ai") : void generate())}
-                title={aiLocked ? "AI listing is on the Flow plan." : !ai ? "AI listing runs with your SellSync account; it's off in demo mode." : !photos.length ? "Add a photo first." : "Writes the title, description, details and a suggested price from your photos."}
+                title={aiLocked ? "AI listing is on the Flow plan." : !ai ? "AI listing runs with your Hubby account; it's off in demo mode." : !photos.length ? "Add a photo first." : "Writes the title, description, details and a suggested price from your photos."}
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border text-xs text-accent hover:bg-rose-50 disabled:text-muted-foreground disabled:opacity-60 disabled:hover:bg-transparent"
               >
                 {gen.busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />} Generate listing
@@ -445,8 +445,8 @@ export function ListingForm({
             )}
             <p className="text-[12px] text-muted-foreground">
               {POSTS
-                ? "Prices start from your pricing rules in Settings. SellSync records each listing here; posting to the marketplace itself runs through the SellSync browser extension."
-                : "Tick the marketplaces where you've listed this item, so you can see it all in one place. SellSync keeps the record; it doesn't post to the marketplace for you yet."}
+                ? "Prices start from your pricing rules in Settings. Hubby records each listing here; posting to the marketplace itself runs through the Hubby browser extension."
+                : "Tick the marketplaces where you've listed this item, so you can see it all in one place. Hubby keeps the record; it doesn't post to the marketplace for you yet."}
             </p>
           </section>
 

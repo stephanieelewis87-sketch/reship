@@ -4,7 +4,7 @@ import type { Order, Platform } from "./types";
 // Buyer messages: bundle comments on Poshmark, notes to past buyers on their order page, and
 // messages to people interested in an item, on the marketplaces whose rules allow it.
 //
-// Every marketplace here bans bots or unsolicited promotion in some form, so SellSync never sends
+// Every marketplace here bans bots or unsolicited promotion in some form, so Hubby never sends
 // anything by itself. It writes the message, copies it, and opens the right page; the seller reads
 // it and presses Send on the marketplace. The extension can also drop a template into a comment
 // box on Poshmark or Depop, and still never presses Post.
@@ -26,13 +26,13 @@ export interface MessageTemplate {
   platforms?: Platform[];
   text: string;
   // About new items or a sale rather than the buyer's own order. Marketplaces treat repeated
-  // promotion as spam, so SellSync allows one promotional note per buyer every PROMO_GAP_DAYS.
+  // promotion as spam, so Hubby allows one promotional note per buyer every PROMO_GAP_DAYS.
   promo?: boolean;
 }
 
-// What SellSync remembers about messaging one buyer on one marketplace.
+// What Hubby remembers about messaging one buyer on one marketplace.
 export interface ContactRecord {
-  lastAt: string; // ISO time of the last message SellSync opened for them
+  lastAt: string; // ISO time of the last message Hubby opened for them
   lastPromoAt?: string;
   count: number;
   optOut?: boolean; // the buyer asked not to be contacted, or the seller chose not to
@@ -95,7 +95,7 @@ export const MESSAGE_RULES: Record<Platform, Record<MessageContext, MessageRule>
     pastBuyer: { allowed: "yes", text: "Message the buyer in the order's conversation on Vinted." },
     potentialBuyer: {
       allowed: "limited",
-      text: "Reply to members who started a conversation about your item, and make them an offer there (up to 40% off). SellSync doesn't read Vinted, so you paste the message into Vinted yourself.",
+      text: "Reply to members who started a conversation about your item, and make them an offer there (up to 40% off). Hubby doesn't read Vinted, so you paste the message into Vinted yourself.",
       source: VINTED_OFFERS,
     },
   },
@@ -186,7 +186,7 @@ export const MESSAGE_RULES: Record<Platform, Record<MessageContext, MessageRule>
 
 export const isAllowed = (platform: Platform, context: MessageContext) => MESSAGE_RULES[platform][context].allowed !== "no";
 
-// Marketplaces with at least one kind of buyer message SellSync can help with.
+// Marketplaces with at least one kind of buyer message Hubby can help with.
 export const MESSAGING_PLATFORMS: Platform[] = (Object.keys(MESSAGE_RULES) as Platform[]).filter(
   (p) => p !== "Other" && p !== "ThredUp",
 );
@@ -340,7 +340,7 @@ export const orderItemText = (o: Order) =>
 
 const handle = (s: string) => encodeURIComponent(s.trim().replace(/^@/, ""));
 
-// The page to paste the message into. Only addresses SellSync already uses or that are each
+// The page to paste the message into. Only addresses Hubby already uses or that are each
 // marketplace's long-standing public pages; otherwise the marketplace's home page.
 export function messagePageUrl(platform: Platform, context: MessageContext, opts: { buyer?: string; orderId?: string }): string {
   const { buyer, orderId } = opts;

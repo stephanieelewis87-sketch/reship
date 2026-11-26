@@ -109,7 +109,7 @@ export function ShopPage({ data, initialQuery }: { data: Data; initialQuery: str
 
         {!query && (
           <div className="rounded-xl border border-border bg-card">
-            <EmptyState icon={ShoppingBag} title="Find it anywhere, buy it in one tap" text="SellSync searches SellSource, eBay and Etsy right here, and opens the same search on every other marketplace." />
+            <EmptyState icon={ShoppingBag} title="Find it anywhere, buy it in one tap" text="Hubby searches SellSource, eBay and Etsy right here, and opens the same search on every other marketplace." />
             <div className="flex flex-wrap justify-center gap-2 pb-8 px-4">
               {SUGGESTIONS.map((s) => (
                 <button
@@ -152,7 +152,7 @@ export function ShopPage({ data, initialQuery }: { data: Data; initialQuery: str
           <section>
             <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
               <h2 className="text-sm font-semibold text-foreground">
-                {loading ? "Searching…" : `${all.length} result${all.length === 1 ? "" : "s"} in SellSync`}
+                {loading ? "Searching…" : `${all.length} result${all.length === 1 ? "" : "s"} in Hubby`}
               </h2>
               {result && <SourceNotes result={result} sellsource={sellsourceOn} />}
             </div>

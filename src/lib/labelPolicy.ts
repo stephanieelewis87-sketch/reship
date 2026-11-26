@@ -2,11 +2,11 @@ import { MARKETPLACES } from "./marketplaces";
 import type { Order, Platform } from "./types";
 
 // Which label an order ships on, by marketplace:
-// - "reship": SellSync buys the label (eBay, Etsy and direct sales have no label of their own to use).
-// - "compare": the marketplace lets the seller ship on their own (Mercari, Depop US), so SellSync
+// - "reship": Hubby buys the label (eBay, Etsy and direct sales have no label of their own to use).
+// - "compare": the marketplace lets the seller ship on their own (Mercari, Depop US), so Hubby
 //   compares the marketplace's label price with its own and suggests the cheaper one.
 // - "marketplace": the marketplace's prepaid label is the one to use (Poshmark, Whatnot, Vinted);
-//   SellSync only shows and prints it, and never buys a second one.
+//   Hubby only shows and prints it, and never buys a second one.
 export type LabelPolicy = "reship" | "compare" | "marketplace";
 
 export const LABEL_POLICY: Record<Platform, LabelPolicy> = {
@@ -31,13 +31,13 @@ export const LABEL_POLICY: Record<Platform, LabelPolicy> = {
   Vestiaire: "marketplace",
   // Your own store has no label of its own to use.
   Shopify: "reship",
-  // SellSource orders are SellSync's own, so the seller ships with their own label.
+  // SellSource orders are Hubby's own, so the seller ships with their own label.
   SellSource: "reship",
 };
 
 export const labelPolicy = (o: Pick<Order, "platform">): LabelPolicy => LABEL_POLICY[o.platform];
 
-export const canBuySellSyncLabel = (o: Pick<Order, "platform">) => labelPolicy(o) !== "marketplace";
+export const canBuyHubbyLabel = (o: Pick<Order, "platform">) => labelPolicy(o) !== "marketplace";
 
 export interface LabelComparison {
   pick: "reship" | "marketplace" | "unknown";
@@ -46,7 +46,7 @@ export interface LabelComparison {
   savings: number; // how much the picked label saves over the other, 0 when unknown
 }
 
-// SellSync's label is only suggested when it actually costs less; a tie keeps the marketplace's,
+// Hubby's label is only suggested when it actually costs less; a tie keeps the marketplace's,
 // since that one needs no tracking number to be copied over.
 export function compareLabels(marketplacePrice: number | null, reshipPrice: number | null): LabelComparison {
   const m = marketplacePrice != null && marketplacePrice > 0 ? marketplacePrice : null;
@@ -64,14 +64,14 @@ export function parsePrice(text: string): number | null {
   return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;
 }
 
-// Where the seller handles this order on the marketplace, when SellSync knows the page.
+// Where the seller handles this order on the marketplace, when Hubby knows the page.
 export function marketplaceOrderUrl(o: Pick<Order, "platform" | "orderId">): string | undefined {
   // Mercari is the one marketplace whose order IDs open the order itself.
   if (o.platform === "Mercari" && /^m\d+$/.test(o.orderId)) return `https://www.mercari.com/transaction/order_status/${encodeURIComponent(o.orderId)}/`;
   return MARKETPLACES[o.platform].orders;
 }
 
-// What to do on the marketplace once a SellSync label is bought, so the sale shows as shipped there.
+// What to do on the marketplace once a Hubby label is bought, so the sale shows as shipped there.
 export const PASTE_TRACKING_STEPS: Partial<Record<Platform, string[]>> = {
   Mercari: [
     "Open the order on Mercari.",

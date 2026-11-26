@@ -4,7 +4,7 @@ import { withSellSource } from "./SellSourcePage";
 
 type Data = ReturnType<typeof useReshipData>;
 
-// SellSource is the one marketplace SellSync can take a listing down on by itself. When an item
+// SellSource is the one marketplace Hubby can take a listing down on by itself. When an item
 // sells somewhere else (or is deleted), its SellSource listing comes down right away, so nobody
 // can buy something that's already gone.
 export function useSellSourceSync(data: Data, on: boolean) {

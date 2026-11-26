@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
-// Small hand-drawn SVG charts in SellSync's style: thin marks, hairline grid, a tooltip on hover.
+// Small hand-drawn SVG charts in Hubby's style: thin marks, hairline grid, a tooltip on hover.
 // Each one is one measure in dollars or counts on one axis.
 
 // Colors come from the theme (theme.css), so charts follow the light and dark looks.

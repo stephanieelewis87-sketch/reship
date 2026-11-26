@@ -2,10 +2,10 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp, ExternalLink, Printer, RotateCcw, ShoppingCart, Upload } from "lucide-react";
 import type { Order } from "@/lib/types";
 import { trackingUrl } from "@/lib/tracking";
-import { canBuySellSyncLabel, labelPolicy } from "@/lib/labelPolicy";
+import { canBuyHubbyLabel, labelPolicy } from "@/lib/labelPolicy";
 import { isOn } from "@/lib/features";
 
-// Buying labels inside SellSync waits for a shipping label account.
+// Buying labels inside Hubby waits for a shipping label account.
 const BUY = isOn("buyLabels");
 import { BundleBadge, OrderStatusCell, PhotoCollage, PlatformBadge, SkuCell, isBundle, orderTitle } from "./ui";
 
@@ -21,12 +21,12 @@ export interface OrderListProps {
   onSku: (order: Order, itemIndex: number, sku: string) => void;
   // Prints one order: its first print from To Print, or a reprint afterwards.
   onPrint: (order: Order) => void;
-  // Opens the label helper: buy a SellSync label, or compare it with the marketplace's (Mercari, Depop).
+  // Opens the label helper: buy a Hubby label, or compare it with the marketplace's (Mercari, Depop).
   onBuyLabel: (order: Order) => void;
 }
 
-// A pending order without its label yet, on a marketplace where SellSync can buy one.
-const canBuyNow = (o: Order) => BUY && o.status === "pending" && !o.label && !o.ownLabel && canBuySellSyncLabel(o);
+// A pending order without its label yet, on a marketplace where Hubby can buy one.
+const canBuyNow = (o: Order) => BUY && o.status === "pending" && !o.label && !o.ownLabel && canBuyHubbyLabel(o);
 
 // The print, reprint or tracking action for one order.
 function RowAction({ order, onPrint, onBuyLabel }: { order: Order; onPrint: (o: Order) => void; onBuyLabel: (o: Order) => void }) {
@@ -39,7 +39,7 @@ function RowAction({ order, onPrint, onBuyLabel }: { order: Order; onPrint: (o: 
           onBuyLabel(order);
         }}
         className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-accent text-accent-foreground text-[12px] font-medium hover:bg-accent-hover"
-        title={labelPolicy(order) === "compare" ? `Compare ${order.platform}'s label with a SellSync label and buy the cheaper one` : "Buy a shipping label"}
+        title={labelPolicy(order) === "compare" ? `Compare ${order.platform}'s label with a Hubby label and buy the cheaper one` : "Buy a shipping label"}
       >
         <ShoppingCart className="w-3 h-3" /> Buy label
       </button>
@@ -65,7 +65,7 @@ function RowAction({ order, onPrint, onBuyLabel }: { order: Order; onPrint: (o: 
             onBuyLabel(order);
           }}
           className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-border text-[12px] font-medium text-foreground hover:bg-muted whitespace-nowrap"
-          title={`Compare ${order.platform}'s label with a SellSync label and buy the cheaper one`}
+          title={`Compare ${order.platform}'s label with a Hubby label and buy the cheaper one`}
         >
           <ShoppingCart className="w-3 h-3" /> Buy label
         </button>

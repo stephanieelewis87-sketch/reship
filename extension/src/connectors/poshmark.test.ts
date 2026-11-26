@@ -23,7 +23,7 @@ describe("Poshmark connector", () => {
     expect(needsShipping({ ...sale, shipping_label_download_url: undefined })).toBe(false);
   });
 
-  it("maps a sale to a SellSync order", () => {
+  it("maps a sale to a Hubby order", () => {
     const order = toImportedOrder({ ...sale, bundle_size: 3 });
     expect(order).toMatchObject({
       platform: "Poshmark",

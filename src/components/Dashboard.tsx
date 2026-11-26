@@ -194,7 +194,7 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
           <EmptyState
             icon={Truck}
             title="No orders yet"
-            text="Orders show up here when the SellSync extension syncs your marketplaces. You can also add one by hand or import a CSV."
+            text="Orders show up here when the Hubby extension syncs your marketplaces. You can also add one by hand or import a CSV."
             action={{ label: "Import a CSV file", onClick: () => setImportOpen(true) }}
           />
         ) : (
@@ -385,7 +385,7 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
             )}
             {view === "shipped" && listed.length > 0 && (
               <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
-                <Truck className="w-3 h-3" /> Shipping status comes from the marketplace each time the SellSync extension syncs.
+                <Truck className="w-3 h-3" /> Shipping status comes from the marketplace each time the Hubby extension syncs.
               </p>
             )}
           </div>

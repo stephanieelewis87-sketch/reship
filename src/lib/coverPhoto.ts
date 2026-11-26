@@ -1,6 +1,6 @@
 // Cover photo extras: a brand tag at the bottom center and a sale banner.
 //
-// Brand tags are the brand's name set in SellSync's own fonts, styled like a sewn-in clothing
+// Brand tags are the brand's name set in Hubby's own fonts, styled like a sewn-in clothing
 // label. They are never the brand's logo or artwork: copying official logos could infringe the
 // brands' trademarks, while naming the brand an item is made by is ordinary, fair description.
 
@@ -57,7 +57,7 @@ export const TAG_COLORS: Record<TagColor, { label: string; fill: string; text: s
   rose: { label: "Rose", fill: "#b5607a", text: "#ffffff", stitch: "rgba(255,255,255,0.4)" },
 };
 
-// Sale banners. FREE GIFT WITH ORDER is the one SellSync suggests for items under the minimum price.
+// Sale banners. FREE GIFT WITH ORDER is the one Hubby suggests for items under the minimum price.
 export const BANNERS = [
   "BOGO",
   "BUY 2 GET 1 FREE",

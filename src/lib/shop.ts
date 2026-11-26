@@ -6,16 +6,16 @@ import type { InventoryItem, Platform } from "./types";
 // Shop: search for things to buy across marketplaces from one box.
 //
 // What's possible, marketplace by marketplace (November 2026):
-//  - SellSource (SellSync's own marketplace): searched and bought right inside SellSync.
+//  - SellSource (Hubby's own marketplace): searched and bought right inside Hubby.
 //  - eBay: its official Browse API lets any approved-key app search live listings, so results show
-//    in SellSync. Paying happens on eBay: eBay's Order API, which would let an app check out, is
-//    only open to a few partners eBay picks. Links carry SellSync's eBay Partner Network ID when
-//    one is set up, so SellSync earns a small commission at no cost to the buyer.
-//  - Etsy: its Open API lets apps search active listings, so results show in SellSync. Buying
+//    in Hubby. Paying happens on eBay: eBay's Order API, which would let an app check out, is
+//    only open to a few partners eBay picks. Links carry Hubby's eBay Partner Network ID when
+//    one is set up, so Hubby earns a small commission at no cost to the buyer.
+//  - Etsy: its Open API lets apps search active listings, so results show in Hubby. Buying
 //    happens on Etsy; Etsy has no checkout API for other apps.
 //  - Poshmark, Mercari, Depop, Vinted, Facebook Marketplace, ThredUp, Grailed, Curtsy, OfferUp and
 //    Vestiaire have no public search or buying API. Shop opens their own search for the same words
-//    in a new tab. Reading their pages from SellSync would break their terms, so SellSync doesn't.
+//    in a new tab. Reading their pages from Hubby would break their terms, so Hubby doesn't.
 
 export type ShopSource = "sellsource" | "api" | "sample";
 
@@ -30,7 +30,7 @@ export interface ShopResult {
   condition?: string;
   seller?: string;
   source: ShopSource;
-  listingId?: string; // SellSource listing id, for buying inside SellSync
+  listingId?: string; // SellSource listing id, for buying inside Hubby
 }
 
 export interface ShopFilters {

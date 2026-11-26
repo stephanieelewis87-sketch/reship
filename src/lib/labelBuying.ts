@@ -10,7 +10,7 @@ export interface LabelRate {
   days: string;
 }
 
-// "live": real, buyable rates from SellSync's shipping account (the `labels` edge function).
+// "live": real, buyable rates from Hubby's shipping account (the `labels` edge function).
 // "estimate": the shipping account isn't reachable, so prices are estimates and nothing can be bought.
 // "demo": demo mode; buying makes a practice label so the whole flow can be tried.
 export interface RateQuote {
@@ -92,7 +92,7 @@ async function practiceLabel(rate: LabelRate, order: Order): Promise<BoughtLabel
   page.drawRectangle({ x: 6, y: 6, width: 276, height: 420, borderColor: rgb(0, 0, 0), borderWidth: 1.5 });
   page.drawRectangle({ x: 6, y: 380, width: 276, height: 46, color: rgb(0.71, 0.38, 0.48) });
   page.drawText("PRACTICE LABEL", { x: 16, y: 404, size: 18, font: bold, color: rgb(1, 1, 1) });
-  page.drawText("SellSync demo mode. Not valid for shipping.", { x: 16, y: 388, size: 8, font, color: rgb(1, 1, 1) });
+  page.drawText("Hubby demo mode. Not valid for shipping.", { x: 16, y: 388, size: 8, font, color: rgb(1, 1, 1) });
   page.drawText(`${rate.carrier} ${rate.service}`.toUpperCase(), { x: 16, y: 350, size: 12, font: bold });
   page.drawText("SHIP TO:", { x: 16, y: 310, size: 8, font: bold });
   [to?.name, to?.street1, to ? `${to.city} ${to.state} ${to.zip}` : order.buyer]

@@ -1,4 +1,4 @@
-// The SellSync helper: a chat that answers how-to questions about SellSync and reselling.
+// The Hubby helper: a chat that answers how-to questions about Hubby and reselling.
 // On Flow it also sees a short summary of the seller's own shop (inventory, orders, profit), so it can
 // answer "what should I mark down?" or "where did I put the Lululemon leggings?".
 // This file holds the parts that don't need a network: who gets the helper, the shop summary sent with
@@ -150,12 +150,12 @@ const HOW_TO: { words: RegExp; answer: string }[] = [
   {
     words: /crosslist|cross-list|list (it )?(on|to) (other|more|another)/,
     answer:
-      "To crosslist an item, open [Inventory](#/inventory), click the item's menu and pick **Crosslist**, then tick the marketplaces you want. **Crosslist to all** puts it on every marketplace you use that it isn't on yet. When it sells anywhere, SellSync takes the other listings down. Crosslisting is on Sync and up.",
+      "To crosslist an item, open [Inventory](#/inventory), click the item's menu and pick **Crosslist**, then tick the marketplaces you want. **Crosslist to all** puts it on every marketplace you use that it isn't on yet. When it sells anywhere, Hubby takes the other listings down. Crosslisting is on Sync and up.",
   },
   {
     words: /print|label|packing slip/,
     answer:
-      "Go to [Orders](#/orders), tick the orders you want (or **Select all** under *Needs label*), then press **Print labels**. You get one PDF with every label, and you can add the SKU and a packing slip to each one. On Mercari and Depop orders, **Buy label** compares the marketplace's label with SellSync's and buys the cheaper one.",
+      "Go to [Orders](#/orders), tick the orders you want (or **Select all** under *Needs label*), then press **Print labels**. You get one PDF with every label, and you can add the SKU and a packing slip to each one. On Mercari and Depop orders, **Buy label** compares the marketplace's label with Hubby's and buys the cheaper one.",
   },
   {
     words: /sku|barcode|scan/,
@@ -165,17 +165,17 @@ const HOW_TO: { words: RegExp; answer: string }[] = [
   {
     words: /backup|restore|lost|undo/,
     answer:
-      "SellSync makes a backup of your inventory every day you open it. Open **Guardian** in [Inventory](#/inventory) to see backups, download one, or restore items from it. Restoring only changes SellSync's records, never your marketplace listings.",
+      "Hubby makes a backup of your inventory every day you open it. Open **Guardian** in [Inventory](#/inventory) to see backups, download one, or restore items from it. Restoring only changes Hubby's records, never your marketplace listings.",
   },
   {
     words: /import|csv|spreadsheet/,
     answer:
-      "In [Orders](#/orders), press **Import CSV** and pick the export file from your marketplace. SellSync matches the columns for you and groups bundles together.",
+      "In [Orders](#/orders), press **Import CSV** and pick the export file from your marketplace. Hubby matches the columns for you and groups bundles together.",
   },
   {
     words: /video|photos?|ai listing|describe/,
     answer:
-      "In [Inventory](#/inventory), press **Add** and pick **List with a video** or **List from photos**. SellSync finds each item, writes the title and description, and suggests a price for you to check. This is part of Full AI on Flow.",
+      "In [Inventory](#/inventory), press **Add** and pick **List with a video** or **List from photos**. Hubby finds each item, writes the title and description, and suggests a price for you to check. This is part of Full AI on Flow.",
   },
   {
     words: /comps?|research|price check|worth/,
@@ -187,9 +187,9 @@ const HOW_TO: { words: RegExp; answer: string }[] = [
     answer: "[Automations](#/automations) relist stale items and send offers to likers on a schedule. They're on Grow and up.",
   },
   {
-    words: /plan|upgrade|price of sellsync|subscription|cost of sellsync/,
+    words: /plan|upgrade|price of (hubby|sellsync)|subscription|cost of (hubby|sellsync)/,
     answer:
-      "SellSync has five plans: Sell $15, Ship $25, Sync $50, Grow $65 and Flow $95 a month, each with everything in the ones before it. See them in [Settings → Subscription](#/settings?tab=subscription).",
+      "Hubby has five plans: Sell $15, Ship $25, Sync $50, Grow $65 and Flow $95 a month, each with everything in the ones before it. See them in [Settings → Subscription](#/settings?tab=subscription).",
   },
 ];
 
@@ -247,5 +247,5 @@ export function demoAnswer(question: string, shop: { inventory: InventoryItem[];
   const topic = HOW_TO.find((t) => t.words.test(q));
   if (topic) return topic.answer;
 
-  return "In the demo I can answer common questions, like what to mark down, how much you've made, what needs to ship, where an item is stored, or how to crosslist, print labels and restore a backup. With a SellSync account the helper runs on Claude and can answer anything about SellSync or reselling.";
+  return "In the demo I can answer common questions, like what to mark down, how much you've made, what needs to ship, where an item is stored, or how to crosslist, print labels and restore a backup. With a Hubby account the helper runs on Claude and can answer anything about Hubby or reselling.";
 }

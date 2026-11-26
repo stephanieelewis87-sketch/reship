@@ -90,7 +90,7 @@ export function useListingDrafts(data: Data, madeWith: string, photosPerItem = 4
 
   const busy = drafts.some((d) => d.state === "writing" || d.state === "waiting");
   const included = drafts.filter((d) => d.include).length;
-  // Included drafts priced under SellSync's minimum. They have to be repriced or left out to save.
+  // Included drafts priced under Hubby's minimum. They have to be repriced or left out to save.
   const tooLow = drafts.filter((d) => d.include && d.priceText.trim() !== "" && underMinimum(parseFloat(d.priceText))).length;
 
   return { ai, drafts, setDrafts, patch, patchListing, writeListing, makePhoto, fill, save, photosOff, cancelled, busy, included, tooLow };

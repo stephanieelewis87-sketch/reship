@@ -1,4 +1,4 @@
--- SellSource (SellSync's own marketplace) and live shows.
+-- SellSource (Hubby's own marketplace) and live shows.
 --
 -- Sellers open a storefront, copy items from their inventory into public listings, and run live
 -- shows with quick auctions. Buyers don't need an account: they browse, chat, bid and pay through

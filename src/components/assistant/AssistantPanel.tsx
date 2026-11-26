@@ -25,7 +25,7 @@ const saveChat = (c: ChatMessage[]) => {
   }
 };
 
-// The "Ask SellSync" button in the corner of every page, and the chat it opens.
+// The "Ask Hubby" button in the corner of every page, and the chat it opens.
 export function AssistantPanel({ data, section, demoMode }: { data: Data; section: Section; demoMode: boolean }) {
   const plan = currentPlan(data.settings);
   const access = assistantAccess(plan);
@@ -112,17 +112,17 @@ export function AssistantPanel({ data, section, demoMode }: { data: Data; sectio
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Ask SellSync"
+          aria-label="Ask Hubby"
           className="fixed z-30 right-4 bottom-20 md:bottom-5 md:right-5 h-12 w-12 md:w-auto md:px-4 rounded-full bg-accent text-accent-foreground shadow-lg hover:bg-accent-hover flex items-center justify-center gap-2 text-sm font-medium"
         >
           <Sparkles className="w-5 h-5 md:w-4 md:h-4" />
-          <span className="hidden md:inline">Ask SellSync</span>
+          <span className="hidden md:inline">Ask Hubby</span>
         </button>
       )}
       {open && (
         <div
           role="dialog"
-          aria-label="SellSync helper"
+          aria-label="Hubby helper"
           className="fixed z-50 inset-0 md:inset-auto md:bottom-5 md:right-5 md:w-[400px] md:h-[min(640px,calc(100vh-40px))] bg-card md:border md:border-border md:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
         >
           <div className="px-4 py-3 border-b border-border flex items-center gap-2.5">
@@ -130,7 +130,7 @@ export function AssistantPanel({ data, section, demoMode }: { data: Data; sectio
               <Sparkles className="w-4 h-4 text-accent" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-display text-sm font-semibold leading-tight">SellSync helper</p>
+              <p className="font-display text-sm font-semibold leading-tight">Hubby helper</p>
               {status && <p className="text-[11px] text-muted-foreground truncate">{status}</p>}
             </div>
             {chat.length > 0 && (
@@ -145,7 +145,7 @@ export function AssistantPanel({ data, section, demoMode }: { data: Data; sectio
 
           {access.level === "none" ? (
             <div className="flex-1 flex items-center px-4">
-              <LockedCard feature="assistant" compact text="Ask how to do anything in SellSync, get pricing and listing tips, and on Flow, answers about your own inventory, orders and profit." />
+              <LockedCard feature="assistant" compact text="Ask how to do anything in Hubby, get pricing and listing tips, and on Flow, answers about your own inventory, orders and profit." />
             </div>
           ) : (
             <>
@@ -155,8 +155,8 @@ export function AssistantPanel({ data, section, demoMode }: { data: Data; sectio
                     <p className="font-display text-base font-semibold">Hi{data.settings.displayName ? `, ${data.settings.displayName}` : ""}! What can I help with?</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {access.seesShop || demoMode
-                        ? "Ask about SellSync, reselling, or your own shop: what to mark down, what needs to ship, how you're doing."
-                        : "Ask how to do anything in SellSync, or for tips on pricing, listing and shipping. On Flow, I can also see your shop."}
+                        ? "Ask about Hubby, reselling, or your own shop: what to mark down, what needs to ship, how you're doing."
+                        : "Ask how to do anything in Hubby, or for tips on pricing, listing and shipping. On Flow, I can also see your shop."}
                     </p>
                     <div className="mt-4 flex flex-col gap-2">
                       {starters.map((s) => (
@@ -234,7 +234,7 @@ function Typing() {
 }
 
 // Just enough Markdown for chat answers: paragraphs, bullet and numbered lists, **bold**, `code`
-// and links. Links only go to places inside SellSync (#/…) or to https pages, which open in a new tab.
+// and links. Links only go to places inside Hubby (#/…) or to https pages, which open in a new tab.
 export function Markdown({ text, onLink }: { text: string; onLink?: () => void }) {
   const blocks: ReactNode[] = [];
   let list: { ordered: boolean; items: string[] } | null = null;

@@ -1,11 +1,11 @@
 import type { Platform } from "./types";
 
-// What each marketplace lets a reselling tool do, and how SellSync gets orders, labels and listings
+// What each marketplace lets a reselling tool do, and how Hubby gets orders, labels and listings
 // for it. Only routes the marketplace allows are listed: its official API, its own exports, the
 // label it emails or shows the seller, or steps the seller does by hand. Shown in Settings > Connections.
 export interface PlatformInfo {
   name: string; // full name, for screens with room for it
-  orders: string; // how sold orders get into SellSync
+  orders: string; // how sold orders get into Hubby
   label: string; // who provides the shipping label
   listing: string; // how crosslisting and delisting work
   note?: string;
@@ -21,34 +21,34 @@ export const PLATFORM_INFO: Record<Platform, PlatformInfo> = {
   Mercari: {
     name: "Mercari",
     orders: "Synced by the browser extension, or Import CSV.",
-    label: "Mercari's prepaid label, or ship on your own with a SellSync label.",
+    label: "Mercari's prepaid label, or ship on your own with a Hubby label.",
     listing: "Link listings by hand for now.",
   },
   eBay: {
     name: "eBay",
     orders: "Import CSV from Seller Hub.",
-    label: "Buy a SellSync label, then add tracking in eBay.",
+    label: "Buy a Hubby label, then add tracking in eBay.",
     listing: "Link listings by hand for now.",
   },
   Etsy: {
     name: "Etsy",
     orders: "Import Etsy's Orders CSV (Shop Manager > Settings > Options > Download Data).",
-    label: "Buy a SellSync label or an Etsy label, then add tracking to the Etsy order.",
+    label: "Buy a Hubby label or an Etsy label, then add tracking to the Etsy order.",
     listing: "Link listings by hand for now.",
-    note: "Etsy has an official API for orders, tracking and listings. Connecting it needs a SellSync app key approved by Etsy, which is a later step.",
+    note: "Etsy has an official API for orders, tracking and listings. Connecting it needs a Hubby app key approved by Etsy, which is a later step.",
   },
   Depop: {
     name: "Depop",
     orders: "Import CSV, or add orders by hand. Extension sync is coming.",
-    label: "Depop's label, or ship on your own with a SellSync label.",
+    label: "Depop's label, or ship on your own with a Hubby label.",
     listing: "Link listings by hand for now.",
   },
   Vinted: {
     name: "Vinted",
     orders: "Add orders by hand, or Import CSV.",
-    label: "Vinted's prepaid label from the order. SellSync never buys a second one.",
+    label: "Vinted's prepaid label from the order. Hubby never buys a second one.",
     listing: "Link listings by hand. Vinted has no public seller API.",
-    note: "SellSync follows Vinted's terms: it doesn't scrape Vinted or work around its bot protection.",
+    note: "Hubby follows Vinted's terms: it doesn't scrape Vinted or work around its bot protection.",
   },
   WhatNot: {
     name: "Whatnot",
@@ -59,7 +59,7 @@ export const PLATFORM_INFO: Record<Platform, PlatformInfo> = {
   Facebook: {
     name: "Facebook Marketplace",
     orders: "Add orders by hand, or Import CSV. Facebook has no API for personal Marketplace sellers.",
-    label: "Facebook's prepaid label if your account has it, otherwise a SellSync label. Paste the tracking number into the Facebook order. Local pickup needs no label.",
+    label: "Facebook's prepaid label if your account has it, otherwise a Hubby label. Paste the tracking number into the Facebook order. Local pickup needs no label.",
     listing: "Link listings by hand. Facebook doesn't allow tools to post Marketplace listings for you.",
     note: "Shipped sales pay a 10% selling fee (at least $0.80). Local pickup sales have no fee.",
   },
@@ -82,12 +82,12 @@ export const PLATFORM_INFO: Record<Platform, PlatformInfo> = {
     orders: "Add orders by hand. Curtsy is app-only and has no seller API or export.",
     label: "Curtsy's prepaid label, emailed with each sale.",
     listing: "Link listings by hand.",
-    note: "Curtsy shows your exact fee when you post. SellSync's fee estimate uses the commonly reported tiers.",
+    note: "Curtsy shows your exact fee when you post. Hubby's fee estimate uses the commonly reported tiers.",
   },
   Grailed: {
     name: "Grailed",
     orders: "Add orders by hand, or Import CSV. Grailed has no public seller API.",
-    label: "Grailed's prepaid label, or ship on your own with a SellSync label and add tracking in Grailed.",
+    label: "Grailed's prepaid label, or ship on your own with a Hubby label and add tracking in Grailed.",
     listing: "Link listings by hand.",
     note: "9% commission plus payment processing (3.49% + $0.49).",
   },
@@ -101,21 +101,21 @@ export const PLATFORM_INFO: Record<Platform, PlatformInfo> = {
   Shopify: {
     name: "Shopify store",
     orders: "Import Shopify's Orders CSV (Orders > Export). Connecting your store directly is a later step.",
-    label: "Buy a SellSync label, then add tracking to the Shopify order.",
+    label: "Buy a Hubby label, then add tracking to the Shopify order.",
     listing: "Link products by hand for now.",
     note: "Your own store, so links can be on your own domain.",
   },
   SellSource: {
     name: "SellSource",
     orders: "Arrive by themselves when a buyer checks out on SellSource or in a live show.",
-    label: "Buy a SellSync label or ship with your own, then add tracking to the order.",
+    label: "Buy a Hubby label or ship with your own, then add tracking to the order.",
     listing: "Turn on SellSource for an item and it's in your storefront right away.",
-    note: "SellSync's own marketplace. 3% seller fee plus card processing.",
+    note: "Hubby's own marketplace. 3% seller fee plus card processing.",
   },
   Other: {
     name: "Other",
     orders: "Add orders by hand, or Import CSV.",
-    label: "Buy a SellSync label.",
+    label: "Buy a Hubby label.",
     listing: "Track it by hand.",
   },
 };

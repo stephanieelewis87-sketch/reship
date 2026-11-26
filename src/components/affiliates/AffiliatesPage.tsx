@@ -201,7 +201,7 @@ function CopyLink({ code }: { code: string }) {
           <button
             type="button"
             className={secondaryButton}
-            onClick={() => navigator.share({ title: "SellSync", text: "I ship all my sales from one place with SellSync. Try it with my link:", url: link }).catch(() => undefined)}
+            onClick={() => navigator.share({ title: "Hubby", text: "I ship all my sales from one place with Hubby. Try it with my link:", url: link }).catch(() => undefined)}
           >
             <Share2 className="w-4 h-4" /> Share
           </button>

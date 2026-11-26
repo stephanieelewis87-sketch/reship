@@ -2,7 +2,7 @@ import type { Condition, InventoryItem } from "./types";
 import { CONDITIONS } from "./types";
 import { underMinimum } from "./minPrice";
 
-// "List with a video": the seller films up to 25 items, SellSync finds each one, keeps snips from
+// "List with a video": the seller films up to 25 items, Hubby finds each one, keeps snips from
 // the video, and fills in a draft listing with a suggested price. This file holds the parts that
 // don't need a browser or the AI service, so they can be tested.
 
@@ -258,7 +258,7 @@ export interface VideoDraft {
 export function draftToItem(d: VideoDraft, photos: string[], sku: string, now = new Date(), madeWith = "List with a video"): InventoryItem {
   const l = d.listing;
   const typed = parseFloat(d.priceText);
-  // A price under SellSync's minimum isn't kept; the seller sets a new one before listing.
+  // A price under Hubby's minimum isn't kept; the seller sets a new one before listing.
   const price = underMinimum(typed) ? NaN : typed;
   const notes = [l.flaws && `Flaws: ${l.flaws}`, l.price?.reasoning && `Price note: ${l.price.reasoning}`, `Made with ${madeWith}.`].filter(Boolean).join("\n");
   return {

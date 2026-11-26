@@ -153,7 +153,7 @@ export function ShipLabelModal({
         {policy === "marketplace" ? (
           <>
             <p className="text-sm text-foreground">{PREPAID_LABEL_NOTE[platform]}</p>
-            <p className="text-xs text-muted-foreground">SellSync doesn't buy a second label for {platform} orders.</p>
+            <p className="text-xs text-muted-foreground">Hubby doesn't buy a second label for {platform} orders.</p>
             <div className="flex flex-wrap gap-2">
               {current.label ? (
                 <button type="button" onClick={() => onViewLabel(current)} className={primaryButton}>
@@ -236,7 +236,7 @@ export function ShipLabelModal({
           <>
             {policy === "compare" && (
               <p className="text-xs text-muted-foreground">
-                {platform} lets you ship on your own. SellSync checks whether its label costs less than {platform}'s, and if it does you can buy it
+                {platform} lets you ship on your own. Hubby checks whether its label costs less than {platform}'s, and if it does you can buy it
                 here and paste the tracking number into {platform}.
               </p>
             )}
@@ -275,7 +275,7 @@ export function ShipLabelModal({
             </div>
 
             {!weightLbs ? (
-              <p className="text-xs text-muted-foreground">Enter the package weight to see SellSync's label prices.</p>
+              <p className="text-xs text-muted-foreground">Enter the package weight to see Hubby's label prices.</p>
             ) : quoting && !quote ? (
               <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking prices…
@@ -322,7 +322,7 @@ export function ShipLabelModal({
               >
                 {comparison.pick === "reship" ? (
                   <>
-                    SellSync's label saves you <strong>${comparison.savings.toFixed(2)}</strong>. Buy it below, then paste the tracking number into{" "}
+                    Hubby's label saves you <strong>${comparison.savings.toFixed(2)}</strong>. Buy it below, then paste the tracking number into{" "}
                     {platform}.
                   </>
                 ) : comparison.pick === "marketplace" ? (

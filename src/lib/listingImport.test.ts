@@ -18,7 +18,7 @@ describe("importing listings from links", () => {
     expect(r.items[1].listings[0]).toMatchObject({ listingId: "222", status: "active", listedAt: "2026-11-04" });
   });
 
-  it("skips listings already in SellSync, and explains links it can't use", () => {
+  it("skips listings already in Hubby, and explains links it can't use", () => {
     const r = linksToItems("https://poshmark.com/listing/Levis-65a1b2c3d4\nhttps://posh.mk/abc\nhttps://example.com/x", existing, fmt, now);
     expect(r.skipped).toBe(1);
     expect(r.added).toBe(0);
@@ -60,7 +60,7 @@ describe("importing listings from a spreadsheet", () => {
 });
 
 describe("toCondition", () => {
-  it("maps marketplace condition words onto SellSync's scale", () => {
+  it("maps marketplace condition words onto Hubby's scale", () => {
     expect(toCondition("NWT")).toBe("New with tags");
     expect(toCondition("New other (see details)")).toBe("New without tags");
     expect(toCondition("Excellent")).toBe("Like new");

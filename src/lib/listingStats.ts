@@ -3,7 +3,7 @@ import type { InventoryItem, Listing, ListingStatsPoint, Platform } from "./type
 
 // Views and watchers for each marketplace listing, so a seller can see what buyers are looking at
 // without opening every marketplace. The numbers come only from routes the marketplace allows:
-// its own reports (eBay's Seller Hub downloads), its official API once SellSync's app key is
+// its own reports (eBay's Seller Hub downloads), its official API once Hubby's app key is
 // approved (eBay, Etsy), or the seller typing in what the marketplace shows them.
 
 export interface StatsReading {
@@ -35,11 +35,11 @@ export const watcherWord = (p: Platform, n: number) => (n === 1 ? WATCHER_WORD[p
 // Where each marketplace's numbers can come from today. Shown when the seller opens the numbers.
 export const STATS_SOURCE: Record<Platform, string> = {
   eBay: "Import eBay's Seller Hub reports: the listings traffic report has page views, and the active listings download has watchers. Automatic updates come with eBay's official API connection, a later step.",
-  Etsy: "Type in the views and favorites from Shop Manager. Etsy's official API has both, so they'll update on their own once SellSync's Etsy app key is approved.",
+  Etsy: "Type in the views and favorites from Shop Manager. Etsy's official API has both, so they'll update on their own once Hubby's Etsy app key is approved.",
   Poshmark: "Type in what your listing shows. Poshmark has no seller API.",
   Mercari: "Type in what your listing shows. Mercari has no seller API for this.",
   Depop: "Type in what your listing shows. Depop's API is only open to approved business partners.",
-  Vinted: "Type in what your listing shows. Vinted has no public seller API, and SellSync doesn't scrape Vinted.",
+  Vinted: "Type in what your listing shows. Vinted has no public seller API, and Hubby doesn't scrape Vinted.",
   WhatNot: "Type in what your listing shows. Whatnot has no seller API for this.",
   Facebook: "Type in what your listing shows. Facebook has no API for personal Marketplace sellers.",
   ThredUp: "Type in what your listing shows. ThredUp has no seller API.",
@@ -47,8 +47,8 @@ export const STATS_SOURCE: Record<Platform, string> = {
   Curtsy: "Type in what your listing shows in the Curtsy app. Curtsy has no seller API.",
   Grailed: "Type in what your listing shows. Grailed has no public seller API.",
   Vestiaire: "Type in what your listing shows. Vestiaire has no public seller API.",
-  Shopify: "Type in what your Shopify analytics show for the product. Shopify's API can share these once SellSync connects to your store, a later step.",
-  SellSource: "Views and saves on SellSource are counted by SellSync itself.",
+  Shopify: "Type in what your Shopify analytics show for the product. Shopify's API can share these once Hubby connects to your store, a later step.",
+  SellSource: "Views and saves on SellSource are counted by Hubby itself.",
   Other: "Type in what the marketplace shows you.",
 };
 
@@ -191,7 +191,7 @@ export function listingMatches(l: Listing, id: string): boolean {
 }
 
 // Puts a report's numbers on the matching listings. Returns the changed items, and the report's
-// listing IDs that match nothing in SellSync (so the seller can link them in Guardian).
+// listing IDs that match nothing in Hubby (so the seller can link them in Guardian).
 export function applyStatsReport(
   inventory: InventoryItem[],
   platform: Platform,

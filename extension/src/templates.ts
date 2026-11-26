@@ -1,5 +1,5 @@
 // Content script for Poshmark and Depop: when the seller clicks into a comment or message box, a
-// small SellSync button appears beside it. Picking a template types it into the box. The seller
+// small Hubby button appears beside it. Picking a template types it into the box. The seller
 // reads it and presses Post or Send; this script never submits anything, never reads other
 // shoppers' data, and does nothing until the seller clicks.
 import type { Platform } from "../../src/lib/types";
@@ -57,7 +57,7 @@ function start(platform: Platform) {
       .item:hover{background:#f6eef0}
       .note{font:11px system-ui,sans-serif;color:#777;padding:6px 8px}
     </style>
-    <button class="chip" type="button">SellSync templates</button>
+    <button class="chip" type="button">Hubby templates</button>
     <div class="menu" role="menu"></div>`;
   const chip = root.querySelector(".chip") as HTMLButtonElement;
   const menu = root.querySelector(".menu") as HTMLDivElement;
@@ -78,7 +78,7 @@ function start(platform: Platform) {
     const list = (templates ?? []).filter((t) => contexts.includes(t.context));
     menu.innerHTML = "";
     if (!templates) menu.innerHTML = `<div class="note">Loading templates…</div>`;
-    else if (!list.length) menu.innerHTML = `<div class="note">No templates for this page. Add them in SellSync under Automations, Comments and messages.</div>`;
+    else if (!list.length) menu.innerHTML = `<div class="note">No templates for this page. Add them in Hubby under Automations, Comments and messages.</div>`;
     for (const c of contexts) {
       const group = list.filter((t) => t.context === c);
       if (!group.length) continue;

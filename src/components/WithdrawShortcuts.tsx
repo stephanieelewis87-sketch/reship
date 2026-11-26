@@ -2,7 +2,7 @@ import { Landmark } from "lucide-react";
 import { MARKETPLACES } from "@/lib/marketplaces";
 import type { Platform } from "@/lib/types";
 
-// Each marketplace's own withdraw page, from the marketplace address book. SellSync only links
+// Each marketplace's own withdraw page, from the marketplace address book. Hubby only links
 // there; the seller does the transfer.
 const WITHDRAW_PAGES: Partial<Record<Platform, string>> = Object.fromEntries(
   Object.entries(MARKETPLACES).flatMap(([p, m]) => (m.withdraw ? [[p, m.withdraw]] : [])),

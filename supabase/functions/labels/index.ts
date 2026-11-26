@@ -1,4 +1,4 @@
-// SellSync's own shipping labels, bought from EasyPost at its discounted carrier rates.
+// Hubby's own shipping labels, bought from EasyPost at its discounted carrier rates.
 // Deploy with `supabase functions deploy labels` and set the key with
 // `supabase secrets set EASYPOST_API_KEY=...`. Without the key the app shows estimates only.
 //
@@ -54,9 +54,9 @@ const prettyCarrier = (c: string) => (c.startsWith("UPS") ? "UPS" : c.startsWith
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  if (!Deno.env.get("EASYPOST_API_KEY")) return reply({ error: "label buying isn't set up on this SellSync server" }, 503);
+  if (!Deno.env.get("EASYPOST_API_KEY")) return reply({ error: "label buying isn't set up on this Hubby server" }, 503);
 
-  // Only signed-in SellSync users can quote or buy, and only shipments they started.
+  // Only signed-in Hubby users can quote or buy, and only shipments they started.
   const auth = req.headers.get("Authorization") ?? "";
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
     global: { headers: { Authorization: auth } },

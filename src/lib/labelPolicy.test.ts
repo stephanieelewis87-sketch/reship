@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { canBuySellSyncLabel, compareLabels, labelPolicy, marketplaceOrderUrl, parsePrice } from "./labelPolicy";
+import { canBuyHubbyLabel, compareLabels, labelPolicy, marketplaceOrderUrl, parsePrice } from "./labelPolicy";
 
 describe("labelPolicy", () => {
   it("compares on marketplaces that let sellers ship on their own", () => {
     expect(labelPolicy({ platform: "Mercari" })).toBe("compare");
     expect(labelPolicy({ platform: "Depop" })).toBe("compare");
     expect(labelPolicy({ platform: "Facebook" })).toBe("compare");
-    expect(canBuySellSyncLabel({ platform: "Mercari" })).toBe(true);
-    expect(canBuySellSyncLabel({ platform: "Depop" })).toBe(true);
+    expect(canBuyHubbyLabel({ platform: "Mercari" })).toBe(true);
+    expect(canBuyHubbyLabel({ platform: "Depop" })).toBe(true);
   });
 
-  it("always uses SellSync labels for eBay, Etsy and direct sales", () => {
+  it("always uses Hubby labels for eBay, Etsy and direct sales", () => {
     expect(labelPolicy({ platform: "eBay" })).toBe("reship");
     expect(labelPolicy({ platform: "Etsy" })).toBe("reship");
     expect(labelPolicy({ platform: "Other" })).toBe("reship");
@@ -19,13 +19,13 @@ describe("labelPolicy", () => {
   it("never buys a second label for prepaid-label marketplaces", () => {
     for (const platform of ["Poshmark", "WhatNot", "Vinted", "ThredUp"] as const) {
       expect(labelPolicy({ platform })).toBe("marketplace");
-      expect(canBuySellSyncLabel({ platform })).toBe(false);
+      expect(canBuyHubbyLabel({ platform })).toBe(false);
     }
   });
 });
 
 describe("compareLabels", () => {
-  it("picks SellSync only when it costs less", () => {
+  it("picks Hubby only when it costs less", () => {
     expect(compareLabels(7.49, 5.2)).toEqual({ pick: "reship", reshipPrice: 5.2, marketplacePrice: 7.49, savings: 2.29 });
     expect(compareLabels(5.2, 7.49).pick).toBe("marketplace");
     expect(compareLabels(6, 6)).toMatchObject({ pick: "marketplace", savings: 0 });

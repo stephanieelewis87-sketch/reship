@@ -38,7 +38,7 @@ const ALLOWED_BADGE: Record<Allowed, { text: string; className: string }> = {
   no: { text: "Not allowed", className: "bg-muted text-muted-foreground border-border" },
 };
 
-// Buyer messages: SellSync writes the message from a template, copies it and opens the right page.
+// Buyer messages: Hubby writes the message from a template, copies it and opens the right page.
 // The seller pastes it and presses Send on the marketplace, which keeps every marketplace's
 // no-bots rule.
 export function MessagesPanel({ data }: { data: Data }) {
@@ -58,7 +58,7 @@ export function MessagesPanel({ data }: { data: Data }) {
       <p className="text-xs text-muted-foreground flex gap-2">
         <ShieldCheck className="w-4 h-4 shrink-0 text-accent" />
         <span>
-          SellSync writes the message, copies it and opens the page for you. You paste it and press Send yourself, because every marketplace here bans bots that comment or message for you. With the SellSync extension, a Templates button also appears in Poshmark and Depop comment boxes.
+          Hubby writes the message, copies it and opens the page for you. You paste it and press Send yourself, because every marketplace here bans bots that comment or message for you. With the Hubby extension, a Templates button also appears in Poshmark and Depop comment boxes.
         </span>
       </p>
       <div className="flex gap-1.5 overflow-x-auto max-w-full">
@@ -354,7 +354,7 @@ function TemplateEditor({
       </summary>
       <div className="space-y-3 mt-3">
         <p className="text-[12px] text-muted-foreground">
-          Use {"{buyer}"}, {"{item}"}, {"{discount}"} and {"{seller}"}; SellSync fills them in. Templates are shared by every marketplace that allows this kind of message, unless you pick some.
+          Use {"{buyer}"}, {"{item}"}, {"{discount}"} and {"{seller}"}; Hubby fills them in. Templates are shared by every marketplace that allows this kind of message, unless you pick some.
         </p>
         {shown.map((t) => (
           <div key={t.id} className="space-y-1.5 border-t border-border pt-3 first:border-0 first:pt-0">

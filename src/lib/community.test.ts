@@ -32,7 +32,7 @@ describe("community rules", () => {
 
   it("never falls back to an email for the author name", () => {
     expect(authorNameFrom("  Maya's Closet ")).toBe("Maya's Closet");
-    expect(authorNameFrom("")).toBe("SellSync seller");
+    expect(authorNameFrom("")).toBe("Hubby seller");
     expect(authorNameFrom("x".repeat(80))).toHaveLength(60);
   });
 

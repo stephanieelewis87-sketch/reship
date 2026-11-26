@@ -71,7 +71,7 @@ export function AuthScreen({
       else if (!data.session) setMessage("Check your email to confirm your account, then sign in.");
     } else if (mode === "forgot") {
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: back });
-      setMessage(error ? error.message : "If that email has a SellSync account, a reset link is on its way. Open it on this device.");
+      setMessage(error ? error.message : "If that email has a Hubby account, a reset link is on its way. Open it on this device.");
     } else {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) setMessage(error.message);

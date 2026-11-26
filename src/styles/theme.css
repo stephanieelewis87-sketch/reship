@@ -1,6 +1,6 @@
 @custom-variant dark (&:is(.dark *));
 
-/* SellSync: rose gold on warm porcelain. The rose gold is deepened just enough that it reads as clearly as
+/* Hubby: rose gold on warm porcelain. The rose gold is deepened just enough that it reads as clearly as
    body text on the light background; the bright logo gold is kept for the mark, the wordmark and the dark theme. */
 :root {
   color-scheme: light;

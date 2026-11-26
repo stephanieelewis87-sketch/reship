@@ -657,7 +657,7 @@ function InventoryPage({ ctx }: { ctx: Ctx }) {
                       setApplied((a) => new Set(a).add(s.item.id));
                     }}
                     className="text-[12px] px-2 py-1 rounded-md border border-border hover:bg-muted whitespace-nowrap"
-                    title="Saves the new price in SellSync. Change it on the marketplace too."
+                    title="Saves the new price in Hubby. Change it on the marketplace too."
                   >
                     Use price
                   </button>
@@ -911,7 +911,7 @@ function Exports({ ctx }: { ctx: Ctx }) {
       text: "Every item sold, with price, fees, shipping, cost and profit.",
       run: () =>
         download(
-          `sellsync-sales-${tag}.csv`,
+          `hubby-sales-${tag}.csv`,
           lines.map((l) => ({
             Date: l.date,
             Marketplace: l.platform,
@@ -938,7 +938,7 @@ function Exports({ ctx }: { ctx: Ctx }) {
       text: "Gross sales, fees, shipping, cost of goods, expenses and net profit for each month.",
       run: () =>
         download(
-          `sellsync-profit-and-loss-${tag}.csv`,
+          `hubby-profit-and-loss-${tag}.csv`,
           series(lines, range, "month").map((p) => {
             const m = metrics(lines.filter((l) => l.date >= p.start && l.date <= p.end), null);
             const ex = sumExpenses(ctx.expenses.filter((e) => e.date >= p.start && e.date <= p.end));
@@ -960,7 +960,7 @@ function Exports({ ctx }: { ctx: Ctx }) {
       text: "Every logged expense, with mileage, for your records.",
       run: () =>
         download(
-          `sellsync-expenses-${tag}.csv`,
+          `hubby-expenses-${tag}.csv`,
           ctx.expenses.map((e) => ({ Date: e.date, Category: e.category, Amount: r2(e.amount), Miles: e.miles ?? "", Note: e.note ?? "" })),
         ),
     },
@@ -969,7 +969,7 @@ function Exports({ ctx }: { ctx: Ctx }) {
       text: "Everything listed or in drafts, with cost, price and days listed. Handy for year-end counts.",
       run: () =>
         download(
-          `sellsync-inventory-${ctx.today}.csv`,
+          `hubby-inventory-${ctx.today}.csv`,
           [...ctx.activeNow, ...ctx.inventory.filter((i) => i.status === "draft")].map((i) => ({
             SKU: i.sku,
             Item: i.title,

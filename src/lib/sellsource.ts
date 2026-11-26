@@ -1,10 +1,10 @@
 import type { Condition, InventoryItem } from "./types";
 
-// SellSource: SellSync's own marketplace, where buyers buy straight from SellSync sellers, from a
+// SellSource: Hubby's own marketplace, where buyers buy straight from Hubby sellers, from a
 // storefront or during a live show.
 //
 // Money moves through Stripe Connect. The buyer pays on Stripe's checkout page, Stripe sends the
-// seller's share to the seller's own Stripe account, and SellSource keeps its fee. SellSync never
+// seller's share to the seller's own Stripe account, and SellSource keeps its fee. Hubby never
 // sees a card number.
 
 // SellSource's seller fee, a percent of the item price (not shipping).
@@ -36,7 +36,7 @@ export type PayoutState = "none" | "pending" | "ready";
 
 export interface SellerProfile {
   userId: string;
-  handle: string; // the storefront address: sellsync…/?shop=handle
+  handle: string; // the storefront address: hubby…/?shop=handle
   shopName: string;
   bio?: string;
   shippingPrice: number; // shipping the buyer pays for the first item in a package

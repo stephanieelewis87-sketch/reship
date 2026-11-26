@@ -1,6 +1,6 @@
 name: Check marketplace links
 
-# Every Monday morning, visit every marketplace link SellSync uses. If one is broken, open (or
+# Every Monday morning, visit every marketplace link Hubby uses. If one is broken, open (or
 # update) a GitHub issue so it's fixed before sellers run into it. Can also be run by hand.
 on:
   schedule:

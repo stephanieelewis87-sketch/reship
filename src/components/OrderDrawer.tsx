@@ -190,7 +190,7 @@ export function OrderDrawer({
               {!isNew && (isOn("buyLabels") || order.ownLabel) && (
                 <button type="button" onClick={() => onBuyLabel(order)} className="text-xs text-muted-foreground hover:text-foreground hover:underline flex items-center gap-1">
                   <ShoppingCart className="w-3 h-3" />{" "}
-                  {order.ownLabel ? "SellSync label & tracking" : { compare: "Buy a label", reship: "Buy a label", marketplace: "Prepaid label help" }[labelPolicy(order)]}
+                  {order.ownLabel ? "Hubby label & tracking" : { compare: "Buy a label", reship: "Buy a label", marketplace: "Prepaid label help" }[labelPolicy(order)]}
                 </button>
               )}
             </div>

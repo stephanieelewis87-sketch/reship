@@ -13,7 +13,7 @@ import { linksToCheck, MARKETPLACES } from "../src/lib/marketplaces";
 type Verdict = { ok: true } | { ok: false; broken: boolean; why: string };
 
 const HEADERS = {
-  "user-agent": "Mozilla/5.0 (compatible; SellSyncLinkCheck/1.0; +https://github.com/stephanieelewis87-sketch/reship)",
+  "user-agent": "Mozilla/5.0 (compatible; HubbyLinkCheck/1.0; +https://github.com/stephanieelewis87-sketch/reship)",
   accept: "text/html,application/xhtml+xml",
 };
 

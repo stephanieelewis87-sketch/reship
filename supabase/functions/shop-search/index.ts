@@ -1,6 +1,6 @@
 // Shop tab: things to buy on marketplaces that offer an official search API.
 //   eBay – Browse API (item_summary/search). With EBAY_CAMPAIGN_ID (an eBay Partner Network campaign)
-//          each link carries SellSync's affiliate ID, so SellSync earns a small commission from eBay
+//          each link carries Hubby's affiliate ID, so Hubby earns a small commission from eBay
 //          at no cost to the buyer. Buying itself happens on eBay: its Order API is limited to
 //          partners eBay picks.
 //   Etsy – Open API v3 (listings/active). Buying happens on Etsy.

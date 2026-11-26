@@ -19,7 +19,7 @@ import { SellSourcePage } from "../sellsource/SellSourcePage";
 import { LivePage } from "../live/LivePage";
 import { useSellSourceSync } from "../sellsource/useSellSourceSync";
 import { type Section, go, useRoute } from "./route";
-import { Logo } from "../brand/Logo";
+import { Logo, SellSyncMark, SellSyncWordmark } from "../brand/Logo";
 import { ThemeToggle } from "../brand/ThemeToggle";
 import { LockedSection, PlanTag, currentPlan } from "../plans/PlanGate";
 import { type Feature, hasFeature, type PlanId } from "@/lib/plans";
@@ -41,8 +41,9 @@ const lockedFeature = (plan: PlanId, section: Section) => {
   return f && !hasFeature(plan, f) ? f : undefined;
 };
 
-// The sidebar in two groups: the everyday work first, then the tools that grow the shop.
-const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
+// The sidebar in groups: the everyday work first, then SellSync (Hubby's selling and buying
+// tools), then the tools that grow the shop.
+const NAV_GROUPS: { title: string; brand?: "sellsync"; items: NavItem[] }[] = [
   {
     title: "Every day",
     items: [
@@ -52,7 +53,8 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
-    title: "Buy and sell",
+    title: "SellSync",
+    brand: "sellsync",
     items: [
       { section: "sellsource", label: "SellSource", icon: Store },
       { section: "live", label: "Live shows", icon: Radio },
@@ -126,7 +128,14 @@ export function AppShell({
         <nav className="px-3 py-4 flex flex-col gap-5">
           {NAV_GROUPS.filter((g) => g.items.length).map((group) => (
             <div key={group.title} className="flex flex-col gap-0.5">
-              <p className="px-2.5 pb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">{group.title}</p>
+              {group.brand === "sellsync" ? (
+                <p className="px-2.5 pb-1 flex items-center gap-1.5" title="SellSync: selling and buying across marketplaces">
+                  <SellSyncMark className="w-3.5 h-3.5" />
+                  <SellSyncWordmark className="text-[11px]" />
+                </p>
+              ) : (
+                <p className="px-2.5 pb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">{group.title}</p>
+              )}
               {group.items.map((item) => (
                 <SideLink key={item.section} item={item} active={route.section === item.section} badge={badge[item.section]} locked={lockedFeature(plan, item.section)} />
               ))}

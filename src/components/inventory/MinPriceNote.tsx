@@ -1,7 +1,7 @@
 import { Info } from "lucide-react";
 import { MISSION_HREF, freeGiftShort, minPriceMessage, minPriceTip } from "@/lib/minPrice";
 
-// Shown wherever a price is under SellSync's minimum, with a link to why.
+// Shown wherever a price is under Hubby's minimum, with a link to why.
 export function MinPriceNote({ detail, className = "" }: { detail?: string; className?: string }) {
   return (
     <p role="alert" className={`flex items-start gap-1.5 text-[12px] text-amber-900 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-1.5 ${className}`}>

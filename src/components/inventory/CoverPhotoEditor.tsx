@@ -155,7 +155,7 @@ export function CoverPhotoEditor({
                 )}
               </div>
               <p className="text-[11px] text-muted-foreground leading-snug">
-                Tags show the brand's name in SellSync's own lettering, not the brand's logo. Only tag the brand the item really is.
+                Tags show the brand's name in Hubby's own lettering, not the brand's logo. Only tag the brand the item really is.
               </p>
             </section>
 

@@ -46,7 +46,7 @@ export function PhotoListing({ data, onClose, onSaved }: { data: Data; onClose: 
     // Take them in the order they were shot; past the cap, the latest ones are left for the next batch.
     const ordered = photoOrder(files.map((f) => ({ name: f.name, time: f.lastModified }))).map((i) => files[i]);
     const batch = ordered.slice(0, MAX_PHOTOS);
-    if (ordered.length > MAX_PHOTOS) notes.push(`You picked ${ordered.length} photos. SellSync took the first ${MAX_PHOTOS}; add the other ${ordered.length - MAX_PHOTOS} in your next batch.`);
+    if (ordered.length > MAX_PHOTOS) notes.push(`You picked ${ordered.length} photos. Hubby took the first ${MAX_PHOTOS}; add the other ${ordered.length - MAX_PHOTOS} in your next batch.`);
 
     try {
       setStep({ kind: "working", label: "Reading your photos", progress: 0 });
@@ -75,13 +75,13 @@ export function PhotoListing({ data, onClose, onSaved }: { data: Data; onClose: 
           found = cleanGroups(await ai.group(small), read.length);
           if (!found.groups.length) {
             found = null;
-            notes.push("The AI didn't spot any items, so SellSync grouped your photos by when they were taken.");
+            notes.push("The AI didn't spot any items, so Hubby grouped your photos by when they were taken.");
           }
         } catch (e) {
-          notes.push(`${(e as Error).message} SellSync grouped your photos by when they were taken instead.`);
+          notes.push(`${(e as Error).message} Hubby grouped your photos by when they were taken instead.`);
         }
       } else {
-        notes.push("AI is off in demo mode, so SellSync grouped your photos by when they were taken. With your SellSync account, AI sorts them by item, then names, describes and prices each one.");
+        notes.push("AI is off in demo mode, so Hubby grouped your photos by when they were taken. With your Hubby account, AI sorts them by item, then names, describes and prices each one.");
       }
       if (!found) {
         const g = groupByShoot(samples);
@@ -149,7 +149,7 @@ export function PhotoListing({ data, onClose, onSaved }: { data: Data; onClose: 
       ? `${s(images.length, "photo")} sorted into ${s(groups.length, "item")}. Fix anything that's in the wrong place, then write the listings.`
       : step.kind === "review"
         ? `${s(drafts.length, "item")}. Check each one, then save them as drafts.`
-        : `Upload photos of up to ${MAX_ITEMS} items at once. SellSync sorts them by item and writes each listing.`;
+        : `Upload photos of up to ${MAX_ITEMS} items at once. Hubby sorts them by item and writes each listing.`;
 
   return (
     <Modal onClose={canClose ? close : () => {}} maxWidth="max-w-5xl" label="List from photos">

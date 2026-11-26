@@ -105,7 +105,7 @@ export function ImportCsvModal({
               ) : (
                 <>
                   {fresh.length} new order{fresh.length !== 1 ? "s" : ""} from {rows.length} row{rows.length !== 1 ? "s" : ""}, {withAddress} with an address.
-                  {duplicates > 0 && ` ${duplicates} already in SellSync will be skipped.`}
+                  {duplicates > 0 && ` ${duplicates} already in Hubby will be skipped.`}
                 </>
               )}
             </div>

@@ -58,7 +58,7 @@ export interface Store {
   community: CommunityApi;
   // Shop: search other marketplaces' official APIs for things to buy (samples in demo mode).
   shop: ShopApi;
-  // SellSource, SellSync's own marketplace, and live shows.
+  // SellSource, Hubby's own marketplace, and live shows.
   sellsource: SellSourceApi;
 }
 

@@ -1,13 +1,13 @@
 import type { Platform } from "./types";
 
-// SellSync's one address book for every marketplace.
+// Hubby's one address book for every marketplace.
 //
 // Every link the app sends a seller to (a listing, an order page, a withdraw page, a search)
 // is built here and nowhere else. When a marketplace moves a page, fix it once here and it's
 // fixed everywhere. A weekly robot (scripts/check-links.ts) visits each address below and opens
 // a GitHub issue when one stops working, so a broken link is caught before sellers hit it.
 //
-// Listing links are never stored the way a seller pastes them. SellSync keeps the marketplace's
+// Listing links are never stored the way a seller pastes them. Hubby keeps the marketplace's
 // listing ID and builds the link from it when it's shown, so a change in a marketplace's link
 // format is one edit to `listingUrl` below, and old listings pick up the fix too.
 
@@ -17,10 +17,10 @@ export interface Marketplace {
   hosts: string[];
   // Always works: the marketplace's main page. Every other link falls back here.
   home: string;
-  // Most photos the marketplace's sell form takes. SellSync sends the first this many.
+  // Most photos the marketplace's sell form takes. Hubby sends the first this many.
   photosMax: number;
   photosNote?: string; // when the limit isn't published by the marketplace itself
-  // Gets the plain cover photo, without SellSync's brand tag or sale banner, because the
+  // Gets the plain cover photo, without Hubby's brand tag or sale banner, because the
   // marketplace removes or rejects photos with text or logos added on them.
   plainCover?: boolean;
   // The listing link, built from the marketplace's own listing ID. Left out when the
@@ -28,7 +28,7 @@ export interface Marketplace {
   listingUrl?: (id: string) => string;
   // Pulls the listing ID out of a pasted link's path parts. Returns undefined when it isn't one.
   listingIdFrom?: (parts: string[], url: URL) => string | undefined;
-  // Share links the marketplace's app makes, which hide the real address. SellSync can't open
+  // Share links the marketplace's app makes, which hide the real address. Hubby can't open
   // them, so the seller is asked for the full link instead.
   shareHosts?: string[];
   orders?: string; // where the seller sees sold orders
@@ -128,7 +128,7 @@ export const MARKETPLACES: Record<Platform, Marketplace> = {
     hosts: ["whatnot.com"],
     home: "https://www.whatnot.com/",
     photosMax: 8,
-    photosNote: "Whatnot doesn't publish its photo limit, so SellSync sends the first 8.",
+    photosNote: "Whatnot doesn't publish its photo limit, so Hubby sends the first 8.",
     listingIdFrom: (p) => after(p, "listing"),
     listingUrl: (id) => `https://www.whatnot.com/listing/${enc(id)}`,
     orders: "https://www.whatnot.com/dashboard/orders",
@@ -140,7 +140,7 @@ export const MARKETPLACES: Record<Platform, Marketplace> = {
     shareHosts: ["fb.me"],
     home: "https://www.facebook.com/marketplace/",
     photosMax: 10,
-    photosNote: "Facebook doesn't publish a Marketplace photo limit, so SellSync sends the first 10.",
+    photosNote: "Facebook doesn't publish a Marketplace photo limit, so Hubby sends the first 10.",
     listingIdFrom: (p) => after(p, "item"),
     listingUrl: (id) => `https://www.facebook.com/marketplace/item/${enc(id)}/`,
     orders: "https://www.facebook.com/marketplace/you/selling",
@@ -151,7 +151,7 @@ export const MARKETPLACES: Record<Platform, Marketplace> = {
     hosts: ["thredup.com"],
     home: "https://www.thredup.com/",
     photosMax: 8,
-    photosNote: "ThredUp doesn't publish its Direct Listing photo limit, so SellSync sends the first 8.",
+    photosNote: "ThredUp doesn't publish its Direct Listing photo limit, so Hubby sends the first 8.",
     // thredup.com/product/women-levis-blue-jeans/223344556 → 223344556. The link needs the title
     // too, so the cleaned pasted link is kept.
     listingIdFrom: (p) => (p[0] === "product" ? p[p.length - 1] : undefined),
@@ -174,7 +174,7 @@ export const MARKETPLACES: Record<Platform, Marketplace> = {
     shareHosts: ["curtsy.app.link"],
     home: "https://curtsyapp.com/",
     photosMax: 8,
-    photosNote: "Curtsy doesn't publish its photo limit, so SellSync sends the first 8.",
+    photosNote: "Curtsy doesn't publish its photo limit, so Hubby sends the first 8.",
     // Curtsy is an app first; its web links vary, so the cleaned pasted link is kept as is.
     listingIdFrom: (p) => p[p.length - 1],
   },
@@ -184,7 +184,7 @@ export const MARKETPLACES: Record<Platform, Marketplace> = {
     shareHosts: ["grailed.app.link"],
     home: "https://www.grailed.com/",
     photosMax: 8,
-    photosNote: "Grailed doesn't publish its photo limit, so SellSync sends the first 8.",
+    photosNote: "Grailed doesn't publish its photo limit, so Hubby sends the first 8.",
     // grailed.com/listings/12345678-carhartt-detroit-jacket → 12345678
     listingIdFrom: (p) => after(p, "listings")?.split("-")[0],
     listingUrl: (id) => `https://www.grailed.com/listings/${enc(id)}`,
@@ -195,7 +195,7 @@ export const MARKETPLACES: Record<Platform, Marketplace> = {
     hosts: ["vestiairecollective.com"],
     home: "https://us.vestiairecollective.com/",
     photosMax: 8,
-    photosNote: "Vestiaire doesn't publish its photo limit, so SellSync sends the first 8.",
+    photosNote: "Vestiaire doesn't publish its photo limit, so Hubby sends the first 8.",
     // .../women-bags/handbags/chanel/black-leather-chanel-handbag-41234567.shtml → 41234567.
     // The link needs the whole path, so the cleaned pasted link is kept.
     listingIdFrom: (p) => p[p.length - 1]?.match(/-(\d+)\.shtml$/)?.[1],
@@ -210,7 +210,7 @@ export const MARKETPLACES: Record<Platform, Marketplace> = {
     listingIdFrom: (p) => after(p, "products"),
     orders: "https://admin.shopify.com/orders",
   },
-  // SellSync's own marketplace. Buyers shop at sellsync…/?market; each listing's ID is its SellSource id.
+  // Hubby's own marketplace. Buyers shop at hubby…/?market; each listing's ID is its SellSource id.
   SellSource: {
     name: "SellSource",
     hosts: [],
@@ -228,7 +228,7 @@ export const MARKETPLACES: Record<Platform, Marketplace> = {
   },
 };
 
-// The most photos a listing can have in SellSync: the most any marketplace takes (eBay's 24).
+// The most photos a listing can have in Hubby: the most any marketplace takes (eBay's 24).
 // Each marketplace gets its first photosMax of them, cover photo first.
 export const MAX_LISTING_PHOTOS = Math.max(...Object.values(MARKETPLACES).map((m) => m.photosMax));
 
@@ -247,7 +247,7 @@ const hostMatches = (host: string, hosts: string[]) => {
   return hosts.some((d) => h === d || h.endsWith(`.${d}`));
 };
 
-// Which marketplace a link belongs to, if SellSync knows it.
+// Which marketplace a link belongs to, if Hubby knows it.
 export function platformOfUrl(text: string): Platform | undefined {
   try {
     const host = new URL(text.trim()).hostname;
@@ -307,12 +307,12 @@ export function listingHref(platform: Platform, listing: { listingId?: string; u
   return listing.listingId || listing.url ? m.home || undefined : undefined;
 }
 
-// Every fixed address SellSync links to, for the weekly link check. Search links use a sample
+// Every fixed address Hubby links to, for the weekly link check. Search links use a sample
 // search, since those are built from what the seller types.
 export function linksToCheck(): { platform: Platform; what: string; url: string }[] {
   const out: { platform: Platform; what: string; url: string }[] = [];
   for (const [platform, m] of Object.entries(MARKETPLACES) as [Platform, Marketplace][]) {
-    if (platform === "SellSource") continue; // SellSync's own pages, not another site's
+    if (platform === "SellSource") continue; // Hubby's own pages, not another site's
     const add = (what: string, url?: string) => url && out.push({ platform, what, url });
     add("main page", m.home);
     add("orders page", m.orders);

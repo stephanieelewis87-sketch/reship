@@ -10,13 +10,13 @@ export function ProgramHero({ program, children }: { program: AffiliateProgram; 
     <section className="rounded-2xl bg-card border border-border text-foreground px-5 py-8 md:px-10 md:py-12 overflow-hidden relative">
       <div aria-hidden className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-accent/25 blur-3xl" />
       <div className="relative max-w-xl">
-        <p className="font-mono text-[12px] uppercase tracking-widest text-accent">SellSync affiliate program</p>
+        <p className="font-mono text-[12px] uppercase tracking-widest text-accent">Hubby affiliate program</p>
         <h1 className="font-serif text-3xl md:text-[44px] font-medium tracking-tight mt-2 leading-tight">
           Earn {bonusHeadline(program)}, then {ratePercent(program.rate)} for life.
         </h1>
         <p className="text-sm text-muted-foreground mt-3">
           Share your link with the resellers you know. When they subscribe, you get a one-time bonus{program.bonusMatchesPayment ? " equal to their first month" : ""}, plus {ratePercent(program.rate)} of every payment they make for as long as
-          they stay with SellSync.
+          they stay with Hubby.
         </p>
         {children && <div className="mt-6 flex flex-wrap gap-2">{children}</div>}
       </div>
@@ -101,7 +101,7 @@ export function ProgramTerms({ program }: { program: AffiliateProgram }) {
     `Earnings are held ${program.holdDays} days in case a payment is refunded, then become ready to pay.`,
     `Paid monthly by PayPal, Venmo, Cash App or bank transfer once you have at least ${formatCents(program.minPayoutCents)} ready.`,
     "You can't refer yourself or an account that already exists. Sellers can only be referred once.",
-    "No paid ads on the SellSync name, no spam, and no misleading claims. We can pause accounts that break these rules and void their unpaid earnings.",
+    "No paid ads on the Hubby name, no spam, and no misleading claims. We can pause accounts that break these rules and void their unpaid earnings.",
   ].filter(Boolean);
   return (
     <div className="bg-card border border-border rounded-xl p-4 md:p-5">
