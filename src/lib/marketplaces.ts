@@ -210,6 +210,16 @@ export const MARKETPLACES: Record<Platform, Marketplace> = {
     listingIdFrom: (p) => after(p, "products"),
     orders: "https://admin.shopify.com/orders",
   },
+  // SellSync's own marketplace. Buyers shop at sellsync…/?market; each listing's ID is its SellSource id.
+  SellSource: {
+    name: "SellSource",
+    hosts: [],
+    home: "/?market",
+    photosMax: 24,
+    listingUrl: (id) => `/?market&item=${enc(id)}`,
+    orders: "#/orders",
+    search: (q) => `/?market&q=${enc(q)}`,
+  },
   Other: {
     name: "Other",
     hosts: [],
@@ -302,6 +312,7 @@ export function listingHref(platform: Platform, listing: { listingId?: string; u
 export function linksToCheck(): { platform: Platform; what: string; url: string }[] {
   const out: { platform: Platform; what: string; url: string }[] = [];
   for (const [platform, m] of Object.entries(MARKETPLACES) as [Platform, Marketplace][]) {
+    if (platform === "SellSource") continue; // SellSync's own pages, not another site's
     const add = (what: string, url?: string) => url && out.push({ platform, what, url });
     add("main page", m.home);
     add("orders page", m.orders);

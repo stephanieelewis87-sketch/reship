@@ -172,6 +172,11 @@ export const MESSAGE_RULES: Record<Platform, Record<MessageContext, MessageRule>
     pastBuyer: { allowed: "yes", text: "These are your own customers. Email them about their order from the order page in Shopify." },
     potentialBuyer: { allowed: "limited", text: "Only email shoppers who signed up for your emails. Marketing email needs their consent." },
   },
+  SellSource: {
+    bundle: NO_BUNDLES,
+    pastBuyer: { allowed: "yes", text: "These are your own SellSource buyers. Their email is on the order, for questions about the order." },
+    potentialBuyer: { allowed: "limited", text: "Answer shoppers in your live show's chat. SellSource has no cold messaging." },
+  },
   Other: {
     bundle: NO_BUNDLES,
     pastBuyer: { allowed: "limited", text: "Follow that marketplace's rules on messaging buyers." },

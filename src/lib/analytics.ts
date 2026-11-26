@@ -1,3 +1,4 @@
+import { sellSourceFees } from "./sellsource";
 import type { InventoryItem, Order, OrderItem, Platform } from "./types";
 import { MIN_PRICE } from "./minPrice";
 
@@ -93,6 +94,8 @@ export function estimateFees(platform: Platform, price: number): number {
     case "Shopify":
       // Shopify Payments card processing on the Basic plan; your plan may differ.
       return price * 0.029 + 0.3;
+    case "SellSource":
+      return sellSourceFees(price).total;
     case "Vinted":
     case "ThredUp": // Direct Listing charges sellers no fee
     case "Other":

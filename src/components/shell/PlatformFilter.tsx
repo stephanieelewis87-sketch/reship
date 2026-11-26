@@ -19,7 +19,7 @@ export function PlatformFilter({
   orders.forEach((o) => (counts[o.platform] = (counts[o.platform] || 0) + 1));
   return (
     <div className="flex items-center gap-1.5 overflow-x-auto max-w-full">
-      {ALL_PLATFORMS.filter((p) => counts[p]).map((p) => (
+      {[...ALL_PLATFORMS, "SellSource" as Platform].filter((p) => counts[p]).map((p) => (
         <button
           type="button"
           key={p}

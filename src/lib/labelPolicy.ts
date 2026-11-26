@@ -31,6 +31,8 @@ export const LABEL_POLICY: Record<Platform, LabelPolicy> = {
   Vestiaire: "marketplace",
   // Your own store has no label of its own to use.
   Shopify: "reship",
+  // SellSource orders are SellSync's own, so the seller ships with their own label.
+  SellSource: "reship",
 };
 
 export const labelPolicy = (o: Pick<Order, "platform">): LabelPolicy => LABEL_POLICY[o.platform];

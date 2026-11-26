@@ -10,6 +10,8 @@ import { asCondition } from "./videoListing";
 import { type AffiliateApi, LocalAffiliates, SupabaseAffiliates } from "./affiliateStore";
 import { type CommunityApi, LocalCommunity, SupabaseCommunity } from "./communityStore";
 import { type CompsApi, type LiveCompsResult, sampleLiveComps } from "./comps";
+import { LocalSellSource, type SellSourceApi, SupabaseSellSource } from "./sellsourceStore";
+import { type ShopApi, type ShopSearch, applyFilters, sampleShop } from "./shop";
 
 // One interface, two backends: Supabase when it's configured, otherwise this browser's storage (demo mode).
 export interface Store {
@@ -54,6 +56,10 @@ export interface Store {
   assistant: AssistantApi | null;
   // Community: sellers trading tips and ideas, with reports, blocks and admin moderation.
   community: CommunityApi;
+  // Shop: search other marketplaces' official APIs for things to buy (samples in demo mode).
+  shop: ShopApi;
+  // SellSource, SellSync's own marketplace, and live shows.
+  sellsource: SellSourceApi;
 }
 
 export interface AssistantQuestion {
@@ -263,6 +269,25 @@ export class LocalStore implements Store {
 
   community = new LocalCommunity();
 
+  shop: ShopApi = {
+    search: async (q, f) => {
+      const s = sampleShop(q);
+      return { ...s, results: applyFilters(s.results, f) };
+    },
+  };
+
+  sellsource = new LocalSellSource({
+    // Read fresh: a sale may have been recorded from the storefront in another tab.
+    orders: async () => {
+      this.memOrders = null;
+      return this.listOrders();
+    },
+    addOrder: async (o) => {
+      this.memOrders = null;
+      await this.saveOrders([o]);
+    },
+  });
+
   // Puts the demo back to its sample orders, all of them as they started.
   reset() {
     this.memOrders = null;
@@ -271,6 +296,7 @@ export class LocalStore implements Store {
     this.feedback.reset();
     this.affiliates.reset();
     this.community.reset();
+    this.sellsource.reset();
     try {
       indexedDB.deleteDatabase(GUARDIAN_DB);
     } catch {
@@ -463,9 +489,11 @@ export class SupabaseStore implements Store {
   constructor(private userId: string) {
     this.affiliates = new SupabaseAffiliates(userId);
     this.community = new SupabaseCommunity(userId);
+    this.sellsource = new SupabaseSellSource(userId);
   }
   affiliates: SupabaseAffiliates;
   community: SupabaseCommunity;
+  sellsource: SupabaseSellSource;
 
   private get db() {
     if (!supabase) throw new Error("Supabase is not configured");
@@ -691,6 +719,16 @@ export class SupabaseStore implements Store {
       if (!error) return data as LiveCompsResult;
       const detail = await (error as { context?: Response }).context?.json?.().catch(() => null);
       throw new Error(detail?.error ?? `Live comps didn't load (${error.message}).`);
+    },
+  };
+
+  // Shop: eBay and Etsy listings through the shop-search Edge Function.
+  shop: ShopApi = {
+    search: async (q, filters) => {
+      const { data, error } = await this.db.functions.invoke("shop-search", { body: { q, ...filters } });
+      if (!error) return data as ShopSearch;
+      const detail = await (error as { context?: Response }).context?.json?.().catch(() => null);
+      throw new Error(detail?.error ?? `Search didn't load (${error.message}).`);
     },
   };
 

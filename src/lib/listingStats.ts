@@ -27,6 +27,7 @@ export const WATCHER_WORD: Record<Platform, { one: string; many: string }> = {
   Grailed: { one: "favorite", many: "favorites" },
   Vestiaire: { one: "like", many: "likes" },
   Shopify: { one: "favorite", many: "favorites" },
+  SellSource: { one: "save", many: "saves" },
   Other: { one: "watcher", many: "watchers" },
 };
 export const watcherWord = (p: Platform, n: number) => (n === 1 ? WATCHER_WORD[p].one : WATCHER_WORD[p].many);
@@ -47,6 +48,7 @@ export const STATS_SOURCE: Record<Platform, string> = {
   Grailed: "Type in what your listing shows. Grailed has no public seller API.",
   Vestiaire: "Type in what your listing shows. Vestiaire has no public seller API.",
   Shopify: "Type in what your Shopify analytics show for the product. Shopify's API can share these once SellSync connects to your store, a later step.",
+  SellSource: "Views and saves on SellSource are counted by SellSync itself.",
   Other: "Type in what the marketplace shows you.",
 };
 

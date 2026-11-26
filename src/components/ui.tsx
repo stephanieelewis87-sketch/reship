@@ -20,6 +20,7 @@ export const PLATFORM_CONFIG: Record<Platform, { color: string; bg: string; doma
   Grailed: { color: "text-zinc-800", bg: "bg-zinc-100", domain: "grailed.com" },
   Vestiaire: { color: "text-amber-800", bg: "bg-amber-50", domain: "vestiairecollective.com" },
   Shopify: { color: "text-lime-700", bg: "bg-lime-50", domain: "shopify.com" },
+  SellSource: { color: "text-accent", bg: "bg-accent/10" },
   Other: { color: "text-stone-700", bg: "bg-stone-100" },
 };
 
@@ -35,6 +36,7 @@ export const orderTitle = (o: Order) =>
 
 export function PlatformIcon({ platform, className = "w-3 h-3" }: { platform: Platform; className?: string }) {
   const domain = PLATFORM_CONFIG[platform].domain;
+  if (platform === "SellSource") return <img src="/sellsync-mark.png" alt="" className={`${className} rounded-sm bg-black object-cover`} />;
   if (!domain) return <Package className={`${className} text-muted-foreground`} />;
   return <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" className={`${className} rounded-sm`} />;
 }

@@ -2,7 +2,7 @@ import type { CoverEdit } from "./coverPhoto";
 import { DEFAULT_PLAN, type PlanId } from "./plans";
 import type { MessagingSettings } from "./messaging";
 import type { SavedResearch } from "./comps";
-export type Platform = "Poshmark" | "Vinted" | "Depop" | "Mercari" | "WhatNot" | "Etsy" | "eBay" | "Facebook" | "ThredUp" | "OfferUp" | "Curtsy" | "Grailed" | "Vestiaire" | "Shopify" | "Other";
+export type Platform = "Poshmark" | "Vinted" | "Depop" | "Mercari" | "WhatNot" | "Etsy" | "eBay" | "Facebook" | "ThredUp" | "OfferUp" | "Curtsy" | "Grailed" | "Vestiaire" | "Shopify" | "SellSource" | "Other";
 export type LabelStatus = "pending" | "printed" | "shipped";
 export type OrderSource = "manual" | "csv" | "sample" | "sync";
 export type PackageType = "Envelope" | "Soft Pack" | "Small Box" | "Medium Box";

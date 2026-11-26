@@ -25,7 +25,25 @@ export const FEATURES = {
   affiliates: false,
   // Plans and plan limits. Off until payments work: everyone gets everything that's switched on.
   plans: false,
+  // Shop: search for things to buy across marketplaces. eBay and Etsy results show in SellSync
+  // once their app keys are set on the shop-search function; every other marketplace opens its own
+  // search, which works today.
+  shop: true,
+  // SellSource, SellSync's own marketplace. Needs Stripe Connect set up (see the README), so it's
+  // on for real accounts only when VITE_SELLSOURCE=on. Demo mode always shows it, with practice
+  // checkouts that charge nothing.
+  sellsource: import.meta.env.VITE_SELLSOURCE === "on",
+  // Live shows. Needs SellSource (for checkout) and a LiveKit video server: VITE_LIVE_SHOWS=on.
+  liveShows: import.meta.env.VITE_LIVE_SHOWS === "on" && import.meta.env.VITE_SELLSOURCE === "on",
 } as const;
 
+// Switches that demo mode turns on even when real accounts don't have them yet, because the demo
+// can run them end to end without the outside services (practice checkouts, your own camera).
+const DEMO_ON: FeatureSwitch[] = ["sellsource", "liveShows"];
+// The same test App.tsx uses for demo mode: no Supabase project, or ?demo in the address.
+const demo =
+  !(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY) ||
+  (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("demo"));
+
 export type FeatureSwitch = keyof typeof FEATURES;
-export const isOn = (f: FeatureSwitch): boolean => FEATURES[f];
+export const isOn = (f: FeatureSwitch): boolean => FEATURES[f] || (demo && DEMO_ON.includes(f));

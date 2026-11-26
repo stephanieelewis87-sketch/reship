@@ -105,6 +105,13 @@ export const PLATFORM_INFO: Record<Platform, PlatformInfo> = {
     listing: "Link products by hand for now.",
     note: "Your own store, so links can be on your own domain.",
   },
+  SellSource: {
+    name: "SellSource",
+    orders: "Arrive by themselves when a buyer checks out on SellSource or in a live show.",
+    label: "Buy a SellSync label or ship with your own, then add tracking to the order.",
+    listing: "Turn on SellSource for an item and it's in your storefront right away.",
+    note: "SellSync's own marketplace. 3% seller fee plus card processing.",
+  },
   Other: {
     name: "Other",
     orders: "Add orders by hand, or Import CSV.",

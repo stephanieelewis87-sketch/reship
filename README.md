@@ -8,6 +8,8 @@ SellSync is built in phases, and each phase has to work end to end before the ne
 
 Features that aren't finished are switched off in `src/lib/features.ts`, not deleted. Today that covers crosslisting (posting to marketplaces), AI listing (video, photos, Generate listing), the cover photo editor, views and watchers, Research, Automations, buying labels, the AI helper, Community, Affiliates and plan limits. The sections below still describe how each one works for when it's switched back on.
 
+**Shop** is on: SellSource, eBay and Etsy results show inside SellSync once their keys are set, and every other marketplace opens its own search. **SellSource** and **Live shows** are on in demo mode (practice checkouts, your own camera) and switch on for real accounts with `VITE_SELLSOURCE=on` and `VITE_LIVE_SHOWS=on` once Stripe and LiveKit are set up (see below).
+
 The browser extension syncs Poshmark and Mercari. Vinted sync was removed because it read Vinted in a way its terms don't allow.
 
 ## Run it
@@ -227,6 +229,57 @@ Until the function is deployed, the app shows estimated prices and can't buy. In
 - Within about 30 seconds the extension opens each marketplace's sell form in a background tab with the title, description, price, photos and condition filled in. The toolbar icon shows how many are waiting. Pick the category, brand and size from the marketplace's own lists and press List. SellSync notices the new listing's page and records it.
 - Delisting is `queueDelist(platform, listingId)`. SellSync deactivates Mercari listings and hides Vinted listings rather than deleting them, so either can be turned back on. If a page doesn't go the way SellSync expects, it leaves the tab open for you to finish.
 - Auto-delist: in the extension popup, choose which marketplaces to take an item down from when it sells somewhere else. It works for items SellSync listed, matched by listing or SKU.
+
+## Shop: buy across marketplaces
+
+Shop (in the menu under Buy and sell) is one search box for buying, to wear or to resell.
+
+| Marketplace | In SellSync | Where you pay |
+|---|---|---|
+| SellSource | Results and checkout | In SellSync (Stripe) |
+| eBay | Results, through eBay's official Browse API | On eBay. eBay's Order API, which lets an app check out, is limited to partners eBay picks. |
+| Etsy | Results, through Etsy's Open API | On Etsy. Etsy has no checkout API for other apps. |
+| Poshmark, Mercari, Depop, Vinted, Facebook Marketplace, ThredUp, Grailed, Curtsy, OfferUp, Vestiaire | A button that opens the marketplace's own search for the same words | On that marketplace. None of them has a public search or buying API, and reading their pages from SellSync would break their terms. |
+
+"I bought it" on a result adds it to Inventory as a draft with what you paid, so its profit is right when it sells.
+
+Setup: run `supabase/migrations/0015_sellsource_and_live.sql`, then `supabase secrets set EBAY_CLIENT_ID=... EBAY_CLIENT_SECRET=... ETSY_API_KEY=... ETSY_SHARED_SECRET=...` (the same keys Research uses) and `supabase functions deploy shop-search`. Optional: `EBAY_CAMPAIGN_ID` from the eBay Partner Network, so eBay pays SellSync a small commission on purchases made through Shop's links, at no cost to the buyer.
+
+## SellSource: SellSync's own marketplace
+
+Sellers open a storefront (`/?shop=their-name`) and turn SellSource on for any inventory item with a price and a photo. Buyers browse everything at `/?market`, without an account, add items from one shop to a bag and pay on Stripe's checkout page.
+
+- **Money:** Stripe Connect (Express accounts, destination charges). The seller's share goes straight to their own Stripe account; SellSource keeps 3% of the item price plus card processing (2.9% + $0.30 on what the buyer pays). SellSync never sees a card or bank number.
+- **Holds:** items are held for 30 minutes while a buyer is on the checkout page, so two people can't buy the same thing. An abandoned checkout puts them back on sale.
+- **Orders:** a paid checkout becomes an order in the seller's Orders, with the buyer's address. The item is marked sold, and when an item sells anywhere else SellSync takes it off SellSource by itself.
+- **Combined shipping:** each seller sets a first-item shipping price and an extra-item price (usually $0). A bag ships as one package, and every win in the same live show joins the buyer's first package.
+
+Setup:
+1. Run `supabase/migrations/0015_sellsource_and_live.sql`.
+2. Create a Stripe account, turn on Connect (Express), and `supabase secrets set STRIPE_SECRET_KEY=sk_... APP_URL=https://your-app`.
+3. `supabase functions deploy sellsource-connect sellsource-checkout` and `supabase functions deploy sellsource-webhook --no-verify-jwt`.
+4. In Stripe, add a webhook to the sellsource-webhook URL for `checkout.session.completed`, `checkout.session.expired` and (listening to connected accounts) `account.updated`, then `supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_...`.
+5. Build with `VITE_SELLSOURCE=on`. Test with Stripe's test keys first.
+
+Before taking real money: SellSource is a marketplace, so it needs its own buyer terms, a returns and disputes policy, a prohibited items list, and sales tax collection (marketplace facilitator laws make SellSync responsible for collecting sales tax in most US states; Stripe Tax can do this).
+
+## Live shows
+
+Sellers schedule a show with items from their storefront, open it on their phone and go live. Buyers watch at `/?live=show-id` without an account, chat, tap Buy now, or bid in 15, 30 or 60 second auctions. A bid in the last 10 seconds puts 10 seconds back on the clock. The database judges every bid (`live_place_bid`), so two people bidding at once can't both win, and only the winner's browser can pay for the item.
+
+- **Video:** LiveKit (open source; LiveKit Cloud or self-hosted). The host's phone sends one stream and LiveKit relays it to every viewer. `supabase secrets set LIVEKIT_URL=wss://... LIVEKIT_API_KEY=... LIVEKIT_API_SECRET=...` and `supabase functions deploy live-token`. Without it, chat, bids and buying still work and viewers see the item photos.
+- **Live updates:** Supabase Realtime (the migration adds the tables to it).
+- Build with `VITE_LIVE_SHOWS=on` (and `VITE_SELLSOURCE=on`).
+- Demo mode: the host sees their own camera, practice viewers chat and bid, and a second tab at `/?live=...` shows the buyer's side.
+
+## Shipping hubs (plan)
+
+The goal: cheaper shipping on SellSource and live show sales by routing through major hub locations. What's built now and what comes after, in order of how much each saves for the work it takes:
+
+1. **Combined shipping (built).** One package per shop per checkout, and one package per buyer per live show. This is the biggest saving on live sales, where buyers often win several items.
+2. **Discounted labels (built, switched off).** Buying labels through EasyPost gets commercial carrier rates, well below retail for USPS Ground Advantage. Turning `buyLabels` on for SellSource orders is the cheapest next step.
+3. **Local pickup at hubs.** Buyers near the seller pick up at a set place (a partner store or a carrier pickup point), for $0 shipping. Needs pickup codes and a no-show policy.
+4. **Multi-seller consolidation at SellSync hubs.** Sellers in a metro drop off at a SellSync hub; orders from several sellers to the same buyer go out as one box, and hubs ship to each other in bulk. This only saves money at volume (roughly thousands of packages a day per metro), adds a day or two to delivery, and needs space, staff and insurance, so it belongs after SellSource has steady sales in a few cities.
 
 ## Coming next
 

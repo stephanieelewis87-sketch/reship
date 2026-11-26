@@ -1,5 +1,5 @@
 import { type ComponentType, useEffect, useState } from "react";
-import { AlertCircle, BarChart3, Gift, Heart, Home, MessageSquare, MoreHorizontal, Search, Settings as SettingsIcon, Shirt, Truck, Users, X, Zap } from "lucide-react";
+import { AlertCircle, BarChart3, Gift, Heart, Home, MessageSquare, MoreHorizontal, Radio, Search, Settings as SettingsIcon, Shirt, ShoppingBag, Store, Truck, Users, X, Zap } from "lucide-react";
 import type { useReshipData } from "@/lib/useReshipData";
 import { isPartiallyDelisted } from "@/lib/inventory";
 import { OrdersPage } from "../Dashboard";
@@ -14,6 +14,10 @@ import { AffiliatesPage } from "../affiliates/AffiliatesPage";
 import { ResearchPage } from "../research/ResearchPage";
 import { AssistantPanel } from "../assistant/AssistantPanel";
 import { CommunityPage } from "../community/CommunityPage";
+import { ShopPage } from "../shop/ShopPage";
+import { SellSourcePage } from "../sellsource/SellSourcePage";
+import { LivePage } from "../live/LivePage";
+import { useSellSourceSync } from "../sellsource/useSellSourceSync";
 import { type Section, go, useRoute } from "./route";
 import { Logo } from "../brand/Logo";
 import { ThemeToggle } from "../brand/ThemeToggle";
@@ -48,6 +52,14 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
+    title: "Buy and sell",
+    items: [
+      { section: "sellsource", label: "SellSource", icon: Store },
+      { section: "live", label: "Live shows", icon: Radio },
+      { section: "shop", label: "Shop", icon: ShoppingBag },
+    ],
+  },
+  {
     title: "Tools",
     items: [
       { section: "automations", label: "Automations", icon: Zap },
@@ -64,6 +76,9 @@ const SECTION_SWITCH: Partial<Record<Section, FeatureSwitch>> = {
   research: "research",
   community: "community",
   affiliates: "affiliates",
+  shop: "shop",
+  sellsource: "sellsource",
+  live: "liveShows",
 };
 const sectionOn = (s: Section) => {
   const f = SECTION_SWITCH[s];
@@ -100,6 +115,7 @@ export function AppShell({
   const toPrint = data.orders.filter((o) => o.status === "pending").length;
   const issues = data.inventory.filter(isPartiallyDelisted).length;
   const badge: Partial<Record<Section, number>> = { orders: toPrint, inventory: issues };
+  useSellSourceSync(data, isOn("sellsource"));
 
   return (
     <div className="h-screen bg-background flex overflow-hidden">
@@ -192,6 +208,9 @@ export function AppShell({
               {route.section === "affiliates" && <AffiliatesPage key={route.params.get("tab") ?? ""} data={data} email={email} tab={route.params.get("tab")} />}
               {route.section === "research" && <ResearchPage key={route.params.get("q") ?? ""} data={data} initialQuery={route.params.get("q") ?? ""} />}
               {route.section === "community" && <CommunityPage data={data} route={route} />}
+              {route.section === "shop" && <ShopPage key={route.params.get("q") ?? ""} data={data} initialQuery={route.params.get("q") ?? ""} />}
+              {route.section === "sellsource" && <SellSourcePage data={data} route={route} />}
+              {route.section === "live" && <LivePage key={route.params.get("show") ?? ""} data={data} route={route} />}
               {route.section === "feedback" && <FeedbackPage key={route.params.get("tab") ?? ""} data={data} tab={route.params.get("tab")} />}
               {route.section === "settings" && (
                 <SettingsPage data={data} email={email} demoMode={demoMode} onSignOut={onSignOut} tab={route.params.get("tab")} need={route.params.get("need")} />
