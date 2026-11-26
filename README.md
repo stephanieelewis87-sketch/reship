@@ -1,6 +1,6 @@
 # Hubby
 
-The hub for your reselling business (and the helpful other half every shop deserves). **SellSync** is Hubby's selling side: Shop across marketplaces, SellSource storefronts and live shows. It was the app's name before the rebrand, and the S emblem stays as its mark.
+The hubby that does it all. Our mission: to make it possible for any ordinary person to start and grow a resale business. **SellSync** is Hubby's selling side: Shop across marketplaces, SellSource storefronts and live shows. It was the app's name before the rebrand, and the S emblem stays as its mark.
 
 The one-stop app for resellers. Today it prints every marketplace label in one batch, keeps track of each item and where it's stored, and shows true profit after fees, shipping and cost of goods.
 

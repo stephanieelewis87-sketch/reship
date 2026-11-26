@@ -4,7 +4,7 @@ import { ArrowRight, BarChart3, Boxes, Check, ChevronDown, Gift, Menu, Printer, 
 import type { Platform } from "@/lib/types";
 import { MARKETPLACES as MARKETPLACE_INFO } from "@/lib/marketplaces";
 import { PlatformIcon } from "../ui";
-import { Logo as BrandLogo, SellSyncMark, SellSyncWordmark, TAGLINE } from "../brand/Logo";
+import { Logo as BrandLogo, MISSION, SellSyncMark, SellSyncWordmark, TAGLINE } from "../brand/Logo";
 import { MISSION_HREF, minPriceLabel } from "@/lib/minPrice";
 
 // The homepage only promises what Hubby does today. Orders and labels sync automatically from
@@ -552,8 +552,11 @@ function FinalCta({ onSignUp, demoHref }: { onSignUp: () => void; demoHref: stri
     <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
       <div className="rounded-3xl bg-accent text-accent-foreground px-6 py-14 sm:px-12 text-center relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.18),transparent_45%)]" />
-        <h2 className="relative font-display text-3xl sm:text-4xl font-medium">Spend your time finding inventory, not doing paperwork.</h2>
-        <p className="relative mt-4 text-white/85 max-w-xl mx-auto">Ship in one batch, find every item fast, and know your real profit.</p>
+        <p className="relative text-xs font-semibold uppercase tracking-[0.18em] text-white/80">Our mission</p>
+        <h2 className="relative mt-3 font-display text-3xl sm:text-4xl font-medium max-w-3xl mx-auto">{MISSION}</h2>
+        <p className="relative mt-4 text-white/85 max-w-xl mx-auto">
+          No experience needed. Hubby ships in one batch, finds every item fast and knows your real profit, so you can spend your time finding inventory.
+        </p>
         <div className="relative mt-8 flex flex-col sm:flex-row gap-3 justify-center">
           <button onClick={onSignUp} className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white text-accent text-sm font-semibold hover:bg-white/90">
             Get started <ArrowRight className="w-4 h-4" />

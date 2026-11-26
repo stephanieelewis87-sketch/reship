@@ -1,6 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import { ArrowRight, Award, Hammer, LayoutGrid, Package, Recycle, Store } from "lucide-react";
-import { Logo } from "../brand/Logo";
+import { Logo, MISSION, TAGLINE } from "../brand/Logo";
 import { freeGiftTip, minPriceLabel } from "@/lib/minPrice";
 
 // The public page with Hubby's mission and philosophy (hubby…/?mission), for anyone,
@@ -22,9 +22,13 @@ export function MissionPage() {
           <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top_right,rgba(181,96,122,0.16),transparent_55%)]" />
           <div className="relative max-w-3xl mx-auto px-4 md:px-8 pt-12 pb-14 text-center">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-semibold tracking-wide">Our mission</span>
-            <h1 className="mt-5 font-serif text-4xl sm:text-5xl font-medium leading-tight">Freedom to run your own business.</h1>
+            <h1 className="mt-5 font-serif text-4xl sm:text-5xl font-medium leading-tight">{MISSION}</h1>
             <p className="mt-6 text-lg text-muted-foreground leading-relaxed">
-              Hubby exists so everyday people can build and run a business of their own, on their own terms. We believe deeply in the resale of used goods:
+              You don't need a warehouse, a team or a business degree. Hubby is the hub that handles the shipping, the inventory, the money and the selling, so
+              anyone can start with what's in their closet and grow from there. {TAGLINE}
+            </p>
+            <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
+              We also believe deeply in the resale of used goods:
               every pre-owned item that finds a new home is something that didn't have to be made new, and something that stayed out of a landfill.
             </p>
           </div>
