@@ -21,7 +21,9 @@ export const FEATURES = {
   buyLabels: false,
   // The Ask Hubby AI helper.
   assistant: false,
-  community: false,
+  // The Hubby group: feed, comments, reactions and meetups. Needs migrations 0014 and 0016, so
+  // it's on for real accounts when VITE_COMMUNITY=on. Demo mode always shows it.
+  community: import.meta.env.VITE_COMMUNITY === "on",
   affiliates: false,
   // Plans and plan limits. Off until payments work: everyone gets everything that's switched on.
   plans: false,
@@ -39,7 +41,7 @@ export const FEATURES = {
 
 // Switches that demo mode turns on even when real accounts don't have them yet, because the demo
 // can run them end to end without the outside services (practice checkouts, your own camera).
-const DEMO_ON: FeatureSwitch[] = ["sellsource", "liveShows"];
+const DEMO_ON: FeatureSwitch[] = ["sellsource", "liveShows", "community"];
 // The same test App.tsx uses for demo mode: no Supabase project, or ?demo in the address.
 const demo =
   !(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY) ||

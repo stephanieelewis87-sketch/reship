@@ -1,97 +1,83 @@
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ArrowLeft,
-  Ban,
-  Check,
-  EyeOff,
-  Flag,
-  Heart,
-  MessageCircle,
-  MoreHorizontal,
-  Pencil,
-  Plus,
-  RotateCcw,
-  Search,
-  ShieldCheck,
-  Trash2,
-  UserX,
-  Users,
-} from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowLeft, CalendarDays, CalendarPlus, Search, ShieldCheck, Users } from "lucide-react";
 import type { useReshipData } from "@/lib/useReshipData";
 import {
-  type BannedSeller,
+  type Attendee,
   type BlockedSeller,
-  CATEGORIES,
   type CommunityCategory,
   type CommunityMe,
   type CommunityPost,
   type CommunityReply,
   type CommunitySort,
-  type ContentKind,
-  LIMITS,
-  type NewPost,
-  REPORT_REASONS,
-  type ReportReason,
+  POST_TOPICS,
   type ReportedItem,
+  applyReaction,
+  applyRsvp,
   authorNameFrom,
-  categoryLabel,
-  excerpt,
   filterPosts,
-  postProblem,
-  reasonLabel,
-  replyProblem,
+  reactionTotal,
   sortPosts,
-  timeAgo,
+  splitMeetups,
   visibleReplies,
 } from "@/lib/community";
 import type { Route } from "../shell/route";
 import { go } from "../shell/route";
-import { PageHeader } from "../shell/PageHeader";
-import { EmptyState, Field, Menu, MenuItem, Modal, ModalHeader, inputClass, primaryButton, secondaryButton, selectClass } from "../ui";
+import { EmptyState, inputClass, selectClass } from "../ui";
+import { ComposerBar, PostCard, PostComposer } from "./feed";
+import { type MeetupPost, MeetupDetails, MeetupForm, MeetupsTab, UpcomingMeetups } from "./meetups";
+import { BanModal, BlockedList, Confirm, ReportModal, ReportQueue } from "./moderation";
+import { AvatarStack, Banner, type PostActions, type Target } from "./parts";
 
 type Data = ReturnType<typeof useReshipData>;
-type Tab = "feed" | "reports" | "blocked";
+type Tab = "feed" | "meetups" | "reports" | "blocked";
 type Filter = CommunityCategory | "all" | "mine";
 
-// Someone to block, report or ban, from a post or reply's menu.
-interface Target {
-  kind: ContentKind;
-  id: string;
-  userId: string;
-  authorName: string;
-}
+// How many posts get their latest comments loaded with the feed.
+const PREVIEW_POSTS = 40;
 
+// The Hubby group: a feed where resellers post, comment and react, plus meetups they plan together.
 export function CommunityPage({ data, route }: { data: Data; route: Route }) {
   const api = data.store.community;
   const postId = route.params.get("post");
   const tabParam = route.params.get("tab");
   const [me, setMe] = useState<CommunityMe | null>(null);
   const [posts, setPosts] = useState<CommunityPost[] | null>(null);
+  const [comments, setComments] = useState<Record<string, CommunityReply[]>>({});
   const [blocked, setBlocked] = useState<BlockedSeller[]>([]);
   const [queue, setQueue] = useState<ReportedItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [composer, setComposer] = useState<{ edit?: CommunityPost } | null>(null);
+  const [planner, setPlanner] = useState<{ edit?: MeetupPost } | null>(null);
   const [reporting, setReporting] = useState<Target | null>(null);
   const [blocking, setBlocking] = useState<Target | null>(null);
   const [banning, setBanning] = useState<Target | null>(null);
+  const [deleting, setDeleting] = useState<{ kind: "post" | "reply"; id: string; meetup: boolean } | null>(null);
+  // Bumped after anything that could change the open post's page.
+  const [version, setVersion] = useState(0);
 
   const authorName = authorNameFrom(data.settings.displayName);
   const blockedIds = useMemo(() => new Set(blocked.map((b) => b.userId)), [blocked]);
-  const tab: Tab = tabParam === "reports" && me?.isAdmin ? "reports" : tabParam === "blocked" ? "blocked" : "feed";
+  const tab: Tab = tabParam === "reports" && me?.isAdmin ? "reports" : tabParam === "blocked" ? "blocked" : tabParam === "meetups" ? "meetups" : "feed";
 
   const refresh = useCallback(async () => {
     try {
       const [m, list, b] = await Promise.all([api.me(), api.listPosts(), api.blocked()]);
+      const recent = [...list].sort((x, y) => y.lastActivityAt.localeCompare(x.lastActivityAt)).slice(0, PREVIEW_POSTS);
+      const replies = await api.repliesFor(recent.filter((p) => p.replyCount > 0).map((p) => p.id)).catch(() => []);
+      const byPost: Record<string, CommunityReply[]> = {};
+      for (const r of replies) (byPost[r.postId] ??= []).push(r);
       setMe(m);
       setPosts(list);
+      setComments(byPost);
       setBlocked(b);
       setQueue(m.isAdmin ? await api.admin.queue() : []);
       setError(null);
     } catch (e) {
       setPosts((p) => p ?? []);
-      setError(e instanceof Error ? e.message : "The Community didn't load.");
+      setError(e instanceof Error ? e.message : "The group didn't load.");
     }
+    setVersion((v) => v + 1);
   }, [api]);
   useEffect(() => {
     refresh();
@@ -110,97 +96,159 @@ export function CommunityPage({ data, route }: { data: Data; route: Route }) {
     }
     await refresh();
   };
+  // Show a change right away, then let the server's answer replace it.
+  const patchPost = (id: string, fn: (p: CommunityPost) => CommunityPost) => setPosts((list) => list && list.map((p) => (p.id === id ? fn(p) : p)));
+  const patchReply = (id: string, fn: (r: CommunityReply) => CommunityReply) =>
+    setComments((all) => Object.fromEntries(Object.entries(all).map(([k, l]) => [k, l.map((r) => (r.id === id ? fn(r) : r))])));
 
   const actions: PostActions = {
     me,
     authorName,
-    onLike: (kind, id, liked) => run(() => api.setLiked(kind, id, liked)),
+    onReact: (kind, id, reaction) => {
+      if (kind === "post")
+        patchPost(id, (p) => {
+          const reactions = applyReaction(p.reactions, p.myReaction, reaction);
+          return { ...p, reactions, likeCount: reactionTotal(reactions), myReaction: reaction ?? undefined, likedByMe: !!reaction };
+        });
+      else patchReply(id, (r) => ({ ...r, likedByMe: !!reaction, likeCount: Math.max(0, r.likeCount + (reaction ? 1 : -1)) }));
+      run(() => api.react(kind, id, reaction));
+    },
+    onComment: async (pid, body) => {
+      await api.reply(pid, body, authorName);
+      await refresh();
+    },
+    onRsvp: (post, status) => {
+      if (post.meetup) patchPost(post.id, (p) => ({ ...p, meetup: applyRsvp(p.meetup!, status) }));
+      run(
+        () => api.rsvp(post.id, status, authorName),
+        status === "going" ? "You're going! It's on your list under Meetups." : status === "maybe" ? "Marked as maybe." : "Got it, you can't make it.",
+      );
+    },
     onReport: setReporting,
     onBlock: setBlocking,
     onBan: setBanning,
     onModerate: (kind, id, action) =>
       run(() => api.admin.moderate(kind, id, action), action === "remove" ? "Removed. Only you and the author can still see it." : "Back up for everyone."),
-    onDelete: (kind, id) =>
-      run(async () => {
-        if (kind === "post") {
-          await api.deletePost(id);
-          go("community");
-        } else await api.deleteReply(id);
-      }, "Deleted."),
-    onEdit: (post) => setComposer({ edit: post }),
+    onDelete: (kind, id) => setDeleting({ kind, id, meetup: !!posts?.find((p) => p.id === id)?.meetup }),
+    onEdit: (post) => (post.meetup ? setPlanner({ edit: post as MeetupPost }) : setComposer({ edit: post })),
+    onCancelMeetup: (post, cancelled) =>
+      run(() => api.setMeetupCancelled(post.id, cancelled), cancelled ? "Meetup cancelled. Everyone who RSVP'd sees it on the post." : "The meetup is back on."),
   };
 
-  const tabs: { key: Tab; label: string }[] = [{ key: "feed", label: "Discussions" }];
+  const visible = useMemo(() => (posts ? filterPosts(posts, { blocked: blockedIds, showRemoved: me?.isAdmin }) : []), [posts, blockedIds, me?.isAdmin]);
+  const meetups = useMemo(() => splitMeetups(visible), [visible]);
+  const allMeetups = useMemo(() => visible.filter((p): p is MeetupPost => !!p.meetup), [visible]);
+  const canPost = !!me && !me.banned;
+
+  const tabs: { key: Tab; label: string }[] = [
+    { key: "feed", label: "Discussion" },
+    { key: "meetups", label: meetups.upcoming.length ? `Meetups (${meetups.upcoming.length})` : "Meetups" },
+  ];
   if (me?.isAdmin) tabs.push({ key: "reports", label: queue.length ? `Reports (${queue.length})` : "Reports" });
   tabs.push({ key: "blocked", label: "Blocked" });
 
   return (
     <div>
-      <PageHeader title="Community" subtitle="Swap tips, ask questions and share wins with other resellers">
-        {tab === "feed" && !postId && (
-          <button type="button" className={primaryButton} onClick={() => setComposer({})} disabled={!me || me.banned}>
-            <Plus className="w-4 h-4" /> New post
-          </button>
-        )}
-      </PageHeader>
-      <div className="px-4 md:px-8 border-b border-border flex gap-5 overflow-x-auto">
+      <GroupHeader slim={!!postId} posts={visible} upcoming={meetups.upcoming.length} canPost={canPost} onPost={() => setComposer({})} onPlan={() => setPlanner({})} />
+      <div className="px-4 md:px-8 border-b border-border flex gap-5 overflow-x-auto bg-card/60">
         {tabs.map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => go("community", t.key === "feed" ? undefined : { tab: t.key })}
-            aria-current={tab === t.key ? "page" : undefined}
-            className={`py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px ${tab === t.key ? "border-accent text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            aria-current={tab === t.key && !postId ? "page" : undefined}
+            className={`py-3 text-sm whitespace-nowrap border-b-[3px] -mb-px ${tab === t.key && !postId ? "border-accent text-accent font-semibold" : "border-transparent text-muted-foreground hover:text-foreground"}`}
           >
             {t.label}
           </button>
         ))}
       </div>
 
-      <div className="px-4 md:px-8 py-5 max-w-3xl space-y-4">
-        {me?.banned && (
-          <Banner tone="warn">A moderator has paused your posting in the Community. You can still read along. Questions? Send them through Feedback.</Banner>
-        )}
-        {error && (
-          <Banner tone="error" onClose={() => setError(null)}>
-            {error}
-          </Banner>
-        )}
-        {notice && <Banner tone="ok">{notice}</Banner>}
+      <div className="px-4 md:px-8 py-5">
+        <div className="max-w-5xl mx-auto lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-6 items-start">
+          <div className="space-y-4 min-w-0 max-w-2xl w-full mx-auto lg:mx-0">
+            {me?.banned && <Banner tone="warn">A moderator has paused your posting in the group. You can still read along. Questions? Send them through Feedback.</Banner>}
+            {error && (
+              <Banner tone="error" onClose={() => setError(null)}>
+                {error}
+              </Banner>
+            )}
+            {notice && <Banner tone="ok">{notice}</Banner>}
 
-        {posts === null ? (
-          <p className="text-sm text-muted-foreground text-center py-16">Loading…</p>
-        ) : tab === "reports" ? (
-          <ReportQueue queue={queue} actions={actions} />
-        ) : tab === "blocked" ? (
-          <BlockedList
-            blocked={blocked}
-            me={me}
-            onUnblock={(b) => run(() => api.unblock(b.userId), `Unblocked ${b.name}.`)}
-            loadBans={api.admin.bans}
-            onUnban={(b) => run(() => api.admin.unban(b.userId), `${b.name} can post again.`)}
-          />
-        ) : postId ? (
-          <PostView key={postId} postId={postId} data={data} blocked={blockedIds} actions={actions} onChanged={refresh} />
-        ) : (
-          <Feed posts={posts} me={me} blocked={blockedIds} actions={actions} onNew={() => setComposer({})} />
-        )}
+            {posts === null ? (
+              <p className="text-sm text-muted-foreground text-center py-16">Loading…</p>
+            ) : postId ? (
+              <PostPage key={postId} postId={postId} data={data} version={version} blocked={blockedIds} actions={actions} />
+            ) : tab === "reports" ? (
+              <ReportQueue queue={queue} actions={actions} />
+            ) : tab === "blocked" ? (
+              <BlockedList
+                blocked={blocked}
+                me={me}
+                onUnblock={(b) => run(() => api.unblock(b.userId), `Unblocked ${b.name}.`)}
+                loadBans={api.admin.bans}
+                onUnban={(b) => run(() => api.admin.unban(b.userId), `${b.name} can post again.`)}
+              />
+            ) : tab === "meetups" ? (
+              <MeetupsTab posts={allMeetups} actions={actions} onPlan={() => setPlanner({})} />
+            ) : (
+              <Feed
+                posts={visible}
+                upcoming={meetups.upcoming}
+                comments={comments}
+                blocked={blockedIds}
+                actions={actions}
+                canPost={canPost}
+                onNew={() => setComposer({})}
+                onPlan={() => setPlanner({})}
+              />
+            )}
+          </div>
+          <aside className="hidden lg:block space-y-4 sticky top-4">
+            <UpcomingMeetups posts={meetups.upcoming} onPlan={canPost ? () => setPlanner({}) : undefined} />
+            <AboutGroup />
+          </aside>
+        </div>
       </div>
 
       {composer && (
-        <Composer
+        <PostComposer
           edit={composer.edit}
           authorName={authorName}
           onClose={() => setComposer(null)}
+          onMeetup={() => {
+            setComposer(null);
+            setPlanner({});
+          }}
           onSave={async (p) => {
             if (composer.edit) {
               await api.editPost(composer.edit.id, p);
               flash("Saved.");
             } else {
-              const created = await api.createPost(p, authorName);
-              go("community", { post: created.id });
+              await api.createPost(p, authorName);
+              flash("Posted to the group.");
+              go("community");
             }
             setComposer(null);
+            await refresh();
+          }}
+        />
+      )}
+      {planner && (
+        <MeetupForm
+          edit={planner.edit}
+          authorName={authorName}
+          onClose={() => setPlanner(null)}
+          onSave={async (m) => {
+            if (planner.edit) {
+              await api.editMeetup(planner.edit.id, m);
+              flash("Meetup updated.");
+            } else {
+              const created = await api.createMeetup(m, authorName);
+              flash("Your meetup is posted, and you're down as going.");
+              go("community", { post: created.id });
+            }
+            setPlanner(null);
             await refresh();
           }}
         />
@@ -220,7 +268,7 @@ export function CommunityPage({ data, route }: { data: Data; route: Route }) {
       {blocking && (
         <Confirm
           title={`Block ${blocking.authorName}?`}
-          text="You won't see their posts or replies anymore, and they won't know. You can unblock them any time from the Blocked tab."
+          text="You won't see their posts, comments or RSVPs anymore, and they won't know. You can unblock them any time from the Blocked tab."
           confirm="Block"
           onClose={() => setBlocking(null)}
           onConfirm={() => {
@@ -231,6 +279,30 @@ export function CommunityPage({ data, route }: { data: Data; route: Route }) {
           }}
         />
       )}
+      {deleting && (
+        <Confirm
+          title={deleting.kind === "reply" ? "Delete this comment?" : deleting.meetup ? "Delete this meetup?" : "Delete this post?"}
+          text={
+            deleting.kind === "reply"
+              ? "It's gone for everyone."
+              : deleting.meetup
+                ? "The meetup, its RSVPs and its discussion are gone for everyone. If you just can't host anymore, Cancel meetup keeps the post up so people know."
+                : "The post and its comments are gone for everyone."
+          }
+          confirm="Delete"
+          onClose={() => setDeleting(null)}
+          onConfirm={() => {
+            const d = deleting;
+            setDeleting(null);
+            return run(async () => {
+              if (d.kind === "post") {
+                await api.deletePost(d.id);
+                if (postId) go("community", d.meetup ? { tab: "meetups" } : undefined);
+              } else await api.deleteReply(d.id);
+            }, "Deleted.");
+          }}
+        />
+      )}
       {banning && (
         <BanModal
           target={banning}
@@ -238,7 +310,7 @@ export function CommunityPage({ data, route }: { data: Data; route: Route }) {
           onBan={(reason) => {
             const t = banning;
             setBanning(null);
-            return run(() => api.admin.ban(t.userId, t.authorName, reason), `${t.authorName} can no longer post or reply.`);
+            return run(() => api.admin.ban(t.userId, t.authorName, reason), `${t.authorName} can no longer post or comment.`);
           }}
         />
       )}
@@ -246,47 +318,150 @@ export function CommunityPage({ data, route }: { data: Data; route: Route }) {
   );
 }
 
-interface PostActions {
-  me: CommunityMe | null;
-  authorName: string;
-  onLike: (kind: ContentKind, id: string, liked: boolean) => void;
-  onReport: (t: Target) => void;
-  onBlock: (t: Target) => void;
-  onBan: (t: Target) => void;
-  onModerate: (kind: ContentKind, id: string, action: "remove" | "restore" | "dismiss") => void;
-  onDelete: (kind: ContentKind, id: string) => void;
-  onEdit: (p: CommunityPost) => void;
+// ---------- The group's cover ----------
+
+function GroupHeader({ slim, posts, upcoming, canPost, onPost, onPlan }: { slim: boolean; posts: CommunityPost[]; upcoming: number; canPost: boolean; onPost: () => void; onPlan: () => void }) {
+  // The faces of people who posted or commented lately.
+  const recent = useMemo(() => {
+    const names: string[] = [];
+    for (const p of [...posts].sort((a, b) => b.lastActivityAt.localeCompare(a.lastActivityAt))) if (!names.includes(p.authorName)) names.push(p.authorName);
+    return names;
+  }, [posts]);
+  return (
+    // On a phone, a post's own page skips the cover so the post is on screen right away.
+    <div className={`border-b border-border bg-card ${slim ? "hidden md:block" : ""}`}>
+      <div className="h-28 md:h-40 relative overflow-hidden bg-[image:var(--metal)]">
+        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1.2px, transparent 0)", backgroundSize: "18px 18px" }} />
+        <svg className="absolute -right-6 -bottom-10 w-72 h-72 text-white/15" viewBox="0 0 200 200" aria-hidden>
+          <circle cx="100" cy="100" r="34" fill="currentColor" />
+          {[0, 60, 120, 180, 240, 300].map((a) => (
+            <g key={a} transform={`rotate(${a} 100 100)`}>
+              <rect x="97" y="22" width="6" height="44" rx="3" fill="currentColor" />
+              <circle cx="100" cy="18" r="12" fill="currentColor" />
+            </g>
+          ))}
+        </svg>
+      </div>
+      <div className="px-4 md:px-8 pb-4 max-w-5xl mx-auto">
+        <div className="flex items-end gap-4 -mt-8 md:-mt-10 flex-wrap">
+          <span className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-card ring-4 ring-card shadow-md flex items-center justify-center shrink-0">
+            <Users className="w-8 h-8 md:w-10 md:h-10 text-accent" />
+          </span>
+          <div className="min-w-0 flex-1 pt-10 md:pt-12">
+            <h1 className="font-serif text-2xl md:text-[30px] font-medium tracking-tight text-foreground leading-tight">The Hubby Hangout</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Your reselling hub, plus the hubbies, partners and pals who carry the bags</p>
+          </div>
+        </div>
+        <div className="mt-3 flex items-center gap-3 flex-wrap">
+          {recent.length > 0 && <AvatarStack names={recent} max={7} />}
+          <span className="text-xs text-muted-foreground">
+            {recent.length} {recent.length === 1 ? "member" : "members"} active lately
+            {upcoming > 0 && (
+              <>
+                {" · "}
+                <a href="#/community?tab=meetups" className="text-accent font-medium hover:underline">
+                  {upcoming} upcoming {upcoming === 1 ? "meetup" : "meetups"}
+                </a>
+              </>
+            )}
+          </span>
+          <span className="flex gap-2 ml-auto">
+            <button
+              type="button"
+              onClick={onPlan}
+              disabled={!canPost}
+              className="px-3 py-2 rounded-lg bg-muted text-foreground text-sm font-semibold hover:bg-muted/70 flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <CalendarPlus className="w-4 h-4" /> <span className="sm:hidden">Meetup</span>
+              <span className="hidden sm:inline">Plan a meetup</span>
+            </button>
+            <button
+              type="button"
+              onClick={onPost}
+              disabled={!canPost}
+              className="px-3 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-semibold hover:bg-accent-hover flex items-center gap-1.5 disabled:opacity-50"
+            >
+              + Post
+            </button>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AboutGroup() {
+  return (
+    <section className="rounded-xl border border-border bg-card shadow-[var(--card-shadow)] p-4 space-y-3">
+      <h2 className="text-sm font-semibold text-foreground">About this group</h2>
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        A friendly hub for resellers to swap tips, celebrate wins, ask anything and meet up in person. Partners and helpers are always welcome.
+      </p>
+      <div>
+        <h3 className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-1.5">
+          <ShieldCheck className="w-3.5 h-3.5 text-accent" /> Group rules
+        </h3>
+        <ol className="text-xs text-muted-foreground space-y-1 list-decimal pl-4">
+          <li>Be kind. We're all figuring it out.</li>
+          <li>Keep it about reselling and the people who make it work.</li>
+          <li>No selling courses, spam or DM-me schemes.</li>
+          <li>Meet in public places first, and look out for each other.</li>
+        </ol>
+      </div>
+      <p className="text-[11px] text-muted-foreground">Report anything that crosses the line and a moderator will look at it.</p>
+    </section>
+  );
 }
 
 // ---------- Feed ----------
 
-function Feed({ posts, me, blocked, actions, onNew }: { posts: CommunityPost[]; me: CommunityMe | null; blocked: Set<string>; actions: PostActions; onNew: () => void }) {
+function Feed({
+  posts,
+  upcoming,
+  comments,
+  blocked,
+  actions,
+  canPost,
+  onNew,
+  onPlan,
+}: {
+  posts: CommunityPost[];
+  upcoming: MeetupPost[];
+  comments: Record<string, CommunityReply[]>;
+  blocked: Set<string>;
+  actions: PostActions;
+  canPost: boolean;
+  onNew: () => void;
+  onPlan: () => void;
+}) {
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<CommunitySort>("active");
   const [search, setSearch] = useState("");
-  const shown = useMemo(
-    () => sortPosts(filterPosts(posts, { category: filter, search, blocked, showRemoved: me?.isAdmin }), sort),
-    [posts, filter, search, blocked, me?.isAdmin, sort],
-  );
-  const chips: { id: Filter; label: string }[] = [{ id: "all", label: "All" }, ...CATEGORIES.map((c) => ({ id: c.id, label: c.label })), { id: "mine", label: "My posts" }];
+  const isAdmin = !!actions.me?.isAdmin;
+  const shown = useMemo(() => sortPosts(filterPosts(posts, { category: filter, search, showRemoved: isAdmin }), sort), [posts, filter, search, isAdmin, sort]);
+  const chips: { id: Filter; label: string }[] = [
+    { id: "all", label: "All" },
+    { id: "meetups", label: "Meetups" },
+    ...POST_TOPICS.map((c) => ({ id: c.id, label: c.label })),
+    { id: "mine", label: "My posts" },
+  ];
 
   return (
     <>
-      <p className="text-xs text-muted-foreground rounded-lg bg-muted/60 px-3 py-2">
-        Be kind, keep it about reselling, and no selling courses or spam. Report anything that crosses the line and a moderator will look at it.
-      </p>
+      <ComposerBar name={actions.authorName} disabled={!canPost} onPost={onNew} onMeetup={onPlan} />
+      <UpcomingMeetups posts={upcoming} compact />
       <div className="flex gap-2 items-center flex-wrap">
         <label className="relative flex-1 min-w-48">
           <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input className={`${inputClass} pl-8`} placeholder="Search posts" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search posts" />
+          <input className={`${inputClass} pl-8 !rounded-full`} placeholder="Search this group" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search this group" />
         </label>
         <select className={selectClass} value={sort} onChange={(e) => setSort(e.target.value as CommunitySort)} aria-label="Sort posts">
-          <option value="active">Recently active</option>
-          <option value="new">Newest</option>
-          <option value="top">Top</option>
+          <option value="active">Most recent activity</option>
+          <option value="new">New posts</option>
+          <option value="top">Top posts</option>
         </select>
       </div>
-      <div className="flex gap-1.5 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 pb-1" role="tablist" aria-label="Categories">
+      <div className="flex gap-1.5 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 pb-1" role="tablist" aria-label="Topics">
         {chips.map((c) => (
           <button
             key={c.id}
@@ -294,7 +469,7 @@ function Feed({ posts, me, blocked, actions, onNew }: { posts: CommunityPost[]; 
             role="tab"
             aria-selected={filter === c.id}
             onClick={() => setFilter(c.id)}
-            className={`px-3 py-1 rounded-full border text-xs whitespace-nowrap ${filter === c.id ? "border-accent bg-accent/15 text-accent font-medium" : "border-border text-muted-foreground hover:bg-muted"}`}
+            className={`px-3 py-1 rounded-full text-xs whitespace-nowrap ${filter === c.id ? "bg-accent text-accent-foreground font-semibold" : "bg-muted text-muted-foreground hover:text-foreground"}`}
           >
             {c.label}
           </button>
@@ -302,16 +477,16 @@ function Feed({ posts, me, blocked, actions, onNew }: { posts: CommunityPost[]; 
       </div>
       {shown.length === 0 ? (
         <EmptyState
-          icon={Users}
-          title={search || filter !== "all" ? "No posts match" : "No posts yet"}
-          text={search || filter !== "all" ? "Try another category or search." : "Start the conversation with a tip or a question."}
-          action={me && !me.banned ? { label: "Write a post", onClick: onNew } : undefined}
+          icon={filter === "meetups" ? CalendarDays : Users}
+          title={search || filter !== "all" ? "Nothing matches" : "No posts yet"}
+          text={search || filter !== "all" ? "Try another topic or search." : "Say hi! Start the conversation with a tip, a win or a question."}
+          action={canPost ? { label: filter === "meetups" ? "Plan a meetup" : "Write a post", onClick: filter === "meetups" ? onPlan : onNew } : undefined}
         />
       ) : (
-        <ul className="space-y-2.5">
+        <ul className="space-y-4">
           {shown.map((p) => (
             <li key={p.id}>
-              <PostCard post={p} actions={actions} />
+              <PostCard post={p} comments={visibleReplies(comments[p.id] ?? [], blocked, isAdmin)} actions={actions} />
             </li>
           ))}
         </ul>
@@ -320,49 +495,13 @@ function Feed({ posts, me, blocked, actions, onNew }: { posts: CommunityPost[]; 
   );
 }
 
-function PostCard({ post, actions }: { post: CommunityPost; actions: PostActions }) {
-  const open = () => go("community", { post: post.id });
-  return (
-    <article
-      className={`rounded-xl border bg-card p-4 cursor-pointer hover:border-accent/40 transition-colors ${post.removedAt ? "border-dashed border-destructive/40 opacity-75" : "border-border"}`}
-      onClick={open}
-    >
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1">
-          <Byline name={post.authorName} at={post.createdAt} category={post.category} mine={post.mine} />
-          <h2 className="mt-1.5 font-display text-[15px] font-semibold text-foreground leading-snug">
-            <a
-              href={`#/community?post=${post.id}`}
-              onClick={(e) => e.stopPropagation()}
-              className="hover:underline focus:underline outline-none"
-            >
-              {post.title}
-            </a>
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{excerpt(post.body)}</p>
-          {post.removedAt && <Hidden reason={post.removedReason} />}
-        </div>
-        <ItemMenu kind="post" item={post} actions={actions} />
-      </div>
-      <div className="mt-3 flex items-center gap-4" onClick={(e) => e.stopPropagation()}>
-        <LikeButton liked={post.likedByMe} count={post.likeCount} onClick={() => actions.onLike("post", post.id, !post.likedByMe)} />
-        <button type="button" onClick={open} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-          <MessageCircle className="w-3.5 h-3.5" /> {post.replyCount} {post.replyCount === 1 ? "reply" : "replies"}
-        </button>
-      </div>
-    </article>
-  );
-}
+// ---------- One post (or meetup) on its own page ----------
 
-// ---------- One post and its replies ----------
-
-function PostView({ postId, data, blocked, actions, onChanged }: { postId: string; data: Data; blocked: Set<string>; actions: PostActions; onChanged: () => Promise<void> }) {
+function PostPage({ postId, data, version, blocked, actions }: { postId: string; data: Data; version: number; blocked: Set<string>; actions: PostActions }) {
   const api = data.store.community;
   const [post, setPost] = useState<CommunityPost | null | undefined>(undefined);
   const [replies, setReplies] = useState<CommunityReply[]>([]);
-  const [draft, setDraft] = useState("");
-  const [problem, setProblem] = useState<string | null>(null);
-  const [sending, setSending] = useState(false);
+  const [attendees, setAttendees] = useState<Attendee[]>([]);
   const isAdmin = !!actions.me?.isAdmin;
 
   const load = useCallback(async () => {
@@ -370,31 +509,47 @@ function PostView({ postId, data, blocked, actions, onChanged }: { postId: strin
       const r = await api.getPost(postId);
       setPost(r.post);
       setReplies(r.replies);
+      setAttendees(r.post?.meetup ? await api.attendees(postId) : []);
     } catch {
       setPost(null);
     }
   }, [api, postId]);
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, version]);
 
-  // Every action on this screen refreshes both the post and the feed behind it.
-  const wrapped: PostActions = useMemo(() => {
-    const after =
-      <A extends unknown[]>(fn: (...a: A) => unknown) =>
-      async (...a: A) => {
-        await fn(...a);
-        await load();
-      };
-    return { ...actions, onLike: after(actions.onLike), onModerate: after(actions.onModerate), onDelete: after(actions.onDelete) };
-  }, [actions, load]);
+  // Reactions show instantly here too; the page reloads when the server answers.
+  const local: PostActions = useMemo(
+    () => ({
+      ...actions,
+      onReact: (kind, id, reaction) => {
+        if (kind === "post")
+          setPost((p) => {
+            if (!p) return p;
+            const reactions = applyReaction(p.reactions, p.myReaction, reaction);
+            return { ...p, reactions, likeCount: reactionTotal(reactions), myReaction: reaction ?? undefined, likedByMe: !!reaction };
+          });
+        else setReplies((l) => l.map((r) => (r.id === id ? { ...r, likedByMe: !!reaction, likeCount: Math.max(0, r.likeCount + (reaction ? 1 : -1)) } : r)));
+        actions.onReact(kind, id, reaction);
+      },
+      onRsvp: (p, status) => {
+        setPost((cur) => (cur?.meetup ? { ...cur, meetup: applyRsvp(cur.meetup, status) } : cur));
+        actions.onRsvp(p, status);
+      },
+    }),
+    [actions],
+  );
 
-  if (post === undefined) return <p className="text-sm text-muted-foreground text-center py-16">Loading…</p>;
   const back = (
-    <button type="button" onClick={() => go("community")} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-      <ArrowLeft className="w-4 h-4" /> All discussions
+    <button
+      type="button"
+      onClick={() => (window.history.length > 1 ? window.history.back() : go("community"))}
+      className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+    >
+      <ArrowLeft className="w-4 h-4" /> Back to the group
     </button>
   );
+  if (post === undefined) return <p className="text-sm text-muted-foreground text-center py-16">Loading…</p>;
   if (!post || (blocked.has(post.userId) && !post.mine))
     return (
       <>
@@ -403,519 +558,12 @@ function PostView({ postId, data, blocked, actions, onChanged }: { postId: strin
       </>
     );
 
-  const shown = visibleReplies(replies, blocked, isAdmin);
-  const canReply = !!actions.me && !actions.me.banned && !post.removedAt;
-  const send = async () => {
-    const p = replyProblem(draft);
-    if (p) return setProblem(p);
-    setSending(true);
-    try {
-      await api.reply(post.id, draft, actions.authorName);
-      setDraft("");
-      setProblem(null);
-      await Promise.all([load(), onChanged()]);
-    } catch (e) {
-      setProblem(e instanceof Error ? e.message : "Your reply didn't send.");
-    } finally {
-      setSending(false);
-    }
-  };
-
   return (
     <>
       {back}
-      <article className={`rounded-xl border bg-card p-4 md:p-5 ${post.removedAt ? "border-dashed border-destructive/40" : "border-border"}`}>
-        <div className="flex items-start gap-3">
-          <div className="min-w-0 flex-1">
-            <Byline name={post.authorName} at={post.createdAt} category={post.category} mine={post.mine} edited={!!post.editedAt} />
-            <h2 className="mt-2 font-serif text-xl font-medium text-foreground leading-snug">{post.title}</h2>
-          </div>
-          <ItemMenu kind="post" item={post} actions={wrapped} />
-        </div>
-        <p className="mt-3 text-sm text-foreground whitespace-pre-wrap break-words leading-relaxed">{post.body}</p>
-        {post.removedAt && <Hidden reason={post.removedReason} />}
-        <div className="mt-4">
-          <LikeButton liked={post.likedByMe} count={post.likeCount} onClick={() => wrapped.onLike("post", post.id, !post.likedByMe)} />
-        </div>
-      </article>
-
-      <section aria-label="Replies" className="space-y-2">
-        <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider pt-2">
-          {shown.length} {shown.length === 1 ? "reply" : "replies"}
-        </h3>
-        {shown.map((r) => (
-          <div key={r.id} className={`rounded-lg border bg-card px-4 py-3 ${r.removedAt ? "border-dashed border-destructive/40 opacity-80" : "border-border"}`}>
-            <div className="flex items-start gap-3">
-              <div className="min-w-0 flex-1">
-                <Byline name={r.authorName} at={r.createdAt} mine={r.mine} />
-                <p className="mt-1.5 text-sm text-foreground whitespace-pre-wrap break-words">{r.body}</p>
-                {r.removedAt && <Hidden reason={r.removedReason} />}
-              </div>
-              <ItemMenu kind="reply" item={r} actions={wrapped} />
-            </div>
-            <div className="mt-2">
-              <LikeButton small liked={r.likedByMe} count={r.likeCount} onClick={() => wrapped.onLike("reply", r.id, !r.likedByMe)} />
-            </div>
-          </div>
-        ))}
-      </section>
-
-      {canReply ? (
-        <form
-          className="rounded-xl border border-border bg-card p-3 space-y-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            send();
-          }}
-        >
-          <textarea
-            className={`${inputClass} min-h-20`}
-            placeholder="Add a reply"
-            aria-label="Your reply"
-            maxLength={LIMITS.reply}
-            value={draft}
-            onChange={(e) => {
-              setDraft(e.target.value);
-              setProblem(null);
-            }}
-          />
-          <div className="flex items-center justify-between gap-3">
-            <p className={`text-xs ${problem ? "text-destructive" : "text-muted-foreground"}`}>{problem ?? `Replying as ${actions.authorName}`}</p>
-            <button type="submit" className={primaryButton} disabled={sending || !draft.trim()}>
-              {sending ? "Sending…" : "Reply"}
-            </button>
-          </div>
-        </form>
-      ) : (
-        post.removedAt && <p className="text-xs text-muted-foreground">Replies are closed while this post is hidden.</p>
-      )}
+      {post.meetup && <MeetupDetails post={post as MeetupPost} attendees={attendees} actions={local} />}
+      {post.meetup && <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-1">Discussion</h2>}
+      <PostCard post={post} comments={visibleReplies(replies, blocked, isAdmin)} actions={local} expanded />
     </>
-  );
-}
-
-// ---------- Small parts ----------
-
-const AVATAR_TONES = ["bg-rose-100 text-rose-800", "bg-amber-100 text-amber-800", "bg-emerald-100 text-emerald-800", "bg-sky-100 text-sky-800", "bg-violet-100 text-violet-800", "bg-orange-100 text-orange-800"];
-const tone = (name: string) => AVATAR_TONES[[...name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % AVATAR_TONES.length];
-
-function Byline({ name, at, category, mine, edited }: { name: string; at: string; category?: CommunityCategory; mine?: boolean; edited?: boolean }) {
-  return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-      <span className={`w-6 h-6 rounded-full flex items-center justify-center font-semibold text-[11px] shrink-0 ${tone(name)}`} aria-hidden>
-        {name.charAt(0).toUpperCase()}
-      </span>
-      <span className="font-medium text-foreground">{name}</span>
-      {mine && <span className="px-1.5 py-0.5 rounded bg-accent/15 text-accent text-[10px] font-medium">You</span>}
-      <span>·</span>
-      <time dateTime={at}>{timeAgo(at)}</time>
-      {edited && <span>· edited</span>}
-      {category && <span className="px-2 py-0.5 rounded-full bg-muted text-[11px] text-muted-foreground">{categoryLabel(category)}</span>}
-    </div>
-  );
-}
-
-function LikeButton({ liked, count, onClick, small }: { liked: boolean; count: number; onClick: () => void; small?: boolean }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={liked}
-      aria-label={liked ? "Unlike" : "Like"}
-      className={`flex items-center gap-1.5 ${small ? "text-[11px]" : "text-xs"} ${liked ? "text-accent font-medium" : "text-muted-foreground hover:text-foreground"}`}
-    >
-      <Heart className={`${small ? "w-3 h-3" : "w-3.5 h-3.5"} ${liked ? "fill-current" : ""}`} /> {count}
-    </button>
-  );
-}
-
-function Hidden({ reason }: { reason?: string }) {
-  return (
-    <p className="mt-2 flex items-center gap-1.5 text-xs text-destructive">
-      <EyeOff className="w-3.5 h-3.5" /> Hidden from the Community{reason ? `: ${reason}` : ""}
-    </p>
-  );
-}
-
-function ItemMenu({ kind, item, actions }: { kind: ContentKind; item: CommunityPost | CommunityReply; actions: PostActions }) {
-  const target: Target = { kind, id: item.id, userId: item.userId, authorName: item.authorName };
-  const admin = !!actions.me?.isAdmin;
-  return (
-    <div onClick={(e) => e.stopPropagation()}>
-      <Menu
-        align="right"
-        button={(toggle) => (
-          <button type="button" onClick={toggle} aria-label={kind === "post" ? "Post options" : "Reply options"} className="p-1 rounded-md text-muted-foreground hover:bg-muted">
-            <MoreHorizontal className="w-4 h-4" />
-          </button>
-        )}
-      >
-        {(close) => {
-          const pick = (fn: () => void) => () => {
-            close();
-            fn();
-          };
-          return (
-            <>
-              {item.mine && kind === "post" && (
-                <MenuItem onClick={pick(() => actions.onEdit(item as CommunityPost))}>
-                  <Pencil className="w-3.5 h-3.5" /> Edit
-                </MenuItem>
-              )}
-              {item.mine && (
-                <MenuItem danger onClick={pick(() => actions.onDelete(kind, item.id))}>
-                  <Trash2 className="w-3.5 h-3.5" /> Delete
-                </MenuItem>
-              )}
-              {!item.mine && (
-                <>
-                  <MenuItem onClick={pick(() => actions.onReport(target))}>
-                    <Flag className="w-3.5 h-3.5" /> Report
-                  </MenuItem>
-                  <MenuItem onClick={pick(() => actions.onBlock(target))}>
-                    <UserX className="w-3.5 h-3.5" /> Block {item.authorName}
-                  </MenuItem>
-                </>
-              )}
-              {admin && (
-                <>
-                  <div className="my-1 border-t border-border" />
-                  <p className="px-3 py-1 text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3" /> Moderator
-                  </p>
-                  {item.removedAt ? (
-                    <MenuItem onClick={pick(() => actions.onModerate(kind, item.id, "restore"))}>
-                      <RotateCcw className="w-3.5 h-3.5" /> Put back up
-                    </MenuItem>
-                  ) : (
-                    <MenuItem danger onClick={pick(() => actions.onModerate(kind, item.id, "remove"))}>
-                      <EyeOff className="w-3.5 h-3.5" /> Remove {kind}
-                    </MenuItem>
-                  )}
-                  {!item.mine && (
-                    <MenuItem danger onClick={pick(() => actions.onBan(target))}>
-                      <Ban className="w-3.5 h-3.5" /> Ban from posting
-                    </MenuItem>
-                  )}
-                </>
-              )}
-            </>
-          );
-        }}
-      </Menu>
-    </div>
-  );
-}
-
-function Banner({ tone: t, children, onClose }: { tone: "ok" | "warn" | "error"; children: ReactNode; onClose?: () => void }) {
-  const cls = {
-    ok: "bg-emerald-50 border-emerald-200 text-emerald-900",
-    warn: "bg-amber-50 border-amber-200 text-amber-900",
-    error: "bg-rose-50 border-rose-200 text-rose-900",
-  }[t];
-  return (
-    <div role={t === "error" ? "alert" : "status"} className={`rounded-lg border px-3 py-2 text-xs flex items-center gap-2 ${cls}`}>
-      {t === "ok" && <Check className="w-3.5 h-3.5 shrink-0" />}
-      <span className="flex-1">{children}</span>
-      {onClose && (
-        <button type="button" onClick={onClose} className="underline">
-          Dismiss
-        </button>
-      )}
-    </div>
-  );
-}
-
-// ---------- Modals ----------
-
-function Composer({ edit, authorName, onClose, onSave }: { edit?: CommunityPost; authorName: string; onClose: () => void; onSave: (p: NewPost) => Promise<void> }) {
-  const [p, setP] = useState<NewPost>({ category: edit?.category ?? "tips", title: edit?.title ?? "", body: edit?.body ?? "" });
-  const [problem, setProblem] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const submit = async () => {
-    const issue = postProblem(p);
-    if (issue) return setProblem(issue);
-    setSaving(true);
-    try {
-      await onSave(p);
-    } catch (e) {
-      setProblem(e instanceof Error ? e.message : "Your post didn't save.");
-      setSaving(false);
-    }
-  };
-  return (
-    <Modal label={edit ? "Edit post" : "New post"} onClose={onClose} maxWidth="max-w-lg">
-      <ModalHeader title={edit ? "Edit post" : "New post"} subtitle={`Posting as ${authorName}. Change your shop name in Settings.`} onClose={onClose} />
-      <form
-        className="p-5 space-y-4 overflow-y-auto"
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-      >
-        <Field label="Category">
-          <select className={inputClass} value={p.category} onChange={(e) => setP({ ...p, category: e.target.value as CommunityCategory })}>
-            {CATEGORIES.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label}: {c.hint}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Title">
-          <input className={inputClass} maxLength={LIMITS.title} value={p.title} onChange={(e) => setP({ ...p, title: e.target.value })} placeholder="What's it about?" autoFocus />
-        </Field>
-        <Field label="Post">
-          <textarea
-            className={`${inputClass} min-h-40`}
-            maxLength={LIMITS.body}
-            value={p.body}
-            onChange={(e) => setP({ ...p, body: e.target.value })}
-            placeholder="Share the details: what you tried, what worked, what you're wondering."
-          />
-        </Field>
-        {problem && <p className="text-xs text-destructive">{problem}</p>}
-        <div className="flex justify-end gap-2">
-          <button type="button" className={secondaryButton} onClick={onClose}>
-            Cancel
-          </button>
-          <button type="submit" className={primaryButton} disabled={saving}>
-            {saving ? "Saving…" : edit ? "Save" : "Post"}
-          </button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
-
-function ReportModal({ target, onClose, onSend }: { target: Target; onClose: () => void; onSend: (r: ReportReason, note: string) => Promise<void> }) {
-  const [reason, setReason] = useState<ReportReason>("spam");
-  const [note, setNote] = useState("");
-  const [sending, setSending] = useState(false);
-  return (
-    <Modal label="Report" onClose={onClose}>
-      <ModalHeader title={`Report this ${target.kind}`} subtitle={`By ${target.authorName}. They won't know who reported it.`} onClose={onClose} icon={<Flag className="w-4 h-4 text-destructive" />} />
-      <form
-        className="p-5 space-y-3"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          setSending(true);
-          await onSend(reason, note).finally(() => setSending(false));
-        }}
-      >
-        <fieldset className="space-y-1.5">
-          <legend className="text-[12px] font-medium text-muted-foreground mb-1">What's wrong with it?</legend>
-          {REPORT_REASONS.map((r) => (
-            <label key={r.id} className="flex items-center gap-2 text-sm text-foreground">
-              <input type="radio" name="reason" checked={reason === r.id} onChange={() => setReason(r.id)} className="accent-[var(--accent)]" />
-              {r.label}
-            </label>
-          ))}
-        </fieldset>
-        <Field label="Anything else a moderator should know? (optional)">
-          <textarea className={`${inputClass} min-h-16`} maxLength={LIMITS.note} value={note} onChange={(e) => setNote(e.target.value)} />
-        </Field>
-        <div className="flex justify-end gap-2">
-          <button type="button" className={secondaryButton} onClick={onClose}>
-            Cancel
-          </button>
-          <button type="submit" className={primaryButton} disabled={sending}>
-            Send report
-          </button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
-
-function BanModal({ target, onClose, onBan }: { target: Target; onClose: () => void; onBan: (reason: string) => void }) {
-  const [reason, setReason] = useState("");
-  return (
-    <Modal label="Ban from posting" onClose={onClose}>
-      <ModalHeader title={`Ban ${target.authorName} from posting?`} subtitle="They can still read the Community but can't post or reply. Lift it any time from Blocked." onClose={onClose} />
-      <form
-        className="p-5 space-y-3"
-        onSubmit={(e) => {
-          e.preventDefault();
-          onBan(reason);
-        }}
-      >
-        <Field label="Reason (only moderators see this)">
-          <input className={inputClass} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Repeated spam" />
-        </Field>
-        <div className="flex justify-end gap-2">
-          <button type="button" className={secondaryButton} onClick={onClose}>
-            Cancel
-          </button>
-          <button type="submit" className={`${primaryButton} !bg-destructive`}>
-            Ban from posting
-          </button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
-
-function Confirm({ title, text, confirm, onClose, onConfirm }: { title: string; text: string; confirm: string; onClose: () => void; onConfirm: () => void }) {
-  return (
-    <Modal label={title} onClose={onClose}>
-      <ModalHeader title={title} onClose={onClose} />
-      <div className="p-5 space-y-4">
-        <p className="text-sm text-muted-foreground">{text}</p>
-        <div className="flex justify-end gap-2">
-          <button type="button" className={secondaryButton} onClick={onClose}>
-            Cancel
-          </button>
-          <button type="button" className={primaryButton} onClick={onConfirm}>
-            {confirm}
-          </button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-// ---------- Moderation ----------
-
-function ReportQueue({ queue, actions }: { queue: ReportedItem[]; actions: PostActions }) {
-  if (!queue.length) return <EmptyState icon={ShieldCheck} title="Nothing to review" text="Reported posts and replies show up here. Three reports hide something automatically until you decide." />;
-  return (
-    <ul className="space-y-3">
-      {queue.map((q) => (
-        <li key={`${q.kind}:${q.targetId}`} className="rounded-xl border border-border bg-card p-4 space-y-2">
-          <div className="flex items-center gap-2 flex-wrap text-xs">
-            <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-800 font-medium">
-              {q.reportCount} {q.reportCount === 1 ? "report" : "reports"}
-            </span>
-            {q.reasons.map((r) => (
-              <span key={r} className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                {reasonLabel(r)}
-              </span>
-            ))}
-            {q.removedAt && (
-              <span className="flex items-center gap-1 text-destructive">
-                <EyeOff className="w-3 h-3" /> Hidden
-              </span>
-            )}
-            <span className="text-muted-foreground ml-auto">{timeAgo(q.firstReportedAt)}</span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {q.kind === "post" ? "Post" : "Reply"} by <span className="font-medium text-foreground">{q.authorName}</span>
-            {q.kind === "reply" && q.title && <> on “{q.title}”</>}
-          </p>
-          {q.kind === "post" && <p className="text-sm font-semibold text-foreground">{q.title}</p>}
-          <p className="text-sm text-foreground whitespace-pre-wrap break-words">{excerpt(q.body, 400)}</p>
-          {q.notes.length > 0 && (
-            <ul className="text-xs text-muted-foreground space-y-0.5">
-              {q.notes.map((n, i) => (
-                <li key={i}>“{n}”</li>
-              ))}
-            </ul>
-          )}
-          <div className="flex flex-wrap gap-2 pt-1">
-            {!q.removedAt ? (
-              <button type="button" className={`${primaryButton} !bg-destructive !py-1.5 !text-xs`} onClick={() => actions.onModerate(q.kind, q.targetId, "remove")}>
-                <EyeOff className="w-3.5 h-3.5" /> Remove
-              </button>
-            ) : (
-              <button type="button" className={`${primaryButton} !bg-destructive !py-1.5 !text-xs`} onClick={() => actions.onModerate(q.kind, q.targetId, "remove")}>
-                <Check className="w-3.5 h-3.5" /> Keep it removed
-              </button>
-            )}
-            <button
-              type="button"
-              className={`${secondaryButton} !py-1.5 !text-xs`}
-              onClick={() => actions.onModerate(q.kind, q.targetId, q.removedAt ? "restore" : "dismiss")}
-            >
-              <RotateCcw className="w-3.5 h-3.5" /> {q.removedAt ? "Put back up" : "It's fine, dismiss"}
-            </button>
-            <button
-              type="button"
-              className={`${secondaryButton} !py-1.5 !text-xs`}
-              onClick={() => actions.onBan({ kind: q.kind, id: q.targetId, userId: q.authorId, authorName: q.authorName })}
-            >
-              <Ban className="w-3.5 h-3.5" /> Ban author
-            </button>
-            {q.postId && (
-              <a href={`#/community?post=${q.postId}`} className={`${secondaryButton} !py-1.5 !text-xs`}>
-                Open
-              </a>
-            )}
-          </div>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function BlockedList({
-  blocked,
-  me,
-  onUnblock,
-  loadBans,
-  onUnban,
-}: {
-  blocked: BlockedSeller[];
-  me: CommunityMe | null;
-  onUnblock: (b: BlockedSeller) => void;
-  loadBans: () => Promise<BannedSeller[]>;
-  onUnban: (b: BannedSeller) => void;
-}) {
-  const [bans, setBans] = useState<BannedSeller[]>([]);
-  useEffect(() => {
-    if (me?.isAdmin) loadBans().then(setBans, () => setBans([]));
-  }, [me?.isAdmin, loadBans]);
-  return (
-    <div className="space-y-6">
-      <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-foreground">Sellers you blocked</h2>
-        <p className="text-xs text-muted-foreground">Their posts and replies are hidden from you. They aren't told.</p>
-        {blocked.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-3">You haven't blocked anyone.</p>
-        ) : (
-          <ul className="rounded-xl border border-border bg-card divide-y divide-border">
-            {blocked.map((b) => (
-              <li key={b.userId} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                <span className="text-sm text-foreground">{b.name || "A seller"}</span>
-                <button type="button" className={`${secondaryButton} !py-1 !text-xs`} onClick={() => onUnblock(b)}>
-                  Unblock
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-      {me?.isAdmin && (
-        <section className="space-y-2">
-          <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-accent" /> Banned from posting
-          </h2>
-          <p className="text-xs text-muted-foreground">Only moderators see this list.</p>
-          {bans.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-3">No one is banned.</p>
-          ) : (
-            <ul className="rounded-xl border border-border bg-card divide-y divide-border">
-              {bans.map((b) => (
-                <li key={b.userId} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                  <span className="min-w-0">
-                    <span className="block text-sm text-foreground">{b.name || "A seller"}</span>
-                    {b.reason && <span className="block text-xs text-muted-foreground truncate">{b.reason}</span>}
-                  </span>
-                  <button
-                    type="button"
-                    className={`${secondaryButton} !py-1 !text-xs`}
-                    onClick={() => {
-                      setBans((l) => l.filter((x) => x.userId !== b.userId));
-                      onUnban(b);
-                    }}
-                  >
-                    Lift ban
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
-    </div>
   );
 }

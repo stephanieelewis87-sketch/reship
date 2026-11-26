@@ -8,9 +8,9 @@ The one-stop app for resellers. Today it prints every marketplace label in one b
 
 Hubby is built in phases, and each phase has to work end to end before the next one starts. The rule: if it's on the screen, it works for real.
 
-Features that aren't finished are switched off in `src/lib/features.ts`, not deleted. Today that covers crosslisting (posting to marketplaces), AI listing (video, photos, Generate listing), the cover photo editor, views and watchers, Research, Automations, buying labels, the AI helper, Community, Affiliates and plan limits. The sections below still describe how each one works for when it's switched back on.
+Features that aren't finished are switched off in `src/lib/features.ts`, not deleted. Today that covers crosslisting (posting to marketplaces), AI listing (video, photos, Generate listing), the cover photo editor, views and watchers, Research, Automations, buying labels, the AI helper, Affiliates and plan limits. The sections below still describe how each one works for when it's switched back on.
 
-**Shop** is on: SellSource, eBay and Etsy results show inside Hubby once their keys are set, and every other marketplace opens its own search. **SellSource** and **Live shows** are on in demo mode (practice checkouts, your own camera) and switch on for real accounts with `VITE_SELLSOURCE=on` and `VITE_LIVE_SHOWS=on` once Stripe and LiveKit are set up (see below).
+**Shop** is on: SellSource, eBay and Etsy results show inside Hubby once their keys are set, and every other marketplace opens its own search. **SellSource** and **Live shows** are on in demo mode (practice checkouts, your own camera) and switch on for real accounts with `VITE_SELLSOURCE=on` and `VITE_LIVE_SHOWS=on` once Stripe and LiveKit are set up (see below). **Community** (the Hubby group feed and meetups) is on in demo mode and switches on for real accounts with `VITE_COMMUNITY=on` after running migrations 0014 and 0016.
 
 The browser extension syncs Poshmark and Mercari. Vinted sync was removed because it read Vinted in a way its terms don't allow.
 
@@ -28,7 +28,7 @@ Without any setup, Hubby runs in **demo mode**: it starts with sample orders and
 ## Use real accounts and a shared database (Supabase)
 
 1. Create a free project at [supabase.com](https://supabase.com).
-2. In the project's SQL editor, run the files in `supabase/migrations/` in order (0004 adds inventory and profit tracking for Analytics, 0009 the affiliate program, 0011 the current plans, 0013 the AI helper, 0014 the Community).
+2. In the project's SQL editor, run the files in `supabase/migrations/` in order (0004 adds inventory and profit tracking for Analytics, 0009 the affiliate program, 0011 the current plans, 0013 the AI helper, 0014 and 0016 the Community).
 3. Copy `.env.example` to `.env.local` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from Settings > API.
 4. Restart `npm run dev`. Hubby now asks you to sign in, and each account only sees its own orders.
 
@@ -206,13 +206,16 @@ Setup: run `supabase/migrations/0009_affiliates.sql`. The terms live in the one-
 When billing is built, its webhook calls these with the service role key: `record_subscription_payment(user_id, plan, amount_cents, invoice_id)` on every paid invoice (safe to repeat), `record_subscription_refund(invoice_id)` on a refund, and `record_subscription_canceled(user_id)` on a cancellation.
 ## Community
 
-Tools > **Community** is where Hubby sellers swap tips, ask questions and share wins. Run `supabase/migrations/0014_community.sql` to turn it on with accounts (needs 0006 for admins). Demo mode has sample discussions saved in the browser, and you're the moderator there.
+Tools > **Community** is **The Hubby Hangout**, a group feed where resellers (and the partners who help them) post, comment and react, and plan in-person meetups. Run `supabase/migrations/0014_community.sql` and then `0016_community_feed_meetups.sql`, and build with `VITE_COMMUNITY=on`, to turn it on with accounts (needs 0006 for admins). Demo mode has a sample group saved in the browser, and you're the moderator there.
 
-- **Posts and replies** in eight categories (Tips, Questions, Shipping, Sourcing, Wins, Marketplace news, Ideas, Just chatting), with likes, search, and sorting by recently active, newest or top. Authors can edit and delete their own posts. Posts show the shop name from Settings, never the email address.
-- **Report**: anyone can report a post or reply (spam, scam, harassment, off topic, other). Reports from three different sellers hide it automatically until a moderator decides.
-- **Block**: hides a seller's posts and replies from you. They aren't told. Unblock from the Blocked tab.
+- **Feed**: a "What's on your mind?" box at the top, posts with an optional headline and a topic (Tips, Questions, Shipping, Sourcing, Wins, Marketplace news, Ideas, Just chatting), and topic chips, search and sorting. Authors can edit and delete their own posts. Posts show the shop name from Settings, never the email address.
+- **Reactions**: tap Like, or hover (long-press on a phone, arrow up on a keyboard) for Love, Haha, Wow or Yay. One reaction per person per post; the post shows the top emoji and the total.
+- **Comments** sit right under each post in the feed (the latest two, with "View more"), with a quick comment box and likes on comments. Share copies a link to the post.
+- **Meetups**: Plan a meetup with a name, date, start and end time, place, address or area, optional number of spots and details. It's posted to the feed as an event card. People answer Going, Maybe or Can't go; full meetups take Maybes only. Each meetup has its own page with Directions (Google Maps), Add to calendar (an .ics file for Apple, Google or Outlook), the Going and Maybe lists, and a discussion (the post's comments). Hosts can edit, cancel (the post stays up marked Cancelled) or delete. The Meetups tab lists Upcoming, You're going, Hosting and Past, with search by place or town, and the sidebar shows what's coming up.
+- **Report**: anyone can report a post, meetup or comment (spam, scam, harassment, off topic, other). Reports from three different sellers hide it automatically until a moderator decides.
+- **Block**: hides a seller's posts, comments and RSVPs from you. They aren't told. Unblock from the Blocked tab.
 - **Moderators** (anyone in `app_admins`, the same list as Feedback) get a Reports tab to remove, keep removed, put back up or dismiss, can remove anything from its menu, and can ban a seller from posting (they can still read). Bans are lifted from the Blocked tab.
-- The database enforces all of it: sellers can only post as themselves, can't change like or reply counts, banned sellers can't post or reply, and only admins can moderate or read reports.
+- The database enforces all of it: sellers can only post, react and RSVP as themselves, can't change reaction, reply or RSVP counts, only hosts can change a meetup, RSVPs are refused for full, cancelled or past meetups, banned sellers can't post or reply, and only admins can moderate or read reports.
 
 ## Buying labels (EasyPost)
 
