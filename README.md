@@ -49,7 +49,10 @@ Without any setup, Hubby runs in **demo mode**: it starts with sample orders and
 
 - Every new item gets the next SKU automatically, like `BB-00042`. Pick the prefix and number of digits in Settings > SKUs and backups. SKUs are permanent: a number is never handed out twice, even after its item is deleted, and changing an item's SKU takes an extra click.
 - Each SKU has a Code 128 barcode. Print SKU labels from an item's menu, from the item form, or for many items at once (select them, then SKU labels): 2.25 x 1.25" roll labels for Rollo, Dymo or Zebra printers, or Letter sheets of 30 (Avery 5160).
-- Inventory > **Scan** finds an item by SKU or marketplace listing ID with any USB or Bluetooth barcode scanner, or with the camera in Chrome. It also sets where the item is stored, so putting items away is scan, type the bin, scan the next.
+- **QR stickers.** Each item sticker holds a link (`#/inventory?scan=SKU`), so Hubby's own scanner or any phone's camera app can read it. Item stickers print from an item's menu or for many items at once (QR or Code 128 barcode, Avery 5160 sheets or 2.25 x 1.25" rolls).
+- **Blank sticker sheets** (Inventory > Add > Print blank QR stickers) reserve the next SKUs in settings, so they're never handed to another item. Scanning a sticker that isn't on an item yet opens a quick add: photo, what you paid, size and bin.
+- Inventory > **Scan** reads stickers with the phone camera (the browser's own reader where there is one, otherwise the bundled jsQR reader, so iPhone works), a USB or Bluetooth scanner, or a typed SKU. From a scanned item: move it to a bin, mark it sold (one off the count when there are several), or open it.
+- **Bins.** Filter > All bins lists every bin with its item count, renames or empties a bin into another, and prints bin stickers (`#/inventory?bin=NAME`). Scan a bin sticker to see what's inside, or scan an item and then a bin to move it there.
 - Every item has a storage location (bin, shelf). Filter by it, search by it, set it in bulk, and it's printed on the SKU label.
 
 ## Views and watchers
