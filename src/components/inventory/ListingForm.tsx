@@ -10,6 +10,8 @@ import { MARKETPLACES, MAX_LISTING_PHOTOS, PLAIN_COVER_PLATFORMS, parseListingLi
 import { HistoryList } from "./GuardianPage";
 import { QrCode } from "./SkuTools";
 import { itemStickerLink } from "@/lib/stickers";
+import { itemMoney, type ItemMoney } from "@/lib/money";
+import type { SaleLine } from "@/lib/analytics";
 import type { ListingSuggestion } from "@/lib/videoListing";
 import { shrinkImage, splitDataUrl } from "@/lib/videoFrames";
 import { CoverPhotoEditor } from "./CoverPhotoEditor";
@@ -43,6 +45,7 @@ export function ListingForm({
   onDelete,
   store,
   onPrintLabel,
+  sales = [],
 }: {
   item: InventoryItem;
   isNew: boolean;
@@ -58,6 +61,7 @@ export function ListingForm({
   onDelete?: (id: string) => void;
   store?: Store;
   onPrintLabel?: (item: InventoryItem) => void;
+  sales?: SaleLine[]; // every sale, to show what this item made
 }) {
   // SKUs are permanent once an item is saved: changing one breaks the link to past sales and
   // printed labels, so it takes an extra click.
@@ -355,6 +359,12 @@ export function ListingForm({
                 <input type="date" className={inputClass} value={d.purchasedAt ?? ""} onChange={(e) => set("purchasedAt", e.target.value || undefined)} />
               </Field>
             </div>
+            <ItemProfit
+              money={itemMoney(
+                { ...d, listPrice: parseFloat(text.listPrice) || undefined, cost: text.cost.trim() ? parseFloat(text.cost) || 0 : undefined },
+                sales,
+              )}
+            />
             {d.sku.trim() && (
               <div className="flex items-center gap-3">
                 <QrCode value={itemStickerLink(d.sku)} className="h-12 w-12 rounded-sm border border-border" />
@@ -550,5 +560,35 @@ function PhotoCount({ count, platforms }: { count: number; platforms: Platform[]
       {count} of {MAX_LISTING_PHOTOS} photos{count >= MAX_LISTING_PHOTOS ? " (the most any marketplace takes)" : ""}.
       {fewer.length > 0 && ` ${fewer.map((p) => `${MARKETPLACES[p].name} gets the first ${MARKETPLACES[p].photosMax}`).join(", ")}, so put your best photos first.`}
     </p>
+  );
+}
+
+const usd = (n: number) => `${n < 0 ? "-" : ""}$${Math.abs(n).toFixed(2)}`;
+
+// What the item made after fees, shipping and what you paid, or what it would make at its price.
+function ItemProfit({ money }: { money: ItemMoney | null }) {
+  if (!money) return null;
+  const rows: [string, string][] = [
+    [money.sold ? `Sold for${money.platform ? ` on ${money.platform}` : ""}` : `At your price${money.platform ? ` on ${money.platform}` : ""}`, usd(money.price)],
+    [`Marketplace fees${money.feesEstimated ? " (estimated)" : ""}`, usd(-money.fees)],
+    ...(money.sold ? ([["Shipping you paid", usd(-money.shipping)]] as [string, string][]) : []),
+    ["What you paid", money.cost == null ? "not entered" : usd(-money.cost)],
+  ];
+  return (
+    <div className="rounded-lg border border-border bg-muted/40 p-3">
+      <div className="flex items-baseline justify-between">
+        <p className="text-xs text-muted-foreground">{money.sold ? "What you made" : "What you'd make"}</p>
+        <p className={`font-display text-xl tabular-nums ${money.profit < 0 ? "text-rose-700" : "text-emerald-700"}`}>{usd(money.profit)}</p>
+      </div>
+      <dl className="mt-2 space-y-0.5 text-xs">
+        {rows.map(([k, v]) => (
+          <div key={k} className="flex justify-between gap-2">
+            <dt className="text-muted-foreground">{k}</dt>
+            <dd className="tabular-nums">{v}</dd>
+          </div>
+        ))}
+      </dl>
+      {!money.sold && <p className="mt-1.5 text-[11px] text-muted-foreground">Before shipping, if the buyer doesn't pay it.</p>}
+    </div>
   );
 }

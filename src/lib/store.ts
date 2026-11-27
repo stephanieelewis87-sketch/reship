@@ -37,6 +37,10 @@ export interface Store {
   listExpenses(): Promise<Expense[]>;
   saveExpenses(items: Expense[]): Promise<void>;
   deleteExpenses(ids: string[]): Promise<void>;
+  // Receipt photos. saveReceipt returns what to keep on the expense; receiptUrl turns that back into
+  // an address the browser can show (a short-lived private link for real accounts).
+  saveReceipt(dataUrl: string): Promise<string>;
+  receiptUrl(ref: string): Promise<string>;
   // Feedback: everyone sends it; the app owner (an admin) reads all of it and its AI summaries.
   sendFeedback(f: Omit<Feedback, "id" | "status" | "createdAt">): Promise<void>;
   listFeedback(): Promise<Feedback[]>;
@@ -232,6 +236,8 @@ export class LocalStore implements Store {
   listExpenses = () => this.expenses.list();
   saveExpenses = (items: Expense[]) => this.expenses.save(items);
   deleteExpenses = (ids: string[]) => this.expenses.remove(ids);
+  saveReceipt = async (dataUrl: string) => dataUrl;
+  receiptUrl = async (ref: string) => ref;
 
   listBackups = async () =>
     (await guardianTx<InventoryBackup[]>("backups", "readonly", (s) => s.getAll()))
@@ -637,17 +643,35 @@ export class SupabaseStore implements Store {
     } catch {
       return [];
     }
-    return (data as { id: string; expense_date: string; category: string; amount: number; note: string | null; miles: number | null }[]).map(
-      (r): Expense => ({ id: r.id, date: r.expense_date, category: r.category, amount: Number(r.amount), note: r.note ?? undefined, miles: r.miles ?? undefined }),
+    return (data as { id: string; expense_date: string; category: string; amount: number; note: string | null; miles: number | null; receipt?: string | null }[]).map(
+      (r): Expense => ({ id: r.id, date: r.expense_date, category: r.category, amount: Number(r.amount), note: r.note ?? undefined, miles: r.miles ?? undefined, receipt: r.receipt ?? undefined }),
     );
   }
 
   async saveExpenses(items: Expense[]) {
     if (!items.length) return;
     const { error } = await this.db.from("expenses").upsert(
-      items.map((e) => ({ id: e.id, user_id: this.userId, expense_date: e.date, category: e.category, amount: e.amount, note: e.note ?? null, miles: e.miles ?? null })),
+      // The receipt column comes with migration 0018; it's only sent when there's a receipt, so
+      // expenses still save on a database that doesn't have it yet.
+      items.map((e) => ({ id: e.id, user_id: this.userId, expense_date: e.date, category: e.category, amount: e.amount, note: e.note ?? null, miles: e.miles ?? null, ...(e.receipt ? { receipt: e.receipt } : {}) })),
     );
-    if (error) throw error;
+    if (error) throw new Error(/receipt/.test(error.message) ? "Receipts need a database update: run supabase/migrations/0018_receipts.sql (or setup-all.sql)." : error.message);
+  }
+
+  // Receipts go in the private "receipts" bucket under the user's own folder.
+  async saveReceipt(dataUrl: string) {
+    const blob = await (await fetch(dataUrl)).blob();
+    const path = `${this.userId}/${crypto.randomUUID()}.${blob.type === "image/png" ? "png" : "jpg"}`;
+    const { error } = await this.db.storage.from("receipts").upload(path, blob, { contentType: blob.type });
+    if (error) throw new Error(`Couldn't save the receipt: ${error.message}. If this is new, run supabase/migrations/0018_receipts.sql.`);
+    return path;
+  }
+
+  async receiptUrl(ref: string) {
+    if (ref.startsWith("data:") || ref.startsWith("http")) return ref;
+    const { data, error } = await this.db.storage.from("receipts").createSignedUrl(ref, 3600);
+    if (error || !data) throw new Error(`Couldn't open the receipt: ${error?.message ?? "not found"}`);
+    return data.signedUrl;
   }
 
   async deleteExpenses(ids: string[]) {

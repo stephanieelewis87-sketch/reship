@@ -49,6 +49,7 @@ import { ImportListingsModal } from "./ImportListingsModal";
 import { listingHref } from "@/lib/marketplaces";
 import { VideoListing } from "./VideoListing";
 import { SkuLabelsModal } from "./SkuTools";
+import { saleLines } from "@/lib/analytics";
 import { BinsModal, BlankStickersModal, ScanModal } from "./Stickers";
 import { GuardianPage } from "./GuardianPage";
 import { StatsChip, StatsImportModal, StatsModal } from "./ListingStats";
@@ -113,6 +114,7 @@ function AddOption({ icon: Icon, title, hint, onClick }: { icon: typeof Plus; ti
 
 export function InventoryPage({ data, route }: { data: Data; route: Route }) {
   const { inventory, settings, saveInventory, deleteInventory } = data;
+  const sales = useMemo(() => saleLines(data.orders, inventory), [data.orders, inventory]);
   const today = isoDay(new Date());
   const plan = currentPlan(settings);
   const can = (f: Feature) => hasFeature(plan, f);
@@ -328,6 +330,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
       plan={plan}
       inventory={inventory}
       store={data.store}
+      sales={sales}
       salesNotes={salesHints(inventory)}
       onlyPlatform={form.platform}
       onClose={() => setForm(null)}
