@@ -2,7 +2,9 @@
 // placeholders until the final Hubby logo is designed. SellSync, Hubby's selling tools, keeps
 // its rose gold S emblem (SellSyncMark).
 
-export const TAGLINE = "The hubby every reseller deserves.";
+// The motto plays on "hub" and "hubby": the one place that does every job for a reseller.
+export const TAGLINE = "The hubby that does it all.";
+export const MISSION = "To make it possible for any ordinary person to start and grow a resale business.";
 export const SELLSYNC_TAGLINE = "Everything you sell. All in sync.";
 
 export function BrandMark({ className = "w-8 h-8" }: { className?: string }) {
