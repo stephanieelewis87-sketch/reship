@@ -40,6 +40,32 @@ export function reserveSkus(inventory: InventoryItem[], format: SkuFormat, count
   return { skus, skuFormat: { ...format, counters: { ...format.counters, [key]: start + n } } };
 }
 
+// A range the seller picks: prefix ABC, 345 to 374 gives ABC-345 ... ABC-374. Zeros typed in front
+// of the start number are kept (0345 gives ABC-0345). Returns the SKUs, any already on an item, and
+// the settings counter to save, so automatic SKUs with this prefix carry on after the range.
+export function customSkuRange(
+  inventory: InventoryItem[],
+  format: SkuFormat,
+  prefixText: string,
+  startText: string,
+  endText: string,
+): { skus: string[]; taken: string[]; skuFormat: SkuFormat; error?: string } {
+  const prefix = cleanPrefix(prefixText);
+  const none = { skus: [], taken: [], skuFormat: format };
+  if (!prefix) return { ...none, error: "Type letters or numbers for the start of the SKU, like ABC." };
+  if (!/^\d{1,8}$/.test(startText.trim()) || !/^\d{1,8}$/.test(endText.trim())) return { ...none, error: "Type whole numbers for the first and last SKU." };
+  const start = Number(startText.trim());
+  const end = Number(endText.trim());
+  if (end < start) return { ...none, error: "The last number has to be the same as or bigger than the first." };
+  if (end - start + 1 > 300) return { ...none, error: "That's more than 300 stickers. Print up to 300 at a time." };
+  const digits = startText.trim().length;
+  const skus = Array.from({ length: end - start + 1 }, (_, i) => formatSku({ prefix, digits }, start + i));
+  const used = new Set(inventory.map((i) => i.sku.trim().toUpperCase()));
+  const taken = skus.filter((s) => used.has(s));
+  const counters = { ...format.counters, [prefix]: Math.max(format.counters?.[prefix] ?? 0, end) };
+  return { skus, taken, skuFormat: { ...format, counters } };
+}
+
 // The QR code's dark squares, row by row.
 export function qrMatrix(text: string): boolean[][] {
   const qr = qrcode(0, "M");

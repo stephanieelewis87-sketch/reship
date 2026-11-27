@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Camera, Check, ImagePlus, Loader2, MapPin, Package, Printer, ScanLine, Tag } from "lucide-react";
 import type { InventoryItem, SkuFormat } from "@/lib/types";
-import { STICKER_SIZES, binSticker, binsOf, blankSticker, markOneSold, readScan, reserveSkus, stickersPdf, type StickerSize } from "@/lib/stickers";
+import { STICKER_SIZES, binSticker, binsOf, blankSticker, customSkuRange, markOneSold, readScan, reserveSkus, stickersPdf, type StickerSize } from "@/lib/stickers";
+import { cleanPrefix } from "@/lib/sku";
 import { download } from "@/lib/guardian";
 import { newId } from "@/lib/ids";
 import { shrinkImage } from "@/lib/videoFrames";
@@ -320,22 +321,37 @@ function QuickAdd({ code, today, defaultBin, savePhoto, onAdd }: { code: string;
 // A sheet of blank QR stickers, each holding a new SKU saved for it. Stick one on, scan it, add the item.
 export function BlankStickersModal({ inventory, skuFormat, onReserve, onClose }: { inventory: InventoryItem[]; skuFormat: SkuFormat; onReserve: (f: SkuFormat) => void; onClose: () => void }) {
   const [size, setSize] = useState<StickerSize>("sheet");
+  const [mode, setMode] = useState<"next" | "custom">("next");
   const [count, setCount] = useState(30);
+  const [prefix, setPrefix] = useState(skuFormat.prefix || "RS");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const preview = useMemo(() => reserveSkus(inventory, skuFormat, Math.max(1, count)), [inventory, skuFormat, count]);
-  const first = preview.skus[0];
-  const lastSku = preview.skus[preview.skus.length - 1];
+
+  // What will print: the next automatic SKUs, or the seller's own range minus any already on an item.
+  const plan = useMemo(() => {
+    if (mode === "next") {
+      const r = reserveSkus(inventory, skuFormat, Math.max(1, count));
+      return { skus: r.skus, skuFormat: r.skuFormat, taken: [] as string[], error: undefined as string | undefined };
+    }
+    if (!from.trim() || !to.trim()) return { skus: [], skuFormat, taken: [], error: undefined };
+    const r = customSkuRange(inventory, skuFormat, prefix, from, to);
+    return { skus: r.skus.filter((sku) => !r.taken.includes(sku)), skuFormat: r.skuFormat, taken: r.taken, error: r.error };
+  }, [mode, inventory, skuFormat, count, prefix, from, to]);
+  const first = plan.skus[0];
+  const lastSku = plan.skus[plan.skus.length - 1];
+  const sample = first ?? (mode === "custom" ? `${cleanPrefix(prefix) || "ABC"}-${from.trim() || "345"}` : "");
 
   const make = async () => {
+    if (!plan.skus.length) return;
     setBusy(true);
     setErr(null);
     try {
-      const { skus, skuFormat: next } = reserveSkus(inventory, skuFormat, count);
-      const bytes = await stickersPdf(skus.map((s) => blankSticker(s)), size);
+      const bytes = await stickersPdf(plan.skus.map((s) => blankSticker(s)), size);
       // Saved before the download, so these numbers are never given to another item.
-      onReserve(next);
-      download(`blank-stickers-${skus[0]}-to-${skus[skus.length - 1]}.pdf`, bytes, "application/pdf");
+      onReserve(plan.skuFormat);
+      download(`blank-stickers-${first}-to-${lastSku}.pdf`, bytes, "application/pdf");
       onClose();
     } catch (e) {
       setErr((e as Error).message);
@@ -349,13 +365,51 @@ export function BlankStickersModal({ inventory, skuFormat, onReserve, onClose }:
       <p className="text-sm text-muted-foreground">
         Print a sheet of stickers before you have the items. Stick one on each new find, scan it, and add the photo, cost, size and bin right there.
       </p>
-      {first && (
+      {sample && (
         <div className="mx-auto w-60 border border-border rounded-md bg-white text-black p-2 flex items-center gap-2">
-          <QrCode value={blankSticker(first).link} className="w-16 h-16 shrink-0" />
+          <QrCode value={blankSticker(sample).link} className="w-16 h-16 shrink-0" />
           <div className="min-w-0">
-            <div className="font-mono font-bold text-sm">{first}</div>
+            <div className="font-mono font-bold text-sm">{sample}</div>
             <div className="text-[10px]">Scan to add this item</div>
           </div>
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="SKU numbers">
+        {(
+          [
+            ["next", "Next numbers", "Carry on from your last SKU"],
+            ["custom", "Choose my own", "Your letters and number range"],
+          ] as const
+        ).map(([k, t, hint]) => (
+          <button
+            key={k}
+            type="button"
+            role="radio"
+            aria-checked={mode === k}
+            onClick={() => setMode(k)}
+            className={`text-left rounded-lg border px-3 py-2 ${mode === k ? "border-accent bg-accent/5" : "border-border"}`}
+          >
+            <span className="block text-sm font-medium">{t}</span>
+            <span className="block text-[12px] text-muted-foreground">{hint}</span>
+          </button>
+        ))}
+      </div>
+      {mode === "custom" && (
+        <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-end gap-2 text-xs">
+          <label className="space-y-1">
+            <span className="text-muted-foreground">Letters</span>
+            <input className={`${inputClass} font-mono uppercase`} value={prefix} onChange={(e) => setPrefix(cleanPrefix(e.target.value))} placeholder="ABC" aria-label="SKU letters" />
+          </label>
+          <span className="pb-2.5 font-mono text-muted-foreground">-</span>
+          <label className="space-y-1">
+            <span className="text-muted-foreground">First</span>
+            <input className={`${inputClass} font-mono`} value={from} onChange={(e) => setFrom(e.target.value.replace(/\D/g, ""))} placeholder="345" inputMode="numeric" aria-label="First number" />
+          </label>
+          <span className="pb-2.5 text-muted-foreground">to</span>
+          <label className="space-y-1">
+            <span className="text-muted-foreground">Last</span>
+            <input className={`${inputClass} font-mono`} value={to} onChange={(e) => setTo(e.target.value.replace(/\D/g, ""))} placeholder="374" inputMode="numeric" aria-label="Last number" />
+          </label>
         </div>
       )}
       <label className="block text-xs space-y-1">
@@ -376,25 +430,38 @@ export function BlankStickersModal({ inventory, skuFormat, onReserve, onClose }:
           ))}
         </select>
       </label>
-      <label className="block text-xs space-y-1">
-        <span className="text-muted-foreground">How many</span>
-        <select className={`${selectClass} w-full`} value={count} onChange={(e) => setCount(Number(e.target.value))}>
-          {(size === "sheet" ? [30, 60, 90, 120] : [10, 25, 50, 100]).map((n) => (
-            <option key={n} value={n}>
-              {n} stickers{size === "sheet" ? ` (${n / 30} sheet${n > 30 ? "s" : ""})` : ""}
-            </option>
-          ))}
-        </select>
-      </label>
-      <p className="text-[12px] text-muted-foreground">
-        These will be {first} to {lastSku}. Hubby saves those numbers so no other item gets them. Print at 100% size ("Actual size"), not "Fit to page".
-      </p>
+      {mode === "next" && (
+        <label className="block text-xs space-y-1">
+          <span className="text-muted-foreground">How many</span>
+          <select className={`${selectClass} w-full`} value={count} onChange={(e) => setCount(Number(e.target.value))}>
+            {(size === "sheet" ? [30, 60, 90, 120] : [10, 25, 50, 100]).map((n) => (
+              <option key={n} value={n}>
+                {n} stickers{size === "sheet" ? ` (${n / 30} sheet${n > 30 ? "s" : ""})` : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {plan.error && <p className="text-xs text-destructive">{plan.error}</p>}
+      {plan.taken.length > 0 && (
+        <p className="text-xs text-amber-800 bg-amber-50 rounded-md px-3 py-2">
+          {plan.taken.length === 1 ? `${plan.taken[0]} is` : `${plan.taken.slice(0, 3).join(", ")}${plan.taken.length > 3 ? ` and ${plan.taken.length - 3} more` : ""} are`} already on an item, so{" "}
+          {plan.taken.length === 1 ? "it's" : "they're"} left off the sheet.
+        </p>
+      )}
+      {first && (
+        <p className="text-[12px] text-muted-foreground">
+          {plan.skus.length} sticker{plan.skus.length !== 1 ? "s" : ""}: {first}
+          {lastSku !== first ? ` to ${lastSku}` : ""}
+          {size === "sheet" ? `, ${Math.ceil(plan.skus.length / 30)} sheet${plan.skus.length > 30 ? "s" : ""}` : ""}. Hubby saves those numbers so no other item gets them. Print at 100% size ("Actual size"), not "Fit to page".
+        </p>
+      )}
       {err && <p className="text-xs text-destructive">{err}</p>}
       <div className="flex justify-end gap-2">
         <button type="button" className={secondaryButton} onClick={onClose}>
           Cancel
         </button>
-        <button type="button" className={`${primaryButton} flex items-center gap-1.5`} disabled={busy} onClick={() => void make()}>
+        <button type="button" className={`${primaryButton} flex items-center gap-1.5`} disabled={busy || !plan.skus.length} onClick={() => void make()}>
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />} Make PDF
         </button>
       </div>
