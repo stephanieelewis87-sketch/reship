@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PDFDocument } from "pdf-lib";
 import jsQR from "jsqr";
-import { binSticker, binsOf, blankSticker, itemStickerLink, markOneSold, qrMatrix, readScan, reserveSkus, stickersPdf } from "./stickers";
+import { binSticker, binsOf, blankSticker, customSkuRange, itemStickerLink, markOneSold, qrMatrix, readScan, reserveSkus, stickersPdf } from "./stickers";
 import type { InventoryItem, SkuFormat } from "./types";
 
 const item = (sku: string, extra: Partial<InventoryItem> = {}): InventoryItem => ({ id: sku, sku, title: `Item ${sku}`, status: "draft", listings: [], ...extra });
@@ -72,5 +72,25 @@ describe("selling and bins", () => {
       { bin: "Bin 10", count: 2 },
       { bin: "Bin 2", count: 1 },
     ]);
+  });
+});
+
+describe("choosing your own SKU range", () => {
+  it("makes the range, keeps leading zeros, and moves the counter past it", () => {
+    const r = customSkuRange([], fmt("RS"), "abc", "345", "374");
+    expect(r.skus).toHaveLength(30);
+    expect(r.skus[0]).toBe("ABC-345");
+    expect(r.skus[29]).toBe("ABC-374");
+    expect(r.skuFormat.counters.ABC).toBe(374);
+    expect(customSkuRange([], fmt("RS"), "ABC", "0098", "0101").skus).toEqual(["ABC-0098", "ABC-0099", "ABC-0100", "ABC-0101"]);
+  });
+  it("flags SKUs already on an item and bad ranges", () => {
+    expect(customSkuRange([item("ABC-350")], fmt("RS"), "ABC", "345", "374").taken).toEqual(["ABC-350"]);
+    expect(customSkuRange([], fmt("RS"), "ABC", "374", "345").error).toBeTruthy();
+    expect(customSkuRange([], fmt("RS"), "", "1", "2").error).toBeTruthy();
+    expect(customSkuRange([], fmt("RS"), "ABC", "1", "500").error).toBeTruthy();
+  });
+  it("never lowers a counter", () => {
+    expect(customSkuRange([], fmt("ABC", { ABC: 900 }), "ABC", "1", "5").skuFormat.counters.ABC).toBe(900);
   });
 });
