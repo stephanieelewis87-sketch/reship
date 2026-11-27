@@ -25,6 +25,5 @@ export const CONNECTORS: Connector[] = [
   poshmark,
   mercari,
   pending("Depop", "https://www.depop.com/login/"),
-  pending("Vinted", "https://www.vinted.com/member/signup/select_type"),
   pending("WhatNot", "https://www.whatnot.com/login"),
 ];

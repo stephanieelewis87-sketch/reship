@@ -1,4 +1,8 @@
-export type Platform = "Poshmark" | "Vinted" | "Depop" | "Mercari" | "WhatNot" | "Etsy" | "eBay" | "Other";
+import type { CoverEdit } from "./coverPhoto";
+import { DEFAULT_PLAN, type PlanId } from "./plans";
+import type { MessagingSettings } from "./messaging";
+import type { SavedResearch } from "./comps";
+export type Platform = "Poshmark" | "Vinted" | "Depop" | "Mercari" | "WhatNot" | "Etsy" | "eBay" | "Facebook" | "ThredUp" | "OfferUp" | "Curtsy" | "Grailed" | "Vestiaire" | "Shopify" | "SellSource" | "Other";
 export type LabelStatus = "pending" | "printed" | "shipped";
 export type OrderSource = "manual" | "csv" | "sample" | "sync";
 export type PackageType = "Envelope" | "Soft Pack" | "Small Box" | "Medium Box";
@@ -36,7 +40,7 @@ export type ShipmentStatus = "label_created" | "in_transit" | "delivered" | "can
 
 export interface Shipment {
   status: ShipmentStatus;
-  updatedAt: string; // ISO time Reship last saw this status
+  updatedAt: string; // ISO time Hubby last saw this status
 }
 
 export interface Order {
@@ -60,6 +64,21 @@ export interface Order {
   fees?: number;
   // What the seller paid for shipping (0 when the buyer paid for a prepaid label).
   shippingCost?: number;
+  // A label bought through Reship instead of the marketplace's (see labelPolicy.ts).
+  ownLabel?: OwnLabel;
+}
+
+export interface OwnLabel {
+  carrier: string;
+  service: string;
+  price: number;
+  // What the marketplace's own label would have cost, as the seller entered it.
+  marketplacePrice?: number;
+  boughtAt: string;
+  // Demo mode makes a practice label with a made-up tracking number.
+  demo?: boolean;
+  // When the seller confirmed the tracking number was pasted into the marketplace.
+  trackingPostedAt?: string;
 }
 
 export type InventoryStatus = "draft" | "listed" | "sold";
@@ -73,6 +92,20 @@ export interface Listing {
   relistedAt?: string; // YYYY-MM-DD, last time it was relisted
   price?: number;
   url?: string;
+  // The marketplace's own ID for this listing, so Reship can tell it apart from look-alikes.
+  listingId?: string;
+  // How many times buyers viewed the listing, and how many watch, like or favorite it, as the
+  // marketplace last reported them (from its API or report, or typed in by the seller).
+  views?: number;
+  watchers?: number;
+  statsAt?: string; // YYYY-MM-DD the numbers are from
+  statsHistory?: ListingStatsPoint[]; // earlier readings, oldest first, so Hubby can show the change
+}
+
+export interface ListingStatsPoint {
+  date: string; // YYYY-MM-DD
+  views?: number;
+  watchers?: number;
 }
 
 export type Condition = "New with tags" | "New without tags" | "Like new" | "Good" | "Fair";
@@ -100,8 +133,10 @@ export interface InventoryItem {
   listings: Listing[];
   labels?: string[]; // label ids from settings
   notes?: string; // private, never posted
+  location?: string; // where it's stored, e.g. "Bin 4" or "Shelf B2"
   photo?: string;
   photos?: string[];
+  coverEdit?: CoverEdit; // brand tag and sale banner added to the first photo
   readyToList?: boolean;
   soldOrders?: string[]; // orders already counted against this item
   createdAt?: string;
@@ -135,7 +170,8 @@ export interface LabelDef {
   description?: string;
 }
 
-export type AutomationKind = "shares" | "relists" | "offers" | "follows";
+// Poshmark no longer rewards closet shares or follows, so Hubby automates only relists and offers.
+export type AutomationKind = "relists" | "offers";
 export interface AutomationSetting {
   enabled: boolean;
   perDay: number; // daily cap
@@ -143,6 +179,7 @@ export interface AutomationSetting {
   followUps?: number; // offers: extra offers with deeper discounts
   minAgeDays?: number; // relists: only items listed at least this long
 }
+export const AUTOMATION_KINDS: AutomationKind[] = ["relists", "offers"];
 export type Automations = Partial<Record<Platform, Partial<Record<AutomationKind, AutomationSetting>>>>;
 
 export interface ShippingPreset {
@@ -155,6 +192,8 @@ export interface ShippingPreset {
 export interface LabelFile {
   fileName: string;
   uploadedAt: string;
+  // The marketplace's drop-off QR code (a PNG data URL), for printing instead of the label.
+  qrCode?: string;
 }
 
 export interface Settings {
@@ -168,6 +207,8 @@ export interface Settings {
   // Defaults for one-click printing.
   printSkuOnLabel: boolean;
   printPackingSlip: boolean;
+  // Print drop-off QR codes instead of labels for orders that have one.
+  printQrCodes: boolean;
   // Analytics goal; 0 means no goal. Kept for older saved settings; goals replaces it.
   monthlyProfitGoal: number;
   goals: Goal[];
@@ -181,18 +222,65 @@ export interface Settings {
   aiInstructions: { title: string; description: string; condition: string; sku: string };
   dismissedAttention: string[];
   gettingStartedDone: string[];
+  // Automatic SKUs: prefix and digits, plus the highest number ever handed out for each prefix,
+  // so a SKU is never reused, even after its item is deleted.
+  skuFormat: SkuFormat;
+  guardian: GuardianSettings;
+  // The seller's plan. There's no billing yet, so it's picked in Settings > Subscription.
+  plan: PlanId;
+  // Buyer message templates and who was messaged when. Missing in settings saved before messages
+  // existed; read it through messagingOf().
+  messaging?: MessagingSettings;
+  // Research: saved searches with the comps the seller chose to keep.
+  research: SavedResearch[];
+}
+
+export interface SkuFormat {
+  prefix: string;
+  digits: number;
+  counters: Record<string, number>;
+}
+
+export interface GuardianSettings {
+  // Pause a change that would delete, delist or overwrite this many items or more, until the owner says yes.
+  protect: boolean;
+  threshold: number;
+  // Keep a dated copy of the inventory every day.
+  dailyBackup: boolean;
+}
+
+// A dated copy of every inventory record.
+export interface InventoryBackup {
+  id: string;
+  createdAt: string;
+  reason: string;
+  itemCount: number;
+  items?: InventoryItem[]; // left out of listings; loaded when restoring
+}
+
+// One change to one item, for its history.
+export interface ItemChange {
+  id: string;
+  itemId: string;
+  sku: string;
+  at: string;
+  source: string; // "You", "Sale detected", "Restore", "Bulk edit"…
+  kind: "created" | "edited" | "deleted";
+  changes: { field: string; from: string; to: string }[];
 }
 
 export interface PrintOptions {
   skuOnLabel: boolean;
   packingSlip: boolean;
+  qrCodes: boolean;
 }
 
-export const ALL_PLATFORMS: Platform[] = ["Poshmark", "Vinted", "Depop", "Mercari", "WhatNot", "Etsy", "eBay"];
+export const ALL_PLATFORMS: Platform[] = ["Poshmark", "Vinted", "Depop", "Mercari", "WhatNot", "Etsy", "eBay", "Facebook", "ThredUp", "OfferUp", "Curtsy", "Grailed", "Vestiaire", "Shopify"];
 export const PACKAGE_TYPES: PackageType[] = ["Envelope", "Soft Pack", "Small Box", "Medium Box"];
 export const CARRIER_SERVICES = ["USPS Ground Advantage", "USPS Priority", "USPS First Class", "UPS Ground", "FedEx Home"];
 
 export const DEFAULT_SETTINGS: Settings = {
+  plan: DEFAULT_PLAN,
   syncInterval: "30",
   labelFormat: "4x6",
   defaultCarrier: "USPS Priority",
@@ -210,7 +298,7 @@ export const DEFAULT_SETTINGS: Settings = {
     { id: "lbl-bin-a", name: "Bin A", color: "#2a78d6" },
   ],
   automations: {},
-  autoDelist: { Poshmark: true, Mercari: true, eBay: true, Depop: true, Etsy: true, WhatNot: true, Vinted: true },
+  autoDelist: { Poshmark: true, Mercari: true, eBay: true, Depop: true, Etsy: true, WhatNot: true, Vinted: true, Facebook: true, ThredUp: true, OfferUp: true, Curtsy: true, Grailed: true, Vestiaire: true, Shopify: true },
   autoAdjustQuantity: true,
   primaryMarketplace: "Poshmark",
   pricingRules: {},
@@ -221,6 +309,10 @@ export const DEFAULT_SETTINGS: Settings = {
   aiInstructions: { title: "", description: "", condition: "", sku: "" },
   dismissedAttention: [],
   gettingStartedDone: [],
+  skuFormat: { prefix: "RS", digits: 4, counters: { RS: 1000 } },
+  guardian: { protect: true, threshold: 10, dailyBackup: true },
+  research: [],
+  printQrCodes: false,
 };
 
 export const emptyAddress = (): Address => ({ name: "", street1: "", street2: "", city: "", state: "", zip: "", country: "US", phone: "" });
@@ -263,4 +355,11 @@ export interface FeedbackSummary {
   emailedTo?: string;
   createdAt: string;
   sample?: boolean;
+}
+
+// Whether an automation is on anywhere (or just this kind). Settings saved before shares and follows
+// were dropped can still hold them, so only the kinds Hubby runs count.
+export function automationOn(automations: Automations, kind?: AutomationKind): boolean {
+  const kinds = kind ? [kind] : AUTOMATION_KINDS;
+  return Object.values(automations).some((p) => kinds.some((k) => p?.[k]?.enabled));
 }

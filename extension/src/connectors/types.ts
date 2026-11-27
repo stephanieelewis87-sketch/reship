@@ -12,10 +12,14 @@ export interface ImportedOrder {
   shipTo?: Address;
   // Where the marketplace serves this order's label; fetched with the seller's own session.
   labelUrl?: string;
+  // The marketplace's ids for the listings that sold, so Reship can delist them elsewhere.
+  listingIds?: string[];
+  // The marketplace's drop-off QR code (a PNG data URL), when it offers one instead of printing.
+  qrCode?: string;
 }
 
 // One per marketplace. Each runs inside the seller's browser and uses the session they are
-// already logged in with, so Reship never sees or stores marketplace passwords.
+// already logged in with, so Hubby never sees or stores marketplace passwords.
 export interface Connector {
   platform: Platform;
   // Site the seller must be logged in to; shown in the popup as a link.

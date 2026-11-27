@@ -1,11 +1,20 @@
 {
   "manifest_version": 3,
-  "name": "Reship",
-  "description": "Brings your sold orders and shipping labels from Poshmark, Mercari, Depop, Vinted and Whatnot into Reship.",
-  "version": "0.5.1",
+  "name": "Hubby",
+  "description": "Brings your sold orders and shipping labels from Poshmark and Mercari into Hubby, using the marketplace sign-ins already in your browser.",
+  "version": "0.9.0",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    },
     "default_popup": "popup.html",
-    "default_title": "Reship"
+    "default_title": "Hubby"
   },
   "background": {
     "service_worker": "background.js",
@@ -25,8 +34,19 @@
     "https://www.mercari.com/*",
     "https://www.depop.com/*",
     "https://webapi.depop.com/*",
-    "https://www.vinted.com/*",
     "https://www.whatnot.com/*",
     "https://*.supabase.co/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://poshmark.com/*",
+        "https://www.depop.com/*"
+      ],
+      "js": [
+        "templates.js"
+      ],
+      "run_at": "document_idle"
+    }
   ]
 }

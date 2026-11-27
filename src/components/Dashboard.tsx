@@ -1,16 +1,15 @@
-import { useMemo, useState } from "react";
-import { AlertCircle, AlertTriangle, ArrowRight, CheckCircle2, FileUp, LayoutGrid, List, Plus, Printer, RotateCcw, Search, Truck, X } from "lucide-react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { AlertCircle, AlertTriangle, ArrowRight, CheckCircle2, ChevronDown, FileUp, LayoutGrid, List, Plus, Printer, RotateCcw, Search, SlidersHorizontal, Truck, X } from "lucide-react";
 import type { LabelStatus, Order, OrderItem, Platform, PrintOptions } from "@/lib/types";
-import { isAddressComplete } from "@/lib/types";
 import type { useReshipData } from "@/lib/useReshipData";
 import { usePrintLabels } from "@/lib/usePrintLabels";
 import { summarize } from "@/lib/orderStatus";
 import { PrintModal } from "./PrintModal";
-import { BuyLabelsModal } from "./BuyLabelsModal";
+import { ShipLabelModal } from "./ShipLabelModal";
 import { OrderDrawer, blankOrder } from "./OrderDrawer";
 import { ImportCsvModal } from "./ImportCsvModal";
 import { OrderList } from "./OrderList";
-import { orderTitle } from "./ui";
+import { EmptyState, Menu, MenuItem, orderTitle } from "./ui";
 import { WithdrawShortcuts } from "./WithdrawShortcuts";
 import { PageHeader } from "./shell/PageHeader";
 import { PlatformFilter } from "./shell/PlatformFilter";
@@ -19,10 +18,12 @@ import { Pills } from "./analytics/parts";
 type Data = ReturnType<typeof useReshipData>;
 
 const RECENT_PRINTED = 5;
+// Long order lists draw this many rows at a time, so a year of history doesn't slow the page.
+const ROWS_AT_A_TIME = 100;
 // Overview is the shipping dashboard; the others are lists of orders in one status, or all of them.
 type View = "home" | LabelStatus | "all";
 const VIEWS: View[] = ["home", "pending", "printed", "shipped", "all"];
-const VIEW_TITLE: Record<View, string> = { home: "Overview", pending: "To Print", printed: "Printed", shipped: "Shipped", all: "All orders" };
+const VIEW_TITLE: Record<View, string> = { home: "Overview", pending: "To print", printed: "Printed", shipped: "Shipped", all: "All orders" };
 const byPrintedAt = (a: Order, b: Order) => (b.printedAt ?? b.date).localeCompare(a.printedAt ?? a.date);
 
 function StatCard({
@@ -39,10 +40,10 @@ function StatCard({
   onClick: () => void;
 }) {
   return (
-    <button type="button" onClick={onClick} className="text-left bg-card border border-border rounded-xl px-4 py-3 hover:border-[#B5607A]/40 hover:shadow-sm transition-all">
-      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
+    <button type="button" onClick={onClick} className="text-left bg-card border border-border rounded-xl px-4 py-3 hover:border-accent/40 hover:shadow-sm transition-all">
+      <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">{label}</p>
       <p className={`font-display text-2xl font-semibold mt-1 tabular-nums ${tone}`}>{value}</p>
-      <p className="text-[11px] text-muted-foreground mt-0.5">{hint}</p>
+      <p className="text-[12px] text-muted-foreground mt-0.5">{hint}</p>
     </button>
   );
 }
@@ -54,10 +55,12 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
   const [view, setView] = useState<View>("home");
   const [activePlatforms, setActivePlatforms] = useState<Set<Platform>>(new Set());
   const [search, setSearch] = useState("");
+  const query = useDeferredValue(search);
+  const [rowLimit, setRowLimit] = useState(ROWS_AT_A_TIME);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [printOrders, setPrintOrders] = useState<Order[] | null>(null);
-  const [buyFor, setBuyFor] = useState<Order[] | null>(null);
+  const [labelFor, setLabelFor] = useState<Order | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [drawer, setDrawer] = useState<{ order: Order; isNew: boolean } | null>(() => {
     const o = openOrderId ? data.orders.find((x) => x.id === openOrderId) : null;
@@ -65,7 +68,7 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
   });
   const [notice, setNotice] = useState<{ text: string; ok: boolean } | null>(null);
 
-  const printDefaults: PrintOptions = { skuOnLabel: settings.printSkuOnLabel, packingSlip: settings.printPackingSlip };
+  const printDefaults: PrintOptions = { skuOnLabel: settings.printSkuOnLabel, packingSlip: settings.printPackingSlip, qrCodes: settings.printQrCodes };
 
   const toggleIn = <T,>(set: Set<T>, v: T) => {
     const n = new Set(set);
@@ -76,7 +79,7 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
 
   // Platform and search filters apply everywhere; the view picks the status.
   const matching = useMemo(() => {
-    const q = search.toLowerCase();
+    const q = query.toLowerCase();
     return orders.filter(
       (o) =>
         (activePlatforms.size === 0 || activePlatforms.has(o.platform)) &&
@@ -85,7 +88,8 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
           o.buyer.toLowerCase().includes(q) ||
           o.orderId.toLowerCase().includes(q)),
     );
-  }, [orders, activePlatforms, search]);
+  }, [orders, activePlatforms, query]);
+  useEffect(() => setRowLimit(ROWS_AT_A_TIME), [view, query, activePlatforms]);
 
   const toPrint = matching.filter((o) => o.status === "pending");
   const recentPrinted = matching.filter((o) => o.status === "printed").sort(byPrintedAt);
@@ -127,6 +131,25 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
   const today = new Date().toLocaleDateString(undefined, { weekday: "short", month: "long", day: "numeric", year: "numeric" });
   const allToPrint = orders.filter((o) => o.status === "pending");
   const readyToPrint = allToPrint.filter((o) => o.label).length;
+  // Some marketplaces (Mercari) also offer a drop-off QR code, so the seller can skip the printer label.
+  const qrReady = allToPrint.filter((o) => o.label?.qrCode).length;
+  const printNoun = settings.printQrCodes && qrReady === readyToPrint ? "QR code" : "label";
+  const qrToggle = qrReady > 0 && (
+    <div role="group" aria-label="What to print" className="flex rounded-lg border border-border p-0.5 text-xs">
+      {([false, true] as const).map((qr) => (
+        <button
+          key={String(qr)}
+          type="button"
+          aria-pressed={settings.printQrCodes === qr}
+          onClick={() => saveSettings({ ...settings, printQrCodes: qr })}
+          className={`px-2.5 py-1.5 rounded-md ${settings.printQrCodes === qr ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+          title={qr ? `Print the drop-off QR code for the ${qrReady} order${qrReady !== 1 ? "s" : ""} that have one` : "Print shipping labels"}
+        >
+          {qr ? "QR codes" : "Labels"}
+        </button>
+      ))}
+    </div>
+  );
 
   // The one button that matters: print everything waiting, with the saved options.
   const printButton =
@@ -156,7 +179,7 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
         className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-400 text-amber-950 text-sm font-semibold hover:bg-amber-300 shadow-sm disabled:opacity-50"
       >
         <Printer className="w-4 h-4" />
-        {printing ? "Preparing…" : `Print all ${readyToPrint} label${readyToPrint !== 1 ? "s" : ""}`}
+        {printing ? "Preparing…" : `Print all ${readyToPrint} ${printNoun}${readyToPrint !== 1 ? "s" : ""}`}
       </button>
     ) : (
       <span className="flex items-center gap-1.5 text-sm text-emerald-700">
@@ -166,9 +189,17 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
 
   const listBody = (rows: Order[], empty: string) =>
     rows.length === 0 ? (
-      <div className="flex flex-col items-center justify-center py-14 text-center border border-dashed border-border rounded-xl">
-        <CheckCircle2 className="w-7 h-7 text-muted-foreground mb-2" />
-        <p className="text-sm text-muted-foreground">{empty}</p>
+      <div className="border border-dashed border-border rounded-xl">
+        {orders.length === 0 ? (
+          <EmptyState
+            icon={Truck}
+            title="No orders yet"
+            text="Orders show up here when the Hubby extension syncs your marketplaces. You can also add one by hand or import a CSV."
+            action={{ label: "Import a CSV file", onClick: () => setImportOpen(true) }}
+          />
+        ) : (
+          <EmptyState icon={CheckCircle2} title={empty} />
+        )}
       </div>
     ) : (
       <OrderList
@@ -180,6 +211,7 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
         onOpen={(order) => setDrawer({ order, isNew: false })}
         onSku={updateItemSku}
         onPrint={(order) => print([order], printDefaults)}
+        onBuyLabel={setLabelFor}
       />
     );
 
@@ -200,10 +232,16 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
         <PageHeader title="Orders" subtitle={today}>
           <div className="flex items-center gap-3 flex-wrap">
             {(view === "home" || view === "pending") && allToPrint.length > 0 && selected.length === 0 && (
-              <button type="button" onClick={() => setPrintOrders(allToPrint)} className="text-xs text-muted-foreground hover:text-foreground hover:underline">
-                Choose labels & options
+              <button
+                type="button"
+                onClick={() => setPrintOrders(allToPrint)}
+                title="Choose which labels to print, and whether to add SKUs or packing slips"
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-border text-sm text-foreground hover:bg-muted"
+              >
+                <SlidersHorizontal className="w-4 h-4" /> <span className="hidden sm:inline">Print options</span>
               </button>
             )}
+            {qrToggle}
             {printButton}
           </div>
         </PageHeader>
@@ -263,23 +301,27 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search orders, items, SKUs…"
                 aria-label="Search orders"
-                className="pl-9 pr-3 py-1.5 text-sm bg-muted rounded-md border border-transparent focus:border-[#B5607A] focus:outline-none transition-colors placeholder:text-muted-foreground w-full md:w-64"
+                className="pl-9 pr-3 py-1.5 text-sm bg-muted rounded-md border border-transparent focus:border-accent focus:outline-none transition-colors placeholder:text-muted-foreground w-full md:w-64"
               />
             </div>
-            <button
-              type="button"
-              onClick={() => setDrawer({ order: blankOrder(settings.defaultCarrier), isNew: true })}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-xs font-medium text-foreground hover:bg-muted"
+            <Menu
+              button={(toggle) => (
+                <button type="button" onClick={toggle} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-xs font-medium text-foreground hover:bg-muted">
+                  <Plus className="w-3.5 h-3.5" /> Add orders <ChevronDown className="w-3 h-3" />
+                </button>
+              )}
             >
-              <Plus className="w-3.5 h-3.5" /> Add order
-            </button>
-            <button
-              type="button"
-              onClick={() => setImportOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-xs font-medium text-foreground hover:bg-muted"
-            >
-              <FileUp className="w-3.5 h-3.5" /> Import CSV
-            </button>
+              {(close) => (
+                <>
+                  <MenuItem onClick={() => (close(), setDrawer({ order: blankOrder(settings.defaultCarrier), isNew: true }))}>
+                    <Plus className="w-3.5 h-3.5" /> Add one by hand
+                  </MenuItem>
+                  <MenuItem onClick={() => (close(), setImportOpen(true))}>
+                    <FileUp className="w-3.5 h-3.5" /> Import a CSV file
+                  </MenuItem>
+                </>
+              )}
+            </Menu>
             <div className="ml-auto flex items-center gap-2">
               <span className="font-mono text-xs text-muted-foreground">
                 {listed.length} order{listed.length !== 1 ? "s" : ""}
@@ -311,14 +353,14 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
             ) : view === "home" ? (
               <>
                 <section>
-                  <h2 className="font-display text-sm font-semibold text-foreground mb-2">To Print</h2>
-                  {listBody(toPrint, orders.length === 0 ? "No orders yet. Sync a marketplace, add an order or import a CSV." : "Nothing waiting to print.")}
+                  <h2 className="font-display text-sm font-semibold text-foreground mb-2">To print</h2>
+                  {listBody(toPrint, orders.length === 0 ? "No orders yet. Connect a marketplace in Settings, or use Add orders above." : "Nothing waiting to print.")}
                 </section>
                 {recentPrinted.length > 0 && (
                   <section>
                     <div className="flex items-center justify-between mb-2">
                       <h2 className="font-display text-sm font-semibold text-muted-foreground">Recently printed</h2>
-                      <button type="button" onClick={() => goTo("printed")} className="flex items-center gap-1 text-xs text-[#B5607A] hover:underline">
+                      <button type="button" onClick={() => goTo("printed")} className="flex items-center gap-1 text-xs text-accent hover:underline">
                         See all printed <ArrowRight className="w-3 h-3" />
                       </button>
                     </div>
@@ -328,13 +370,22 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
               </>
             ) : (
               listBody(
-                listed,
+                listed.slice(0, rowLimit),
                 view === "printed" ? "No printed labels waiting to ship." : view === "shipped" ? "Nothing shipped yet." : view === "pending" ? "Nothing waiting to print." : "No orders found.",
               )
             )}
+            {view !== "home" && listed.length > rowLimit && (
+              <button
+                type="button"
+                onClick={() => setRowLimit((n) => n + ROWS_AT_A_TIME)}
+                className="self-center px-4 py-2 rounded-lg border border-border text-sm hover:bg-muted"
+              >
+                Show more ({listed.length - rowLimit} left)
+              </button>
+            )}
             {view === "shipped" && listed.length > 0 && (
-              <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <Truck className="w-3 h-3" /> Shipping status comes from the marketplace each time the Reship extension syncs.
+              <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                <Truck className="w-3 h-3" /> Shipping status comes from the marketplace each time the Hubby extension syncs.
               </p>
             )}
           </div>
@@ -346,8 +397,8 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
           defaults={printDefaults}
           onClose={() => setPrintOrders(null)}
           onConfirm={async (ids, opts) => {
-            if (opts.skuOnLabel !== settings.printSkuOnLabel || opts.packingSlip !== settings.printPackingSlip)
-              saveSettings({ ...settings, printSkuOnLabel: opts.skuOnLabel, printPackingSlip: opts.packingSlip });
+            if (opts.skuOnLabel !== settings.printSkuOnLabel || opts.packingSlip !== settings.printPackingSlip || opts.qrCodes !== settings.printQrCodes)
+              saveSettings({ ...settings, printSkuOnLabel: opts.skuOnLabel, printPackingSlip: opts.packingSlip, printQrCodes: opts.qrCodes });
             await print(
               orders.filter((o) => ids.includes(o.id)),
               opts,
@@ -356,19 +407,19 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
         />
       )}
 
-      {buyFor && (
-        <BuyLabelsModal
-          orders={buyFor}
-          hasShipFrom={isAddressComplete(settings.shipFrom)}
-          onClose={() => setBuyFor(null)}
-          onSaveParcels={(rows) =>
-            saveOrders(
-              rows.map((r) => {
-                const o = orders.find((x) => x.id === r.id)!;
-                return { ...o, parcel: r.parcel, carrier: r.carrier };
-              }),
-            )
-          }
+      {labelFor && (
+        <ShipLabelModal
+          key={labelFor.id}
+          order={labelFor}
+          shipFrom={settings.shipFrom}
+          onClose={() => setLabelFor(null)}
+          onBought={({ order, pdf }) => attachLabel(order, pdf)}
+          onSave={(o) => saveOrders([o])}
+          onViewLabel={viewLabel}
+          onEditOrder={(o) => {
+            setLabelFor(null);
+            setDrawer({ order: orders.find((x) => x.id === o.id) ?? o, isNew: false });
+          }}
         />
       )}
 
@@ -399,7 +450,7 @@ export function OrdersPage({ data, openOrderId }: { data: Data; openOrderId?: st
           onViewLabel={viewLabel}
           onBuyLabel={(o) => {
             setDrawer(null);
-            setBuyFor([o]);
+            setLabelFor(o);
           }}
           onDelete={(id) => {
             deleteOrders([id]);

@@ -168,7 +168,7 @@ export function AnalyticsView({
             type="button"
             onClick={() => setTab(t.key)}
             aria-current={tab === t.key ? "page" : undefined}
-            className={`py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px ${tab === t.key ? "border-[#B5607A] text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            className={`py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px ${tab === t.key ? "border-accent text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
           >
             {t.label}
           </button>
@@ -187,12 +187,12 @@ export function AnalyticsView({
           <div className="flex items-center gap-2 flex-wrap text-xs">
             <span className="text-muted-foreground">Showing only</span>
             {brand && (
-              <button type="button" onClick={() => setBrand(null)} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-[#B5607A] border border-[#B5607A]/30">
+              <button type="button" onClick={() => setBrand(null)} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-accent border border-accent/30">
                 Brand: {brand} <X className="w-3 h-3" />
               </button>
             )}
             {category && (
-              <button type="button" onClick={() => setCategory(null)} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-[#B5607A] border border-[#B5607A]/30">
+              <button type="button" onClick={() => setCategory(null)} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-accent border border-accent/30">
                 Category: {category} <X className="w-3 h-3" />
               </button>
             )}
@@ -379,7 +379,7 @@ function ProfitAndLoss({ ctx }: { ctx: Ctx }) {
             </div>
           </dl>
           {(m.missingCost > 0 || m.estimatedFees > 0) && (
-            <p className="mt-3 text-[11px] text-amber-800 bg-amber-50 rounded-md px-2.5 py-2">
+            <p className="mt-3 text-[12px] text-amber-800 bg-amber-50 rounded-md px-2.5 py-2">
               {m.missingCost > 0 && `${m.missingCost} sale${m.missingCost !== 1 ? "s have" : " has"} no item cost, so profit counts them as free. `}
               {m.estimatedFees > 0 && `Fees on ${m.estimatedFees} sale${m.estimatedFees !== 1 ? "s are" : " is"} estimated from each marketplace's fee schedule.`}
             </p>
@@ -622,10 +622,10 @@ function InventoryPage({ ctx }: { ctx: Ctx }) {
               label: "Item",
               render: (s) => (
                 <div className="flex items-center gap-2 min-w-[180px]">
-                  {s.item.photo ? <img src={s.item.photo} alt="" className="w-8 h-8 rounded object-cover shrink-0" /> : <div className="w-8 h-8 rounded bg-muted shrink-0" />}
+                  {s.item.photo ? <img src={s.item.photo} alt="" loading="lazy" decoding="async" className="w-8 h-8 rounded object-cover shrink-0" /> : <div className="w-8 h-8 rounded bg-muted shrink-0" />}
                   <div className="min-w-0">
                     <p className="text-xs font-medium text-foreground truncate max-w-[220px]">{s.item.title}</p>
-                    <p className="font-mono text-[10px] text-muted-foreground">{s.item.sku}</p>
+                    <p className="font-mono text-[11px] text-muted-foreground">{s.item.sku}</p>
                   </div>
                 </div>
               ),
@@ -638,7 +638,7 @@ function InventoryPage({ ctx }: { ctx: Ctx }) {
               key: "suggested",
               label: "Try",
               align: "right",
-              render: (s) => (s.suggestedPrice == null ? "–" : <span className="font-medium text-[#B5607A]">{fmtMoney(s.suggestedPrice)}</span>),
+              render: (s) => (s.suggestedPrice == null ? "–" : <span className="font-medium text-accent">{fmtMoney(s.suggestedPrice)}</span>),
               sort: (s) => s.suggestedPrice,
             },
             { key: "advice", label: "Next step", render: (s) => <span className="text-xs text-muted-foreground">{s.advice}</span> },
@@ -647,7 +647,7 @@ function InventoryPage({ ctx }: { ctx: Ctx }) {
               label: "",
               render: (s) =>
                 s.suggestedPrice == null ? null : applied.has(s.item.id) ? (
-                  <span className="text-[11px] text-emerald-700 whitespace-nowrap">Saved</span>
+                  <span className="text-[12px] text-emerald-700 whitespace-nowrap">Saved</span>
                 ) : (
                   <button
                     type="button"
@@ -656,8 +656,8 @@ function InventoryPage({ ctx }: { ctx: Ctx }) {
                       ctx.saveInventory([{ ...s.item, listPrice: s.suggestedPrice! }]);
                       setApplied((a) => new Set(a).add(s.item.id));
                     }}
-                    className="text-[11px] px-2 py-1 rounded-md border border-border hover:bg-muted whitespace-nowrap"
-                    title="Saves the new price in Reship. Change it on the marketplace too."
+                    className="text-[12px] px-2 py-1 rounded-md border border-border hover:bg-muted whitespace-nowrap"
+                    title="Saves the new price in Hubby. Change it on the marketplace too."
                   >
                     Use price
                   </button>
@@ -841,7 +841,7 @@ function ExpensesPage({ ctx }: { ctx: Ctx }) {
               <Plus className="w-3.5 h-3.5" /> Add
             </button>
           </form>
-          {mileage && <p className="text-[11px] text-muted-foreground mt-2">Mileage counts at ${MILEAGE_RATE.toFixed(2)} a mile, the IRS standard rate.</p>}
+          {mileage && <p className="text-[12px] text-muted-foreground mt-2">Mileage counts at ${MILEAGE_RATE.toFixed(2)} a mile, the IRS standard rate.</p>}
         </Card>
         <Card title="By category" subtitle={`${fmtMoney(total)} total, ${rangeText(ctx.range)}`}>
           {cats.length === 0 ? (
@@ -911,7 +911,7 @@ function Exports({ ctx }: { ctx: Ctx }) {
       text: "Every item sold, with price, fees, shipping, cost and profit.",
       run: () =>
         download(
-          `reship-sales-${tag}.csv`,
+          `hubby-sales-${tag}.csv`,
           lines.map((l) => ({
             Date: l.date,
             Marketplace: l.platform,
@@ -938,7 +938,7 @@ function Exports({ ctx }: { ctx: Ctx }) {
       text: "Gross sales, fees, shipping, cost of goods, expenses and net profit for each month.",
       run: () =>
         download(
-          `reship-profit-and-loss-${tag}.csv`,
+          `hubby-profit-and-loss-${tag}.csv`,
           series(lines, range, "month").map((p) => {
             const m = metrics(lines.filter((l) => l.date >= p.start && l.date <= p.end), null);
             const ex = sumExpenses(ctx.expenses.filter((e) => e.date >= p.start && e.date <= p.end));
@@ -960,7 +960,7 @@ function Exports({ ctx }: { ctx: Ctx }) {
       text: "Every logged expense, with mileage, for your records.",
       run: () =>
         download(
-          `reship-expenses-${tag}.csv`,
+          `hubby-expenses-${tag}.csv`,
           ctx.expenses.map((e) => ({ Date: e.date, Category: e.category, Amount: r2(e.amount), Miles: e.miles ?? "", Note: e.note ?? "" })),
         ),
     },
@@ -969,7 +969,7 @@ function Exports({ ctx }: { ctx: Ctx }) {
       text: "Everything listed or in drafts, with cost, price and days listed. Handy for year-end counts.",
       run: () =>
         download(
-          `reship-inventory-${ctx.today}.csv`,
+          `hubby-inventory-${ctx.today}.csv`,
           [...ctx.activeNow, ...ctx.inventory.filter((i) => i.status === "draft")].map((i) => ({
             SKU: i.sku,
             Item: i.title,
@@ -1001,7 +1001,7 @@ function Exports({ ctx }: { ctx: Ctx }) {
           </div>
         ))}
       </div>
-      <p className="mt-3 text-[11px] text-muted-foreground">
+      <p className="mt-3 text-[12px] text-muted-foreground">
         Includes sales you added by hand or imported, so in-person sales count too. {fmtCompactMoney(metrics(lines, null).revenue)} in sales across {lines.length} items in this period.
       </p>
     </Card>

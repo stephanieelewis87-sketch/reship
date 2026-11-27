@@ -19,16 +19,17 @@ export function PlatformFilter({
   orders.forEach((o) => (counts[o.platform] = (counts[o.platform] || 0) + 1));
   return (
     <div className="flex items-center gap-1.5 overflow-x-auto max-w-full">
-      {ALL_PLATFORMS.filter((p) => counts[p]).map((p) => (
+      {[...ALL_PLATFORMS, "SellSource" as Platform].filter((p) => counts[p]).map((p) => (
         <button
           type="button"
           key={p}
           onClick={() => onToggle(p)}
           aria-pressed={active.has(p)}
           title={p}
-          className={`flex items-center gap-1 px-2 py-1 rounded-md border text-[11px] whitespace-nowrap transition-colors ${active.has(p) ? "border-[#B5607A] bg-rose-50/60 text-[#B5607A]" : "border-border text-muted-foreground hover:bg-muted"}`}
+          className={`flex items-center gap-1 px-2 py-1 rounded-md border text-[12px] whitespace-nowrap transition-colors ${active.has(p) ? "border-accent bg-rose-50/60 text-accent" : "border-border text-muted-foreground hover:bg-muted"}`}
         >
           <PlatformIcon platform={p} />
+          <span className="hidden xl:inline">{p}</span>
           <span className="tabular-nums">{counts[p]}</span>
         </button>
       ))}

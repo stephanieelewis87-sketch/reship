@@ -1,6 +1,18 @@
-# Reship
+# Hubby
 
-A shipping dashboard for resellers: see sold orders from Poshmark, Vinted, Depop, Mercari, Whatnot, Etsy and eBay in one place, print the labels those marketplaces already generated (with SKUs and packing slips) in one batch, and track what has shipped. Built from the Reship design in Figma Make.
+The hubby that does it all. Our mission: to make it possible for any ordinary person to start and grow a resale business. **SellSync** is Hubby's selling side: Shop across marketplaces, SellSource storefronts and live shows. It was the app's name before the rebrand, and the S emblem stays as its mark.
+
+The one-stop app for resellers. Today it prints every marketplace label in one batch, keeps track of each item and where it's stored, and shows true profit after fees, shipping and cost of goods.
+
+## What's switched on
+
+Hubby is built in phases, and each phase has to work end to end before the next one starts. The rule: if it's on the screen, it works for real.
+
+Features that aren't finished are switched off in `src/lib/features.ts`, not deleted. Today that covers crosslisting (posting to marketplaces), AI listing (video, photos, Generate listing), the cover photo editor, views and watchers, Research, Automations, buying labels, the AI helper, Affiliates and plan limits. The sections below still describe how each one works for when it's switched back on.
+
+**Shop** is on: SellSource, eBay and Etsy results show inside Hubby once their keys are set, and every other marketplace opens its own search. **SellSource** and **Live shows** are on in demo mode (practice checkouts, your own camera) and switch on for real accounts with `VITE_SELLSOURCE=on` and `VITE_LIVE_SHOWS=on` once Stripe and LiveKit are set up (see below). **Community** (the Hubby group feed and meetups) is on in demo mode and switches on for real accounts with `VITE_COMMUNITY=on` after running migrations 0014 and 0016.
+
+The browser extension syncs Poshmark and Mercari. Vinted sync was removed because it read Vinted in a way its terms don't allow.
 
 ## Run it
 
@@ -11,27 +23,102 @@ npm run dev
 
 Open the address it prints (usually http://localhost:5173).
 
-Without any setup, Reship runs in **demo mode**: it starts with sample orders and saves everything in your browser only.
+Without any setup, Hubby runs in **demo mode**: it starts with sample orders and saves everything in your browser only.
 
 ## Use real accounts and a shared database (Supabase)
 
 1. Create a free project at [supabase.com](https://supabase.com).
-2. In the project's SQL editor, run the files in `supabase/migrations/` in order (0004 adds inventory and profit tracking for Analytics).
+2. In the project's SQL editor, paste all of `supabase/setup-all.sql` and press Run. It holds every file in `supabase/migrations/` in order, and it's safe to run again whenever migrations are added (`node scripts/build-setup-sql.mjs` rebuilds it).
 3. Copy `.env.example` to `.env.local` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from Settings > API.
-4. Restart `npm run dev`. Reship now asks you to sign in, and each account only sees its own orders.
+4. Restart `npm run dev`. Hubby now asks you to sign in, and each account only sees its own orders.
 
 ## What works today
 
 - Order dashboard from the design: status and marketplace filters, search, list and grid views, bundles, inline SKU editing
 - Add and edit orders by hand, including buyer address and package weight
 - Import orders from a marketplace CSV export, with automatic column matching and bundle grouping
-- Poshmark orders and their prepaid labels come in automatically through the Reship browser extension (see below)
+- Poshmark orders and their prepaid labels come in automatically through the Hubby browser extension (see below)
 - Upload an order's label PDF by hand from the order drawer when needed
 - Print all selected labels in one PDF, optionally stamped with the SKUs, with a packing slip after each label (4x6, Letter or A4)
-- Optional "Buy a different label" per order, with rate estimates for USPS, UPS and FedEx
+- Label helper per order, by marketplace: on Mercari and Depop orders, **Buy label** compares the marketplace's label price with Hubby's and, when Hubby's is cheaper, buys it and gives you the tracking number to paste into the marketplace. eBay, Etsy and direct sales always use a Hubby label. Poshmark, Whatnot and Vinted keep their prepaid label; Hubby shows it and never buys a second one
 - Settings saved per account: ship-from address, label format, default carrier
 - Works on phones
 - **Analytics**: sales, true profit (after marketplace fees, shipping you paid and item cost), margin, days to sell, sell-through and money tied up in inventory, for any period and compared with the one before. Pages for profit (where the money went), marketplaces side by side, brands and categories, inventory health with suggested markdowns for stale listings, sourcing (which thrift stores pay off), a monthly profit goal, "what to do next" tips, and CSV reports for taxes. Click any point or row to see the sales behind it. Fees are estimated from each marketplace's fee schedule when an order doesn't say. The demo has a made-up year of sales so every page has something to show.
+
+## Automatic SKUs and barcodes
+
+- Every new item gets the next SKU automatically, like `BB-00042`. Pick the prefix and number of digits in Settings > SKUs and backups. SKUs are permanent: a number is never handed out twice, even after its item is deleted, and changing an item's SKU takes an extra click.
+- Each SKU has a Code 128 barcode. Print SKU labels from an item's menu, from the item form, or for many items at once (select them, then SKU labels): 2.25 x 1.25" roll labels for Rollo, Dymo or Zebra printers, or Letter sheets of 30 (Avery 5160).
+- Inventory > **Scan** finds an item by SKU or marketplace listing ID with any USB or Bluetooth barcode scanner, or with the camera in Chrome. It also sets where the item is stored, so putting items away is scan, type the bin, scan the next.
+- Every item has a storage location (bin, shelf). Filter by it, search by it, set it in bulk, and it's printed on the SKU label.
+
+## Views and watchers
+
+Each item shows its views and watchers (likes, favorites or saves, in each marketplace's own word) from all its marketplaces as one small line in Inventory, with a per-marketplace breakdown and the change since the last reading when you click it. Sort by Most viewed or Most watched; turn the line off under Filter if you'd rather not see it. Items without numbers show nothing extra.
+
+Hubby only gets these numbers in ways the marketplaces allow:
+
+- **eBay**: Inventory > Sync > Import eBay views and watchers takes Seller Hub's listings traffic report (page views) and active listings download (watchers), matched to items by eBay item ID or listing link. eBay's official Analytics and Trading APIs have both numbers, for an automatic connection later.
+- **Etsy**: typed in for now. Etsy's official API has listing views and favorites, so they can update on their own once Hubby's Etsy app key is approved.
+- **Poshmark, Mercari, Depop, Vinted, Whatnot, Facebook Marketplace, ThredUp**: typed in from the listing (item menu > Views and watchers). None of them offers a seller API with these numbers, and Hubby doesn't scrape them.
+
+The numbers are stored on each listing in the existing `listings` column, so no migration is needed.
+
+## Inventory Guardian
+
+Inventory > **Guardian** keeps the master record of every item safe. Run `supabase/migrations/0010_inventory_guardian.sql` to turn it on with accounts (demo mode keeps it in the browser).
+
+- **Listing links**: each marketplace listing on an item can hold the marketplace's listing link or ID, so the item is the one master record those listings belong to.
+- **Backups**: a dated copy of every item each day the app opens (the last 30 are kept), plus Back up now. Download any backup, or the current inventory, as a spreadsheet.
+- **Listing checks**: duplicate SKUs, items without a SKU, one marketplace listing linked to two items, items that look entered twice (with one-click merge), open orders that match no item, sold items still listed elsewhere, and listings without a marketplace link.
+- **Recovery**: pick a backup, see exactly which items would come back or change, untick any you don't want, and restore. A backup of how things were is made first. Restoring only changes Hubby's records; it never edits, relists or deletes anything on a marketplace.
+- **Change history**: every edit, sale, bulk change, merge and restore is recorded per item (open an item, then History), and the latest changes show on the Guardian page.
+- **Sync protection**: a change that would delete, delist, mark sold or overwrite 10 or more items at once (adjustable) is paused with a banner. Review it, drop it, or back up and apply it.
+
+## Research (multi-platform comps)
+
+Research (in the sidebar under Tools, or Find comps from any item's menu) shows what an item sells for and what it's listed at, side by side across marketplaces, with a suggested price range (the middle half of sold prices, or of asking prices when there are fewer than three sales). It only uses sources each marketplace allows:
+
+- **Your own sales** in Hubby, always.
+- **eBay**: active listings from eBay's official Browse API. Sold prices come from eBay's Marketplace Insights API, which eBay only opens to approved apps; until then the eBay card links to eBay's own sold search.
+- **Etsy**: active listings from Etsy's official Open API. Etsy doesn't share other shops' sold prices.
+- **Poshmark, Mercari, Depop, Vinted, Whatnot, Facebook Marketplace, ThredUp**: none of them offer an API for this, and Hubby doesn't scrape them, so each gets buttons that open the marketplace's own sold or for-sale search in a new tab. Add a comp you find there by hand and it counts toward the range.
+
+Save comps to keep them with a search; saved research is stored with your settings. Demo mode shows sample eBay and Etsy results, marked as samples.
+
+To turn on live comps:
+
+1. Run `supabase/migrations/0012_research_comps.sql` (adds the daily cap).
+2. Create an app at [developer.ebay.com](https://developer.ebay.com) (production keys) and at [etsy.com/developers](https://www.etsy.com/developers).
+3. `supabase secrets set EBAY_CLIENT_ID=... EBAY_CLIENT_SECRET=... ETSY_API_KEY=... ETSY_SHARED_SECRET=...` (optional: `COMPS_DAILY_SEARCHES`, default 200 per user per day). After eBay grants Marketplace Insights access, also set `EBAY_SOLD_COMPS=on`.
+4. `supabase functions deploy comps-search`.
+
+## eBay connection (official API)
+
+Settings > Connections > **Connect eBay** sends the seller to eBay's own sign-in page. After they approve Hubby, **Import from eBay** brings in:
+
+- **Active listings** (eBay's Trading API, which sees listings made on ebay.com): new ones become inventory items with title, price, photos, quantity, condition and watchers. A listing whose Custom label (SKU) matches an item is linked to that item instead. Listings already linked are skipped.
+- **Orders from the last 90 days** (eBay's Sell Fulfillment API) with the buyer's address and eBay's fees. An order already in Hubby is never duplicated; one eBay now says has shipped is marked shipped. Each sale is matched to its item by SKU, or by the eBay listing it came from.
+
+Hubby only asks eBay for read access, never sees the password, and keeps eBay's token in a table the browser can't read. Disconnect removes the token.
+
+Setup (one time):
+
+1. Run `supabase/migrations/0017_marketplace_connections.sql` (included in `setup-all.sql`).
+2. At [developer.ebay.com](https://developer.ebay.com), with production keys: under User Tokens, add an eBay Redirect URL whose "auth accepted" and "auth declined" URLs are `https://<project-ref>.supabase.co/functions/v1/ebay`, and copy its RuName. Under Alerts & Notifications, choose account deletion notifications with that same URL as the endpoint and a verification token you make up.
+3. Secrets: `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_RUNAME`, `EBAY_VERIFICATION_TOKEN`, `APP_URL`. Optional `EBAY_ENV=sandbox` for eBay's test site.
+4. Deploy: `supabase functions deploy ebay --no-verify-jwt` (or paste `supabase/functions/ebay/index.ts` into a new function in the Supabase dashboard and turn off "Enforce JWT verification"). eBay calls this function directly, so it checks the seller's Hubby sign-in itself.
+
+## Coming soon page and waitlist (Hubby)
+
+`waitlist/` is a standalone "coming soon" page for Hubby that collects emails for early access. It loads none of the app (no demo, no sign in), so it is safe to put on the public domain while the app stays private.
+
+1. In the Supabase SQL editor, run `supabase/migrations/0016_waitlist.sql`. It needs `0006_feedback.sql` first (for `is_app_admin`). Visitors can only add themselves through two functions; only app admins can read the list.
+2. Preview it with `npm run dev` and open `/waitlist/`. Without Supabase settings, signups are kept in your browser so you can try it.
+3. Publish it on its own: `npm run build:waitlist` builds just the page into `dist-waitlist/` (as `index.html`). On Vercel, make a separate project from this repo with build command `npm run build:waitlist` and output directory `dist-waitlist`, and point your public domain at it. The normal app build also includes the page at `/waitlist/`.
+4. See who joined: `select email, marketplaces, stage, source, created_at from public.waitlist order by created_at;`
+
+Add `?ref=tiktok` (or any `utm_source`) to links you share and the signup records where people came from.
 
 ## Browser extension (marketplace sync)
 
@@ -39,13 +126,41 @@ Marketplaces don't offer label APIs, so the extension in `extension/` reads sold
 
 - `node extension/build.mjs` builds it into `extension/dist` (it reads the same Supabase settings from `.env.local`).
 - In Chrome, open `chrome://extensions`, turn on Developer mode, click Load unpacked and pick `extension/dist`.
-- Sign in with your Reship account, turn on a marketplace and press Sync now. It also syncs every 15 minutes.
+- Sign in with your Hubby account, turn on a marketplace and press Sync now. It also syncs every 15 minutes.
 - New seller setup checklist (also shown in the extension popup):
   1. Log in to each marketplace in the same Chrome profile that has the extension.
   2. Make sure Chrome isn't blocking third-party cookies. Go to Settings, then Privacy and security, then Third-party cookies, and choose "Allow third-party cookies" (or add each marketplace under "Allowed to use third-party cookies"). When they're blocked, marketplace pages such as Mercari may not load and syncs fail.
   3. Turn off ad or privacy blockers on marketplace sites.
-- Poshmark and Mercari work today. Depop, Vinted and Whatnot show as "coming soon". The "Capture this page" and "Test" buttons help map and check a marketplace.
+- Poshmark, Mercari and Vinted orders sync today. Depop and Whatnot show as "coming soon". Vinted is new: press "Test Vinted" once on a real account to confirm it finds your sales and labels. The "Capture this page" and "Test" buttons help map and check a marketplace.
 - Mercari's pages are drawn in the browser, so the extension reads them in a minimized window it opens and closes during a sync. Mercari's letter-size label is cut out and turned upright when printing on 4x6 labels.
+
+## Bundle comments and buyer messages
+
+Automations > **Comments and messages** helps sellers keep in touch, within each marketplace's rules:
+
+- **Poshmark bundle comments**: pick a template (thanks for bundling, bundle offer coming, happy to help), fill in the shopper and items, then Copy and open Poshmark and post it on the shopper's bundle from My Shoppers.
+- **Past buyers**: everyone who bought from you on a marketplace, with a template that fits where their order is (thanks, on its way, did it arrive). On Poshmark it opens the order page. A note about new items is allowed once a month per buyer, and a buyer can be marked "don't contact".
+- **Potential buyers**: on Depop, Vinted, Facebook Marketplace and Whatnot, message people who liked or asked about an item. Poshmark, Mercari, eBay and Etsy don't allow messages to shoppers before they buy, and the page says so with a link to the rule.
+
+Hubby never posts or sends for you: every marketplace here bans bots that comment or message. With the extension, a "Hubby templates" button appears in Poshmark and Depop comment boxes and types a template in; you press Post.
+
+## AI helper
+
+The **Ask Hubby** button in the corner of every page opens a chat that answers how-to questions about Hubby and reselling (pricing, listing, shipping, marketplace rules). Answers link straight to the part of the app they mention.
+
+- **Sell**: no helper (the button shows what it does and which plan has it).
+- **Ship, Sync and Grow**: how-to and reselling answers, 15 questions a day.
+- **Flow**: the helper also sees a short summary of your shop with each question (totals, sales and profit this month and last, top brands and marketplaces, items listed over 60 days, orders to print and ship, and one line per item with SKU, price, cost, days listed and storage location), so it can answer "what should I mark down?" or "where did I put the Nike hoodie?". 200 questions a day. No photos or buyer addresses are sent.
+
+The chat is kept in your browser. Answers come from Claude (`claude-opus-5-5`, low effort for quick replies) through the `assistant` Edge Function, which checks the plan saved in your settings and the daily cap, and streams the answer back as it's written.
+
+Setup:
+
+1. Run `supabase/migrations/0013_assistant.sql` (lets the daily cap count helper questions).
+2. `supabase secrets set ANTHROPIC_API_KEY=...` (already set if you use the other AI features). Optional caps: `ASSISTANT_DAILY_HELPER` (15) and `ASSISTANT_DAILY_FULL` (200).
+3. `supabase functions deploy assistant`.
+
+In demo mode there's no AI: the helper answers common questions (what to mark down, profit this month, what needs to ship, where an item is stored, how to crosslist, print labels, restore a backup and more) from the sample shop.
 
 ## Feedback summaries (AI)
 
@@ -67,10 +182,10 @@ Users send feedback from the Feedback tab. The `feedback-digest` Edge Function r
 
 ## List with a video (AI)
 
-Inventory > **List with a video**: the seller films up to 25 items (up to 5 minutes), one after another. Reship reads frames out of the video in the browser (the video itself is never uploaded), then:
+Inventory > **List with a video**: the seller films up to 25 items (up to 5 minutes), one after another. Hubby reads frames out of the video in the browser (the video itself is never uploaded), then:
 
 1. Claude finds each distinct item and marks where it is in its clearest frame.
-2. Reship cuts snips of each item from the video.
+2. Hubby cuts snips of each item from the video.
 3. Claude writes each listing from its snips: title, description, brand, category, size, color, condition, flaws, tags, and a suggested price with the usual sold range and a one-line reason. It also gets the seller's AI instructions from Settings and the median sold prices of their own most common brands and categories.
 4. Optionally, an image model turns the best snip into a clean studio-style photo (it's told to keep the item exactly as it is, flaws included). The real snips are always kept with it.
 5. The seller checks each draft, edits anything, and saves them as inventory drafts, ready to crosslist.
@@ -84,7 +199,7 @@ Setup:
 3. Deploy: `supabase functions deploy video-listing`.
 4. Optional daily caps per user: `VIDEO_LISTING_DAILY_VIDEOS` (20), `VIDEO_LISTING_DAILY_ITEMS` (600), `VIDEO_LISTING_DAILY_PHOTOS` (300).
 
-In demo mode there's no AI: Reship splits the video into items by scene and makes a draft with snips for each, for the seller to fill in.
+In demo mode there's no AI: Hubby splits the video into items by scene and makes a draft with snips for each, for the seller to fill in.
 
 ## List from photos (AI)
 
@@ -97,7 +212,106 @@ Inventory > **List from photos**: the seller uploads up to 100 photos of up to 2
 
 Setup is the same as List with a video, plus `supabase/migrations/0008_photo_listing.sql` (lets the daily cap count photo batches). Optional cap: `VIDEO_LISTING_DAILY_PHOTO_BATCHES` (20). Redeploy `video-listing`.
 
-In demo mode there's no AI: Reship groups photos by when they were taken (a long pause between shots starts a new item), or by how they look when the photos carry no times.
+In demo mode there's no AI: Hubby groups photos by when they were taken (a long pause between shots starts a new item), or by how they look when the photos carry no times.
+
+## Affiliates
+
+Sellers earn **a referred seller's first month (Ship $9.99, Grow $49 or Flow $109), then 5% of every subscription payment that seller makes, for life**. The **Affiliates** tab (sidebar on computers, Settings on phones) has:
+
+- **Join**: pick a referral code and how to be paid (PayPal, Venmo, Cash App, bank transfer). The link is `https://your-app/?ref=code`.
+- **Overview**: the link with Copy and Share, money ready to pay, pending (held 30 days in case of refunds), paid so far, the monthly amount earned for life, link visits, sign-ups and paying sellers.
+- **Referrals**: each referred seller (part of their email only), plan, status, whether the bonus is earned, and what they've earned the affiliate.
+- **Earnings and payouts**: every earning with when it's ready, and every payout.
+- **Pay affiliates** (app owner only): what each affiliate is owed, **Mark paid** after sending the money, and **Record payment** to credit a referred seller's subscription payment by hand until billing is connected.
+
+A public page about the program, for sharing, is at `https://your-app/?affiliates`.
+
+How referrals are tracked: a visit with `?ref=code` is counted and the code is remembered in that browser for 60 days. When that visitor signs up, they're credited to the affiliate. Self-referrals and accounts older than 7 days don't count, and a seller can only be referred once.
+
+Setup: run `supabase/migrations/0009_affiliates.sql`. The terms live in the one-row `affiliate_program` table (bonus amount or cap, rate, refund hold, which plans earn the bonus, an optional "after they've paid this much" threshold, link memory, minimum payout); change them there and the app follows. By default the bonus equals the referred seller's first payment (one month of their plan), capped at $95 (one month of Flow), on any plan. Run `0011_plans.sql` too if you ran an older 0009. Set `bonus_matches_payment` to false for a flat `bonus_cents` instead.
+
+When billing is built, its webhook calls these with the service role key: `record_subscription_payment(user_id, plan, amount_cents, invoice_id)` on every paid invoice (safe to repeat), `record_subscription_refund(invoice_id)` on a refund, and `record_subscription_canceled(user_id)` on a cancellation.
+## Community
+
+Tools > **Community** is **The Hubby Hangout**, a group feed where resellers (and the partners who help them) post, comment and react, and plan in-person meetups. Run `supabase/migrations/0014_community.sql` and then `0016_community_feed_meetups.sql`, and build with `VITE_COMMUNITY=on`, to turn it on with accounts (needs 0006 for admins). Demo mode has a sample group saved in the browser, and you're the moderator there.
+
+- **Feed**: a "What's on your mind?" box at the top, posts with an optional headline and a topic (Tips, Questions, Shipping, Sourcing, Wins, Marketplace news, Ideas, Just chatting), and topic chips, search and sorting. Authors can edit and delete their own posts. Posts show the shop name from Settings, never the email address.
+- **Reactions**: tap Like, or hover (long-press on a phone, arrow up on a keyboard) for Love, Haha, Wow or Yay. One reaction per person per post; the post shows the top emoji and the total.
+- **Comments** sit right under each post in the feed (the latest two, with "View more"), with a quick comment box and likes on comments. Share copies a link to the post.
+- **Meetups**: Plan a meetup with a name, date, start and end time, place, address or area, optional number of spots and details. It's posted to the feed as an event card. People answer Going, Maybe or Can't go; full meetups take Maybes only. Each meetup has its own page with Directions (Google Maps), Add to calendar (an .ics file for Apple, Google or Outlook), the Going and Maybe lists, and a discussion (the post's comments). Hosts can edit, cancel (the post stays up marked Cancelled) or delete. The Meetups tab lists Upcoming, You're going, Hosting and Past, with search by place or town, and the sidebar shows what's coming up.
+- **Report**: anyone can report a post, meetup or comment (spam, scam, harassment, off topic, other). Reports from three different sellers hide it automatically until a moderator decides.
+- **Block**: hides a seller's posts, comments and RSVPs from you. They aren't told. Unblock from the Blocked tab.
+- **Moderators** (anyone in `app_admins`, the same list as Feedback) get a Reports tab to remove, keep removed, put back up or dismiss, can remove anything from its menu, and can ban a seller from posting (they can still read). Bans are lifted from the Blocked tab.
+- The database enforces all of it: sellers can only post, react and RSVP as themselves, can't change reaction, reply or RSVP counts, only hosts can change a meetup, RSVPs are refused for full, cancelled or past meetups, banned sellers can't post or reply, and only admins can moderate or read reports.
+
+## Buying labels (EasyPost)
+
+Hubby buys its own labels through EasyPost at EasyPost's discounted carrier rates, from the edge function in `supabase/functions/labels`.
+
+1. Run `supabase/migrations/0012_own_label.sql`.
+2. Create an EasyPost account and copy an API key (start with the test key, which makes free test labels).
+3. `supabase secrets set EASYPOST_API_KEY=...` and `supabase functions deploy labels`.
+
+Until the function is deployed, the app shows estimated prices and can't buy. In demo mode, buying makes a clearly marked practice label so the flow can be tried. Labels are paid from the EasyPost account, so charging sellers for them (or for the Ship plan) needs to be in place before using a live key.
+
+## Crosslisting and delisting (Mercari and Vinted)
+
+- Run `supabase/migrations/0005_crosslist.sql` first.
+- The app queues an item for Mercari or Vinted with `queueCrosslist(draft, ["Mercari", "Vinted"])` from `src/lib/listingJobs.ts`. Titles, descriptions and photos are trimmed to each marketplace's limits, and conditions are renamed to each marketplace's wording (`src/lib/crosslist.ts`).
+- Within about 30 seconds the extension opens each marketplace's sell form in a background tab with the title, description, price, photos and condition filled in. The toolbar icon shows how many are waiting. Pick the category, brand and size from the marketplace's own lists and press List. Hubby notices the new listing's page and records it.
+- Delisting is `queueDelist(platform, listingId)`. Hubby deactivates Mercari listings and hides Vinted listings rather than deleting them, so either can be turned back on. If a page doesn't go the way Hubby expects, it leaves the tab open for you to finish.
+- Auto-delist: in the extension popup, choose which marketplaces to take an item down from when it sells somewhere else. It works for items Hubby listed, matched by listing or SKU.
+
+## Shop: buy across marketplaces
+
+Shop (in the menu under Buy and sell) is one search box for buying, to wear or to resell.
+
+| Marketplace | In Hubby | Where you pay |
+|---|---|---|
+| SellSource | Results and checkout | In Hubby (Stripe) |
+| eBay | Results, through eBay's official Browse API | On eBay. eBay's Order API, which lets an app check out, is limited to partners eBay picks. |
+| Etsy | Results, through Etsy's Open API | On Etsy. Etsy has no checkout API for other apps. |
+| Poshmark, Mercari, Depop, Vinted, Facebook Marketplace, ThredUp, Grailed, Curtsy, OfferUp, Vestiaire | A button that opens the marketplace's own search for the same words | On that marketplace. None of them has a public search or buying API, and reading their pages from Hubby would break their terms. |
+
+"I bought it" on a result adds it to Inventory as a draft with what you paid, so its profit is right when it sells.
+
+Setup: run `supabase/migrations/0015_sellsource_and_live.sql`, then `supabase secrets set EBAY_CLIENT_ID=... EBAY_CLIENT_SECRET=... ETSY_API_KEY=... ETSY_SHARED_SECRET=...` (the same keys Research uses) and `supabase functions deploy shop-search`. Optional: `EBAY_CAMPAIGN_ID` from the eBay Partner Network, so eBay pays Hubby a small commission on purchases made through Shop's links, at no cost to the buyer.
+
+## SellSource: Hubby's own marketplace
+
+Sellers open a storefront (`/?shop=their-name`) and turn SellSource on for any inventory item with a price and a photo. Buyers browse everything at `/?market`, without an account, add items from one shop to a bag and pay on Stripe's checkout page.
+
+- **Money:** Stripe Connect (Express accounts, destination charges). The seller's share goes straight to their own Stripe account; SellSource keeps 3% of the item price plus card processing (2.9% + $0.30 on what the buyer pays). Hubby never sees a card or bank number.
+- **Holds:** items are held for 30 minutes while a buyer is on the checkout page, so two people can't buy the same thing. An abandoned checkout puts them back on sale.
+- **Orders:** a paid checkout becomes an order in the seller's Orders, with the buyer's address. The item is marked sold, and when an item sells anywhere else Hubby takes it off SellSource by itself.
+- **Combined shipping:** each seller sets a first-item shipping price and an extra-item price (usually $0). A bag ships as one package, and every win in the same live show joins the buyer's first package.
+
+Setup:
+1. Run `supabase/migrations/0015_sellsource_and_live.sql`.
+2. Create a Stripe account, turn on Connect (Express), and `supabase secrets set STRIPE_SECRET_KEY=sk_... APP_URL=https://your-app`.
+3. `supabase functions deploy sellsource-connect sellsource-checkout` and `supabase functions deploy sellsource-webhook --no-verify-jwt`.
+4. In Stripe, add a webhook to the sellsource-webhook URL for `checkout.session.completed`, `checkout.session.expired` and (listening to connected accounts) `account.updated`, then `supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_...`.
+5. Build with `VITE_SELLSOURCE=on`. Test with Stripe's test keys first.
+
+Before taking real money: SellSource is a marketplace, so it needs its own buyer terms, a returns and disputes policy, a prohibited items list, and sales tax collection (marketplace facilitator laws make Hubby responsible for collecting sales tax in most US states; Stripe Tax can do this).
+
+## Live shows
+
+Sellers schedule a show with items from their storefront, open it on their phone and go live. Buyers watch at `/?live=show-id` without an account, chat, tap Buy now, or bid in 15, 30 or 60 second auctions. A bid in the last 10 seconds puts 10 seconds back on the clock. The database judges every bid (`live_place_bid`), so two people bidding at once can't both win, and only the winner's browser can pay for the item.
+
+- **Video:** LiveKit (open source; LiveKit Cloud or self-hosted). The host's phone sends one stream and LiveKit relays it to every viewer. `supabase secrets set LIVEKIT_URL=wss://... LIVEKIT_API_KEY=... LIVEKIT_API_SECRET=...` and `supabase functions deploy live-token`. Without it, chat, bids and buying still work and viewers see the item photos.
+- **Live updates:** Supabase Realtime (the migration adds the tables to it).
+- Build with `VITE_LIVE_SHOWS=on` (and `VITE_SELLSOURCE=on`).
+- Demo mode: the host sees their own camera, practice viewers chat and bid, and a second tab at `/?live=...` shows the buyer's side.
+
+## Shipping hubs (plan)
+
+The goal: cheaper shipping on SellSource and live show sales by routing through major hub locations. What's built now and what comes after, in order of how much each saves for the work it takes:
+
+1. **Combined shipping (built).** One package per shop per checkout, and one package per buyer per live show. This is the biggest saving on live sales, where buyers often win several items.
+2. **Discounted labels (built, switched off).** Buying labels through EasyPost gets commercial carrier rates, well below retail for USPS Ground Advantage. Turning `buyLabels` on for SellSource orders is the cheapest next step.
+3. **Local pickup at hubs.** Buyers near the seller pick up at a set place (a partner store or a carrier pickup point), for $0 shipping. Needs pickup codes and a no-show policy.
+4. **Multi-seller consolidation at Hubby hubs.** Sellers in a metro drop off at a Hubby hub; orders from several sellers to the same buyer go out as one box, and hubs ship to each other in bulk. This only saves money at volume (roughly thousands of packages a day per metro), adds a day or two to delivery, and needs space, staff and insurance, so it belongs after SellSource has steady sales in a few cities.
 
 ## Coming next
 
@@ -110,3 +324,15 @@ Combining with Listy (video to listings) into one app: an inventory page, return
 | `npm run dev` | Start the app locally |
 | `npm run build` | Typecheck and build for production into `dist/` |
 | `npm test` | Run the tests |
+
+## Plans
+
+| Plan | Price | Adds |
+| --- | --- | --- |
+| Sell | $15/mo | Inventory manager, delisting, 20 new listings a day on up to 3 marketplaces (no AI) |
+| Ship | $25/mo | Shipping labels (print, compare and buy, packing slips), AI helper for how-to questions |
+| Sync | $50/mo | Crosslisting, up to 5 marketplaces, 30 listings a day, quantity sync after a sale |
+| Grow | $65/mo | Automations, 40 listings a day |
+| Flow | $95/mo | Unlimited listings and marketplaces, video listing, full AI (including a helper that knows your shop), backup and restore |
+
+Each plan includes the ones before it. Prices, features and limits live in `src/lib/plans.ts`; the homepage, Settings > Subscription, the upgrade prompts and the affiliate bonus all read from it. There's no billing yet: a seller picks a plan in Settings > Subscription, and everyone starts on Flow during early access.

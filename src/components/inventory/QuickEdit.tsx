@@ -5,6 +5,8 @@ import { CONDITIONS } from "@/lib/types";
 import { shortDate } from "@/lib/analytics";
 import { Field, PlatformIcon, SectionLabel, inputClass, primaryButton, secondaryButton } from "../ui";
 import { LabelChips } from "./LabelChips";
+import { MinPriceNote } from "./MinPriceNote";
+import { underMinimum } from "@/lib/minPrice";
 
 const day = (iso?: string) => (iso ? shortDate(iso.slice(0, 10)) : "–");
 
@@ -27,15 +29,16 @@ export function QuickEdit({
   const [cost, setCost] = useState(item.cost?.toString() ?? "");
   const [qty, setQty] = useState(String(item.quantity ?? 1));
   const num = (s: string) => (s.trim() === "" ? undefined : parseFloat(s) || 0);
+  const tooLow = underMinimum(num(price));
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/20" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <aside role="dialog" aria-modal="true" aria-label="Quick edit" className="bg-card w-full sm:max-w-sm h-full flex flex-col shadow-2xl border-l border-border">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-3 min-w-0">
-            {item.photo ? <img src={item.photo} alt="" className="w-10 h-10 rounded-md object-cover" /> : <div className="w-10 h-10 rounded-md bg-muted" />}
+            {item.photo ? <img src={item.photo} alt="" loading="lazy" decoding="async" className="w-10 h-10 rounded-md object-cover" /> : <div className="w-10 h-10 rounded-md bg-muted" />}
             <div className="min-w-0">
               <h2 className="font-display text-sm font-semibold text-foreground">Quick edit</h2>
-              <p className="font-mono text-[11px] text-muted-foreground">{item.sku}</p>
+              <p className="font-mono text-[12px] text-muted-foreground">{item.sku}</p>
             </div>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 rounded-md hover:bg-muted">
@@ -48,7 +51,7 @@ export function QuickEdit({
           </Field>
           <div className="grid grid-cols-3 gap-2">
             <Field label="Price ($)">
-              <input className={inputClass} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} />
+              <input className={`${inputClass} ${tooLow ? "ring-2 ring-amber-400" : ""}`} inputMode="decimal" aria-invalid={tooLow} value={price} onChange={(e) => setPrice(e.target.value)} />
             </Field>
             <Field label="Cost ($)">
               <input className={inputClass} inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value)} />
@@ -57,9 +60,13 @@ export function QuickEdit({
               <input className={inputClass} inputMode="numeric" value={qty} onChange={(e) => setQty(e.target.value)} />
             </Field>
           </div>
+          {tooLow && <MinPriceNote />}
           <div className="grid grid-cols-2 gap-2">
             <Field label="SKU">
-              <input className={`${inputClass} font-mono`} value={d.sku} onChange={(e) => setD({ ...d, sku: e.target.value })} />
+              <input className={`${inputClass} font-mono bg-muted`} value={d.sku} readOnly title="SKUs stay the same for good. Change one in the full editor." />
+            </Field>
+            <Field label="Location">
+              <input className={inputClass} value={d.location ?? ""} onChange={(e) => setD({ ...d, location: e.target.value || undefined })} placeholder="Bin 4" />
             </Field>
             <Field label="Condition">
               <select className={inputClass} value={d.condition ?? ""} onChange={(e) => setD({ ...d, condition: (e.target.value || undefined) as Condition | undefined })}>
@@ -122,6 +129,7 @@ export function QuickEdit({
           <button
             type="button"
             className={primaryButton}
+            disabled={tooLow}
             onClick={() =>
               onSave({ ...d, listPrice: num(price), cost: num(cost), quantity: Math.max(1, Math.round(num(qty) ?? 1)), updatedAt: new Date().toISOString() })
             }

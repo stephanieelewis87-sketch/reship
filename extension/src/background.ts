@@ -2,11 +2,17 @@ import type { Platform } from "../../src/lib/types";
 import { CONNECTORS } from "./connectors";
 import { describeLabelResponse } from "./connectors/poshmark";
 import { lastRead as mercariRead } from "./connectors/mercari";
-import { reship, supabaseSink } from "./reship";
+import { onTabRemoved, onTabUpdated, runJobs } from "./jobs";
+import { reship, supabaseJobStore, supabaseSink } from "./reship";
 import { syncAll, type PlatformResult } from "./sync";
+import { MESSAGE_CONTEXTS, messagingOf, templatesFor } from "../../src/lib/messaging";
+import type { Settings } from "../../src/lib/types";
 
 const SYNC_ALARM = "reship-sync";
 const SYNC_MINUTES = 15;
+// Crosslist and delist jobs are checked often, since the seller is usually waiting on them.
+const JOBS_ALARM = "reship-jobs";
+const JOBS_MINUTES = 0.5;
 
 export interface SyncState {
   lastRun?: string;
@@ -18,7 +24,17 @@ async function enabledPlatforms(): Promise<Set<Platform>> {
   return new Set((enabled as Platform[] | undefined) ?? []);
 }
 
-async function runSync(): Promise<SyncState> {
+// The 15-minute alarm and Sync now can fire together; two syncs at once would open marketplace
+// pages twice and could import the same order twice, so a second request joins the one running.
+let running: Promise<SyncState> | null = null;
+function runSync(): Promise<SyncState> {
+  running ??= doSync().finally(() => {
+    running = null;
+  });
+  return running;
+}
+
+async function doSync(): Promise<SyncState> {
   const { data } = await reship.auth.getSession();
   const user = data.session?.user;
   if (!user) return { results: [] };
@@ -26,6 +42,14 @@ async function runSync(): Promise<SyncState> {
   const state: SyncState = { lastRun: new Date().toISOString(), results };
   await chrome.storage.local.set({ syncState: state });
   return state;
+}
+
+async function runListingJobs(): Promise<number> {
+  const { data } = await reship.auth.getSession();
+  if (!data.session?.user) return 0;
+  const { consented = false } = (await chrome.storage.local.get("consented")) as { consented?: boolean };
+  if (!consented) return 0;
+  return runJobs(supabaseJobStore());
 }
 
 // Setup check that saves nothing: finds the orders a connector would import and tries each label.
@@ -47,17 +71,48 @@ async function checkPlatform(platform: Platform): Promise<string> {
   }
 }
 
+// The seller's message templates for one marketplace, for the Templates button in comment boxes.
+// Falls back to Hubby's default templates when the seller isn't signed in.
+async function messageTemplates(platform: Platform) {
+  let saved: Partial<Settings> | undefined;
+  const { data } = await reship.auth.getSession();
+  if (data.session) {
+    const res = await reship.from("settings").select("data").eq("user_id", data.session.user.id).maybeSingle();
+    saved = res.data?.data as Partial<Settings> | undefined;
+  }
+  const m = messagingOf(saved?.messaging);
+  return { seller: saved?.displayName ?? "", templates: MESSAGE_CONTEXTS.flatMap((c) => templatesFor(m.templates, platform, c)) };
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create(SYNC_ALARM, { periodInMinutes: SYNC_MINUTES });
+  chrome.alarms.create(JOBS_ALARM, { periodInMinutes: JOBS_MINUTES });
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === SYNC_ALARM) runSync();
+  if (alarm.name === SYNC_ALARM) runSync().then(runListingJobs);
+  if (alarm.name === JOBS_ALARM) runListingJobs();
+});
+
+// A sell tab Reship filled in: notice when the seller has listed the item, or closed the tab.
+chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
+  if (change.url || change.status === "complete") onTabUpdated(tabId, change.url ?? tab.url, supabaseJobStore()).catch(() => {});
+});
+chrome.tabs.onRemoved.addListener((tabId) => {
+  onTabRemoved(tabId, supabaseJobStore()).catch(() => {});
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
   if (msg?.type === "check-platform") {
     checkPlatform(msg.platform).then(reply);
+    return true;
+  }
+  if (msg?.type === "message-templates") {
+    messageTemplates(msg.platform).then(reply, () => reply({ templates: [], seller: "" }));
+    return true;
+  }
+  if (msg?.type === "run-jobs") {
+    runListingJobs().then(reply);
     return true;
   }
   if (msg?.type === "sync-now") {

@@ -1,4 +1,6 @@
+import { sellSourceFees } from "./sellsource";
 import type { InventoryItem, Order, OrderItem, Platform } from "./types";
+import { MIN_PRICE } from "./minPrice";
 
 // Everything the analytics pages show is worked out here from orders and inventory, so the
 // numbers can be tested without the screen.
@@ -72,7 +74,30 @@ export function estimateFees(platform: Platform, price: number): number {
       return price * 0.033 + 0.45;
     case "WhatNot":
       return price * 0.109 + 0.3;
+    case "Facebook":
+      // Shipped sales only; local pickup has no fee, so record those with a fee of 0.
+      return Math.max(price * 0.1, 0.8);
+    case "OfferUp":
+      // Shipped sales only; local pickup has no fee, so record those with a fee of 0.
+      return Math.max(price * 0.129, 1.99);
+    case "Curtsy":
+      // Curtsy shows the exact fee when you post; these are the commonly reported tiers.
+      return price < 15 ? 2.95 : price <= 50 ? price * 0.2 : price * 0.15;
+    case "Grailed":
+      // 9% commission plus payment processing (3.49% + $0.49).
+      return price * 0.1249 + 0.49;
+    case "Vestiaire": {
+      // US items listed from Oct 15, 2026: $12 under $75, 17% up to $15,000, then $2,500; plus 3% processing ($3 minimum).
+      const selling = price < 75 ? 12 : price <= 15000 ? price * 0.17 : 2500;
+      return selling + Math.max(price * 0.03, 3);
+    }
+    case "Shopify":
+      // Shopify Payments card processing on the Basic plan; your plan may differ.
+      return price * 0.029 + 0.3;
+    case "SellSource":
+      return sellSourceFees(price).total;
     case "Vinted":
+    case "ThredUp": // Direct Listing charges sellers no fee
     case "Other":
       return 0;
   }
@@ -389,7 +414,8 @@ export interface StaleItem {
 // A markdown that grows with age, never below what the item cost plus typical fees.
 export function staleAdvice(item: InventoryItem, age: number): StaleItem {
   const cut = age > 180 ? 0.3 : age > 90 ? 0.2 : age > 60 ? 0.1 : 0;
-  const floor = (item.cost ?? 0) * 1.25;
+  // Never below Hubby's minimum price, either.
+  const floor = Math.max(MIN_PRICE, (item.cost ?? 0) * 1.25);
   const suggested = item.listPrice ? Math.max(floor, Math.floor(item.listPrice * (1 - cut))) : null;
   const advice =
     age > 180
@@ -524,7 +550,7 @@ export function insights({
     out.push({
       tone: "info",
       title: `${WEEKDAY_NAMES[WEEKDAYS.indexOf(topDay.label)]}s are your best day`,
-      detail: `${pct(topDay.units / lines.length)} of sales in this period landed then. Share and relist the day before.`,
+      detail: `${pct(topDay.units / lines.length)} of sales in this period landed then. Relist the day before.`,
       page: "overview",
     });
   }

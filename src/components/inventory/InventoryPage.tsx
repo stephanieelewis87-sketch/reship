@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   Clapperboard,
   Images,
@@ -9,6 +10,7 @@ import {
   Clock,
   Copy,
   ExternalLink,
+  Eye,
   Filter,
   LayoutGrid,
   List,
@@ -17,7 +19,11 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
+  ScanLine,
+  Download,
   Search,
+  ShieldCheck,
+  Shirt,
   Tag,
   Trash2,
   X,
@@ -31,21 +37,48 @@ import { newId } from "@/lib/ids";
 import { salesHints } from "@/lib/videoListing";
 import { Pills } from "../analytics/parts";
 import { PageHeader } from "../shell/PageHeader";
-import type { Route } from "../shell/route";
-import { PlatformIcon, inputClass, selectClass } from "../ui";
+import { go, type Route } from "../shell/route";
+import { compQuery } from "@/lib/comps";
+import { EmptyState, Menu, MenuItem, Modal, PlatformIcon, inputClass, selectClass } from "../ui";
 import { LabelDots } from "./LabelChips";
 import { ListingForm } from "./ListingForm";
 import { QuickEdit } from "./QuickEdit";
 import { PhotoListing } from "./PhotoListing";
+import { ImportListingsModal } from "./ImportListingsModal";
+import { listingHref } from "@/lib/marketplaces";
 import { VideoListing } from "./VideoListing";
+import { ScanModal, SkuLabelsModal } from "./SkuTools";
+import { GuardianPage } from "./GuardianPage";
+import { StatsChip, StatsImportModal, StatsModal } from "./ListingStats";
+import { itemStats } from "@/lib/listingStats";
+import { LockedCard, LockedSection, PlanTag, currentPlan, upgradeFor } from "../plans/PlanGate";
+import { type Feature, crosslistTargets, hasFeature, yourMarketplaces } from "@/lib/plans";
+import { BrandMark } from "../brand/Logo";
+import { checkInventory } from "@/lib/guardian";
+import { minPriceLabel, minPriceMessage, underMinimum } from "@/lib/minPrice";
+import { isOn } from "@/lib/features";
+
+// Until Hubby posts to marketplaces itself, listings here are a record the seller keeps:
+// where an item is listed, at what price, and whether it was taken down.
+const POSTS = isOn("crosslisting");
+const STATS = isOn("listingStats");
 
 type Data = ReturnType<typeof useReshipData>;
 type StatusFilter = "all" | "draft" | "listed" | "sold";
 type Issue = "" | "partial" | "stale" | "duplicate" | "nocost";
-type Sort = "newest" | "oldest" | "name" | "price" | "sold";
+type Sort = "newest" | "oldest" | "name" | "price" | "sold" | "views" | "watchers";
 const PAGE_SIZE = 24;
 type View = "list" | "board";
 const VIEW_KEY = "reship.inventory.view";
+// Views and watchers show by default; a seller who finds them busy can hide them in Filter.
+const STATS_KEY = "reship.inventory.showStats";
+const readShowStats = (): boolean => {
+  try {
+    return localStorage.getItem(STATS_KEY) !== "off";
+  } catch {
+    return true;
+  }
+};
 const readView = (): View => {
   try {
     return localStorage.getItem(VIEW_KEY) === "board" ? "board" : "list";
@@ -63,40 +96,37 @@ const ISSUES: { key: Issue; label: string }[] = [
 ];
 
 // A small menu that closes when you click elsewhere.
-function Menu({ button, children, align = "left" }: { button: (toggle: () => void) => ReactNode; children: (close: () => void) => ReactNode; align?: "left" | "right" }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const on = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
-    document.addEventListener("mousedown", on);
-    return () => document.removeEventListener("mousedown", on);
-  }, [open]);
+function AddOption({ icon: Icon, title, hint, onClick }: { icon: typeof Plus; title: string; hint: string; onClick: () => void }) {
   return (
-    <div ref={ref} className="relative">
-      {button(() => setOpen((o) => !o))}
-      {open && (
-        <div className={`absolute z-30 mt-1 min-w-44 rounded-lg border border-border bg-card shadow-lg py-1 text-sm ${align === "right" ? "right-0" : "left-0"}`}>{children(() => setOpen(false))}</div>
-      )}
-    </div>
+    <button type="button" onClick={onClick} className="w-full flex items-start gap-3 px-3 py-2 text-left hover:bg-muted">
+      <Icon className="w-4 h-4 mt-0.5 text-accent shrink-0" />
+      <span>
+        <span className="block text-sm text-foreground">{title}</span>
+        <span className="block text-[12px] text-muted-foreground">{hint}</span>
+      </span>
+    </button>
   );
 }
 
-const MenuItem = ({ onClick, children, danger }: { onClick: () => void; children: ReactNode; danger?: boolean }) => (
-  <button type="button" onClick={onClick} className={`w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-muted ${danger ? "text-destructive" : "text-foreground"}`}>
-    {children}
-  </button>
-);
 
 export function InventoryPage({ data, route }: { data: Data; route: Route }) {
   const { inventory, settings, saveInventory, deleteInventory } = data;
   const today = isoDay(new Date());
+  const plan = currentPlan(settings);
+  const can = (f: Feature) => hasFeature(plan, f);
+  // Runs `go` when the plan has the feature, and opens the upgrade page when it doesn't.
+  const gated = (f: Feature, go: () => void) => () => (can(f) ? go() : upgradeFor(f));
   const [status, setStatus] = useState<StatusFilter>((route.params.get("status") as StatusFilter) || "all");
   const [issue, setIssue] = useState<Issue>((route.params.get("issue") as Issue) || "");
   const [search, setSearch] = useState("");
+  // Typing stays instant; the list catches up a moment later on big inventories.
+  const query = useDeferredValue(search);
   const [sort, setSort] = useState<Sort>("newest");
   const [labelIn, setLabelIn] = useState<string[]>([]);
   const [labelOut, setLabelOut] = useState<string[]>([]);
+  const [location, setLocation] = useState("");
+  const [scan, setScan] = useState(false);
+  const [skuLabels, setSkuLabels] = useState<InventoryItem[] | null>(null);
   const [showFilters, setShowFilters] = useState(!!route.params.get("issue"));
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -106,15 +136,27 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
     platform?: Platform;
   } | null>(null);
   const [quick, setQuick] = useState<InventoryItem | null>(null);
+  const [statsFor, setStatsFor] = useState<InventoryItem | null>(null);
+  const [statsImport, setStatsImport] = useState(false);
+  const [showStats, setShowStatsState] = useState(() => STATS && readShowStats());
+  const setShowStats = (v: boolean) => {
+    setShowStatsState(v);
+    try {
+      localStorage.setItem(STATS_KEY, v ? "on" : "off");
+    } catch {
+      // The choice just won't be remembered.
+    }
+  };
   // #/inventory?video opens List with a video straight away (the Home page and homepage link here).
-  const [video, setVideo] = useState(route.params.has("video"));
+  const [video, setVideo] = useState(isOn("aiListing") && route.params.has("video"));
   useEffect(() => {
-    if (route.params.has("video")) setVideo(true);
+    if (isOn("aiListing") && route.params.has("video")) setVideo(true);
   }, [route]);
   // #/inventory?photos opens List from photos the same way.
-  const [photoUpload, setPhotoUpload] = useState(route.params.has("photos"));
+  const [photoUpload, setPhotoUpload] = useState(isOn("aiListing") && route.params.has("photos"));
+  const [importing, setImporting] = useState(false);
   useEffect(() => {
-    if (route.params.has("photos")) setPhotoUpload(true);
+    if (isOn("aiListing") && route.params.has("photos")) setPhotoUpload(true);
   }, [route]);
   const [notice, setNotice] = useState<string | null>(null);
   const [view, setViewState] = useState<View>(readView);
@@ -129,10 +171,11 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
 
   const dupes = useMemo(() => duplicateSkus(inventory), [inventory]);
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = query.trim().toLowerCase();
     const rows = inventory.filter((i) => {
       if (status !== "all" && i.status !== status) return false;
-      if (q && ![i.title, i.sku, i.brand ?? "", i.notes ?? ""].some((s) => s.toLowerCase().includes(q))) return false;
+      if (q && ![i.title, i.sku, i.brand ?? "", i.notes ?? "", i.location ?? "", ...i.listings.map((l) => l.listingId ?? "")].some((s) => s.toLowerCase().includes(q))) return false;
+      if (location && (location === "-" ? !!i.location : i.location !== location)) return false;
       if (issue === "partial" && !isPartiallyDelisted(i)) return false;
       if (issue === "stale" && !(i.status === "listed" && i.listings.some((l) => relistState(l, today) === "stale"))) return false;
       if (issue === "duplicate" && !dupes.has(i.sku.trim().toLowerCase())) return false;
@@ -148,11 +191,15 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
       name: (a, b) => a.title.localeCompare(b.title),
       price: (a, b) => (b.listPrice ?? 0) - (a.listPrice ?? 0),
       sold: (a, b) => (b.soldAt ?? "").localeCompare(a.soldAt ?? ""),
+      views: (a, b) => itemStats(b).views - itemStats(a).views,
+      watchers: (a, b) => itemStats(b).watchers - itemStats(a).watchers,
     };
     return rows.sort(by[sort]);
-  }, [inventory, status, search, issue, labelIn, labelOut, sort, dupes, today]);
+  }, [inventory, status, query, issue, labelIn, labelOut, location, sort, dupes, today]);
+  const locations = useMemo(() => [...new Set(inventory.map((i) => i.location).filter((l): l is string => !!l))].sort(), [inventory]);
+  const guardianAlerts = useMemo(() => checkInventory(inventory, data.orders).filter((i) => i.severity === "high").length, [inventory, data.orders]);
 
-  useEffect(() => setPage(0), [status, search, issue, labelIn, labelOut, sort]);
+  useEffect(() => setPage(0), [status, search, issue, labelIn, labelOut, location, sort]);
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const shown = filtered.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
   // Bulk selection covers the current page only, as the bar says.
@@ -169,8 +216,9 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
         listings: item.listings.map((l) => (l.platform === platform ? { ...l, ...patch } : l)),
       },
     ]);
-  const delistAll = (items: InventoryItem[]) =>
-    saveInventory(
+  const delistAll = (items: InventoryItem[]) => {
+    if (!can("delisting")) return upgradeFor("delisting");
+    return saveInventory(
       items.map((i) => ({
         ...i,
         status: i.status === "sold" ? "sold" : "draft",
@@ -178,12 +226,24 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
         listings: i.listings.map((l) => (l.status === "active" ? { ...l, status: "delisted" as const } : l)),
       })),
     );
+  };
+  // Crosslist to all: one tap lists the item on every marketplace you use that it isn't live on yet.
+  const mine = useMemo(() => yourMarketplaces(plan, inventory, ALL_PLATFORMS, settings.primaryMarketplace), [plan, inventory, settings.primaryMarketplace]);
+  const crosslistAll = (item: InventoryItem) => {
+    if (!can("crosslisting")) return upgradeFor("crosslisting");
+    const all = crosslistTargets(item, mine);
+    const targets = pricedOk(item, all, settings);
+    if (!targets.length) return all.length ? setNotice(`${item.title || "This item"} is priced under ${minPriceLabel}. ${minPriceMessage}`) : undefined;
+    saveInventory([crosslistItem(item, targets, today, settings)]);
+    const skipped = all.filter((p) => !targets.includes(p));
+    setNotice(`Crosslisted ${item.title || "this item"} to ${targets.join(", ")}.${skipped.length ? ` Skipped ${skipped.join(", ")}: the price there is under ${minPriceLabel}.` : ""}`);
+  };
   const copyItem = (item: InventoryItem) =>
     setForm({
       item: {
         ...item,
         id: newId(),
-        sku: nextSku(inventory),
+        sku: nextSku(inventory, settings.skuFormat),
         status: "draft",
         listings: [],
         soldAt: undefined,
@@ -194,7 +254,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
       isNew: true,
     });
   const deleteItem = (item: InventoryItem) => {
-    if (window.confirm(`Delete ${item.title} from Reship? Live listings on marketplaces stay up.`)) deleteInventory([item.id]);
+    if (window.confirm(`Delete ${item.title} from Hubby? Live listings on marketplaces stay up.`)) deleteInventory([item.id]);
   };
   const moveListing = (item: InventoryItem, l: Listing) =>
     saveInventory([
@@ -206,7 +266,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
       {
         ...item,
         id: newId(),
-        sku: nextSku(inventory),
+        sku: nextSku(inventory, settings.skuFormat),
         listings: [l],
         status: l.status === "sold" ? "sold" : l.status === "active" ? "listed" : "draft",
         soldOrders: undefined,
@@ -227,7 +287,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
     });
   const blank = (): InventoryItem => ({
     id: newId(),
-    sku: nextSku(inventory),
+    sku: nextSku(inventory, settings.skuFormat),
     title: "",
     status: "draft",
     listings: [],
@@ -236,15 +296,84 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
     purchasedAt: today,
   });
 
+  const formModal = form && (
+    <ListingForm
+      key={form.item.id + (form.platform ?? "")}
+      item={form.item}
+      isNew={form.isNew}
+      settings={settings}
+      ai={can("ai") ? data.store.listingAi : null}
+      aiLocked={!can("ai")}
+      plan={plan}
+      inventory={inventory}
+      store={data.store}
+      salesNotes={salesHints(inventory)}
+      onlyPlatform={form.platform}
+      onClose={() => setForm(null)}
+      onSave={(i, msg) => {
+        saveInventory([i]);
+        setForm(null);
+        if (msg) setNotice(msg);
+      }}
+      onDelete={(id) => {
+        deleteInventory([id]);
+        setForm(null);
+      }}
+      onPrintLabel={(i) => setSkuLabels([i])}
+    />
+  );
+  const skuLabelsModal = skuLabels && <SkuLabelsModal items={skuLabels} onClose={() => setSkuLabels(null)} />;
+
+  const clearFilters = () => {
+    setStatus("all");
+    setIssue("");
+    setSearch("");
+    setLocation("");
+    setLabelIn([]);
+    setLabelOut([]);
+  };
+  const emptyInventory =
+    inventory.length === 0 ? (
+      <EmptyState
+        icon={Shirt}
+        title="No items yet"
+        text="Add your first item, import your listings, or bring in your Poshmark and Mercari sales with the Hubby extension."
+        action={{ label: "Add an item", onClick: () => setForm({ item: blank(), isNew: true }) }}
+      />
+    ) : (
+      <EmptyState icon={Search} title="No items match" text="Try a different search, or clear the filters." action={{ label: "Clear filters", onClick: clearFilters }} />
+    );
+
+  if (route.params.has("guardian") && !can("backups"))
+    return <LockedSection feature="backups" title="Inventory Guardian" text="Daily backups of your inventory, one-click restore, listing checks and a history of every change." />;
+  if (route.params.has("guardian"))
+    return (
+      <>
+        <GuardianPage data={data} onOpenItem={(item) => setForm({ item, isNew: false })} />
+        {formModal}
+        {skuLabelsModal}
+      </>
+    );
+
   return (
     <div>
       <PageHeader title="Inventory" subtitle={`${counts.listed} listed · ${counts.draft} drafts · ${counts.sold} sold`}>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={gated("backups", () => go("inventory", { guardian: "" }))}
+            title="Inventory Guardian: backups, recovery, listing checks and change history"
+            className="relative flex items-center gap-1.5 px-3 py-2 rounded-md border border-border text-sm hover:bg-muted"
+          >
+            <ShieldCheck className="w-4 h-4" /> <span className="hidden sm:inline">Guardian</span>
+            {!can("backups") && <PlanTag feature="backups" className="hidden sm:inline-flex" />}
+            {guardianAlerts > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-rose-600 text-white text-[11px] leading-4 text-center">{guardianAlerts}</span>}
+          </button>
           <Menu
             align="right"
             button={(toggle) => (
-              <button type="button" onClick={toggle} className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-border text-sm hover:bg-muted">
-                <RefreshCw className="w-4 h-4" /> Resync
+              <button type="button" onClick={toggle} aria-label="Sync" title="Sync with your marketplaces" className="flex items-center gap-1.5 px-2.5 py-2 rounded-md border border-border text-sm hover:bg-muted">
+                <RefreshCw className="w-4 h-4" />
               </button>
             )}
           >
@@ -253,44 +382,61 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                 <MenuItem
                   onClick={() => {
                     close();
-                    setNotice("Full sync reads every listing and sale from your marketplaces. Open the Reship extension and press Sync now; it also runs every 15 minutes.");
+                    setNotice("Sync brings in your Poshmark and Mercari sales. Open the Hubby extension and press Sync now; it also runs every 15 minutes.");
                   }}
                 >
-                  Full sync
+                  Sync sales
                 </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    close();
-                    setNotice("Quick sync checks for new sales only. Open the Reship extension and press Sync now.");
-                  }}
-                >
-                  Quick sync
-                </MenuItem>
+                {STATS && (
+                  <MenuItem
+                    onClick={() => {
+                      close();
+                      setStatsImport(true);
+                    }}
+                  >
+                    Import eBay views and watchers
+                  </MenuItem>
+                )}
                 <MenuItem onClick={() => window.location.reload()}>Refresh this page</MenuItem>
               </>
             )}
           </Menu>
-          <button
+          {isOn("aiListing") && <button
             type="button"
-            onClick={() => setVideo(true)}
+            onClick={gated("videoListing", () => setVideo(true))}
             className="flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-lg bg-amber-400 text-amber-950 text-sm font-bold shadow-md shadow-amber-400/30 ring-2 ring-amber-300 hover:bg-amber-300 hover:shadow-lg transition"
           >
-            <Clapperboard className="w-4 h-4" /> List with a video
-          </button>
-          <button
-            type="button"
-            onClick={() => setPhotoUpload(true)}
-            className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-md border border-[#B5607A] text-[#B5607A] text-sm font-medium hover:bg-rose-50"
+            <Clapperboard className="w-4 h-4" />
+            <span className="hidden sm:inline">List with a video</span>
+            <span className="sm:hidden">Video</span>
+            {!can("videoListing") && <PlanTag feature="videoListing" />}
+          </button>}
+          <Menu
+            align="right"
+            button={(toggle) => (
+              <button
+                type="button"
+                onClick={toggle}
+                className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-md bg-accent text-accent-foreground text-sm font-medium hover:bg-accent-hover"
+              >
+                <Plus className="w-4 h-4" /> Add <ChevronDown className="w-3.5 h-3.5 -mr-0.5" />
+              </button>
+            )}
           >
-            <Images className="w-4 h-4" /> List from photos
-          </button>
-          <button
-            type="button"
-            onClick={() => setForm({ item: blank(), isNew: true })}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-[#B5607A] text-white text-sm font-medium hover:bg-[#9E4D6A]"
-          >
-            <Plus className="w-4 h-4" /> Add item
-          </button>
+            {(close) => (
+              <div className="min-w-56">
+                <AddOption icon={Plus} title="One item" hint="Fill in the details yourself" onClick={() => (close(), setForm({ item: blank(), isNew: true }))} />
+                {isOn("aiListing") && (
+                  <>
+                    <AddOption icon={Images} title="From photos" hint={can("ai") ? "Up to 25 items, one listing each" : "AI listing, on Flow"} onClick={() => (close(), gated("ai", () => setPhotoUpload(true))())} />
+                    <AddOption icon={Clapperboard} title="From a video" hint={can("videoListing") ? "Film your pile, get drafts" : "Video listing, on Flow"} onClick={() => (close(), gated("videoListing", () => setVideo(true))())} />
+                  </>
+                )}
+                <AddOption icon={Download} title="Import listings" hint="From links or a marketplace export" onClick={() => (close(), setImporting(true))} />
+                <AddOption icon={ScanLine} title="Scan a barcode" hint="Find or add an item by its SKU" onClick={() => (close(), setScan(true))} />
+              </div>
+            )}
+          </Menu>
         </div>
       </PageHeader>
 
@@ -324,7 +470,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search title, SKU, brand, notes…"
               aria-label="Search inventory"
-              className="pl-9 pr-3 py-1.5 text-sm bg-muted rounded-md border border-transparent focus:border-[#B5607A] focus:outline-none w-full"
+              className="pl-9 pr-3 py-1.5 text-sm bg-muted rounded-md border border-transparent focus:border-accent focus:outline-none w-full"
             />
           </div>
           <select className={selectClass} value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort">
@@ -333,12 +479,14 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
             <option value="name">Item name</option>
             <option value="price">Price, high to low</option>
             <option value="sold">Sale detected at</option>
+            {STATS && <option value="views">Most viewed</option>}
+            {STATS && <option value="watchers">Most watched</option>}
           </select>
           <button
             type="button"
             onClick={() => setShowFilters((v) => !v)}
             aria-pressed={showFilters}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs ${showFilters || issue || labelIn.length || labelOut.length ? "border-[#B5607A] text-[#B5607A]" : "border-border text-foreground"}`}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs ${showFilters || issue || location || labelIn.length || labelOut.length ? "border-accent text-accent" : "border-border text-foreground"}`}
           >
             <Filter className="w-3.5 h-3.5" /> Filter
           </button>
@@ -354,7 +502,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                 type="button"
                 aria-pressed={view === v}
                 onClick={() => setView(v)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 ${view === v ? "bg-[#B5607A] text-white" : "text-foreground hover:bg-muted"}`}
+                className={`flex items-center gap-1 px-2.5 py-1.5 ${view === v ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-muted"}`}
               >
                 <Icon className="w-3.5 h-3.5" /> {label}
               </button>
@@ -371,6 +519,16 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                   <option key={i.key} value={i.key}>
                     {i.label}
                   </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-2">
+              <span className="text-muted-foreground w-14">Location</span>
+              <select className={selectClass} value={location} onChange={(e) => setLocation(e.target.value)}>
+                <option value="">Anywhere</option>
+                <option value="-">No location yet</option>
+                {locations.map((l) => (
+                  <option key={l}>{l}</option>
                 ))}
               </select>
             </label>
@@ -403,6 +561,12 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                 })}
               </div>
             </div>
+            {STATS && (
+              <label className="flex items-center gap-2 sm:col-span-2">
+                <input type="checkbox" checked={showStats} onChange={(e) => setShowStats(e.target.checked)} />
+                <span>Show views and watchers on items</span>
+              </label>
+            )}
           </div>
         )}
       </div>
@@ -419,9 +583,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
               Select this page
             </label>
             {shown.length === 0 ? (
-              <p className="bg-card border border-border rounded-xl text-center text-sm text-muted-foreground py-12">
-                {inventory.length === 0 ? "No items yet. Add one, or sync your marketplaces with the Reship extension." : "No items match."}
-              </p>
+              <div className="bg-card border border-border rounded-xl">{emptyInventory}</div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {shown.map((item) => (
@@ -434,9 +596,10 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                     onToggle={() => toggleSelect(item.id)}
                     onEdit={() => setForm({ item, isNew: false })}
                     onQuick={() => setQuick(item)}
+                    onStats={showStats ? () => setStatsFor(item) : undefined}
                     onListOn={(p) => setForm({ item, isNew: false, platform: p })}
                     actionsFor={(l) => listingActions(item, l)}
-                    menu={<ItemMenu item={item} onEdit={() => setForm({ item, isNew: false })} onDelistAll={() => delistAll([item])} onCopy={() => copyItem(item)} onDelete={() => deleteItem(item)} />}
+                    menu={<ItemMenu item={item} onEdit={() => setForm({ item, isNew: false })} onDelistAll={() => delistAll([item])} onCopy={() => copyItem(item)} onDelete={() => deleteItem(item)} onLabel={() => setSkuLabels([item])} onStats={() => setStatsFor(item)} />}
                   />
                 ))}
               </div>
@@ -455,13 +618,24 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                       onChange={(e) => setSelected(e.target.checked ? new Set(shown.map((i) => i.id)) : new Set())}
                     />
                   </th>
-                  <th className="text-left px-2 py-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground font-normal min-w-[240px]">Item</th>
-                  {ALL_PLATFORMS.map((p) => (
+                  <th className="text-left px-2 py-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground font-normal min-w-[240px]">Item</th>
+                  {POSTS && <th
+                    className="px-3 py-2 font-normal border-x border-border/60"
+                    title={mine.length ? `Lists the item on ${mine.join(", ")}` : "List an item on a marketplace first, then Crosslist to all copies it to the rest"}
+                  >
+                    <span className="block font-mono text-[11px] uppercase tracking-wider text-muted-foreground leading-tight text-center">
+                      Crosslist
+                      <br />
+                      to all
+                    </span>
+                  </th>}
+                  {!POSTS && <th className="text-left px-2 py-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground font-normal">Listed on</th>}
+                  {POSTS && ALL_PLATFORMS.map((p) => (
                     <th key={p} className="px-1.5 py-2 font-normal" title={`${everListed(p)} of these items have been listed on ${p}`}>
                       <span className="flex flex-col items-center gap-0.5">
                         <PlatformIcon platform={p} className="w-4 h-4" />
-                        <span className="text-[10px] text-muted-foreground">{p === "WhatNot" ? "Whatnot" : p}</span>
-                        <span className="text-[10px] text-muted-foreground/70 tabular-nums">{everListed(p)}</span>
+                        <span className="text-[11px] text-muted-foreground">{p === "WhatNot" ? "Whatnot" : p}</span>
+                        <span className="text-[11px] text-muted-foreground/70 tabular-nums">{everListed(p)}</span>
                       </span>
                     </th>
                   ))}
@@ -470,9 +644,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
               <tbody>
                 {shown.length === 0 && (
                   <tr>
-                    <td colSpan={2 + ALL_PLATFORMS.length} className="text-center text-sm text-muted-foreground py-12">
-                      {inventory.length === 0 ? "No items yet. Add one, or sync your marketplaces with the Reship extension." : "No items match."}
-                    </td>
+                    <td colSpan={POSTS ? 3 + ALL_PLATFORMS.length : 3}>{emptyInventory}</td>
                   </tr>
                 )}
                 {shown.map((item) => (
@@ -482,10 +654,10 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                     </td>
                     <td className="px-2 py-2">
                       <div className="flex items-center gap-2.5">
-                        {item.photo ? <img src={item.photo} alt="" className="w-11 h-11 rounded-md object-cover shrink-0" /> : <div className="w-11 h-11 rounded-md bg-muted shrink-0" />}
+                        {item.photo ? <img src={item.photo} alt="" loading="lazy" decoding="async" className="w-11 h-11 rounded-md object-cover shrink-0" /> : <div className="w-11 h-11 rounded-md bg-muted shrink-0" />}
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1">
-                            <button type="button" onClick={() => setForm({ item, isNew: false })} className="text-sm font-medium text-foreground truncate max-w-[220px] text-left hover:text-[#B5607A]">
+                            <button type="button" onClick={() => setForm({ item, isNew: false })} className="text-sm font-medium text-foreground truncate max-w-[220px] text-left hover:text-accent">
                               {item.title || "Untitled"}
                             </button>
                             <button type="button" aria-label="Quick edit" title="Quick edit" onClick={() => setQuick(item)} className="p-0.5 text-muted-foreground hover:text-foreground">
@@ -497,19 +669,31 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                               onDelistAll={() => delistAll([item])}
                               onCopy={() => copyItem(item)}
                               onDelete={() => deleteItem(item)}
+                              onLabel={() => setSkuLabels([item])}
+                              onStats={() => setStatsFor(item)}
                             />
                           </div>
-                          <div className="flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground">
+                          <div className="flex items-center gap-2 flex-wrap text-[12px] text-muted-foreground">
                             <span className="font-mono">{item.sku}</span>
+                            {item.location && <span title="Location">@ {item.location}</span>}
                             {item.listPrice != null && <span>${item.listPrice}</span>}
                             {(item.quantity ?? 1) > 1 && <span>qty {item.quantity}</span>}
                             <StatusChip item={item} />
                             <LabelDots defs={settings.labels} ids={item.labels} />
+                            {showStats && <StatsChip item={item} onOpen={() => setStatsFor(item)} />}
                           </div>
                         </div>
                       </div>
                     </td>
-                    {ALL_PLATFORMS.map((p) => {
+                    {!POSTS && (
+                      <td className="px-2 py-2">
+                        <ListedOn item={item} today={today} actionsFor={(l) => listingActions(item, l)} />
+                      </td>
+                    )}
+                    {POSTS && <td className="px-3 py-2 text-center border-x border-border/60">
+                      <CrosslistAllButton item={item} targets={pricedOk(item, crosslistTargets(item, mine), settings)} tooLow={underMinimum(item.listPrice)} locked={!can("crosslisting")} onClick={() => crosslistAll(item)} />
+                    </td>}
+                    {POSTS && ALL_PLATFORMS.map((p) => {
                       const l = item.listings.find((x) => x.platform === p);
                       return (
                         <td key={p} className="px-1.5 py-2 text-center">
@@ -523,7 +707,7 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                               title={`List on ${p}`}
                               aria-label={`List ${item.title} on ${p}`}
                               onClick={() => setForm({ item, isNew: false, platform: p })}
-                              className="w-10 h-10 rounded-md border border-dashed border-border hover:border-[#B5607A] hover:bg-rose-50/40 inline-flex items-center justify-center text-muted-foreground/40 hover:text-[#B5607A]"
+                              className="w-10 h-10 rounded-md border border-dashed border-border hover:border-accent hover:bg-rose-50/40 inline-flex items-center justify-center text-muted-foreground/40 hover:text-accent"
                             >
                               <Plus className="w-3.5 h-3.5" />
                             </button>
@@ -564,14 +748,24 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
             setSelected(new Set());
             if (msg) setNotice(msg);
           }}
+          canCrosslist={can("crosslisting")}
           onDelist={() => {
+            if (!can("delisting")) return upgradeFor("delisting");
             delistAll(selectedRows);
             setSelected(new Set());
           }}
+          onLabels={() => setSkuLabels(selectedRows)}
         />
       )}
 
-      {video && (
+      {(video && !can("videoListing")) || (photoUpload && !can("ai")) ? (
+        <Modal onClose={() => (setVideo(false), setPhotoUpload(false))} label="Upgrade">
+          <div className="p-5">
+            <LockedCard feature={video ? "videoListing" : "ai"} text={video ? "Film your pile for a few seconds and get a draft listing for every item." : "Upload photos of up to 25 items and AI writes one listing for each."} compact />
+          </div>
+        </Modal>
+      ) : null}
+      {video && can("videoListing") && (
         <VideoListing
           data={data}
           onClose={() => setVideo(false)}
@@ -582,7 +776,19 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
           }}
         />
       )}
-      {photoUpload && (
+      {importing && (
+        <ImportListingsModal
+          existing={inventory}
+          skuFormat={settings.skuFormat}
+          onClose={() => setImporting(false)}
+          onImport={(items, msg) => {
+            saveInventory(items, "Import listings");
+            setStatus("all");
+            setNotice(msg);
+          }}
+        />
+      )}
+      {photoUpload && can("ai") && (
         <PhotoListing
           data={data}
           onClose={() => setPhotoUpload(false)}
@@ -593,25 +799,42 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
           }}
         />
       )}
-      {form && (
-        <ListingForm
-          key={form.item.id + (form.platform ?? "")}
-          item={form.item}
-          isNew={form.isNew}
-          settings={settings}
-          ai={data.store.listingAi}
-          salesNotes={salesHints(inventory)}
-          onlyPlatform={form.platform}
-          onClose={() => setForm(null)}
-          onSave={(i, msg) => {
+      {formModal}
+      {skuLabelsModal}
+      {statsFor && (
+        <StatsModal
+          key={statsFor.id}
+          item={statsFor}
+          today={today}
+          onClose={() => setStatsFor(null)}
+          onImport={() => (setStatsFor(null), setStatsImport(true))}
+          onSave={(i) => {
             saveInventory([i]);
-            setForm(null);
-            if (msg) setNotice(msg);
+            setStatsFor(null);
           }}
-          onDelete={(id) => {
-            deleteInventory([id]);
-            setForm(null);
+        />
+      )}
+      {statsImport && (
+        <StatsImportModal
+          inventory={inventory}
+          today={today}
+          onClose={() => setStatsImport(false)}
+          onApply={(changed, msg) => {
+            saveInventory(changed);
+            setStatsImport(false);
+            setNotice(msg);
           }}
+        />
+      )}
+      {scan && (
+        <ScanModal
+          inventory={inventory}
+          onClose={() => setScan(false)}
+          onOpen={(item) => {
+            setScan(false);
+            setForm({ item, isNew: false });
+          }}
+          onMove={(item, loc) => saveInventory([{ ...item, location: loc || undefined, updatedAt: new Date().toISOString() }])}
         />
       )}
       {quick && (
@@ -633,6 +856,37 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
   );
 }
 
+// List view while Hubby doesn't post to marketplaces: the marketplaces the item is recorded on,
+// each with its own menu (view it, mark it delisted or relisted).
+function ListedOn({ item, today, actionsFor }: { item: InventoryItem; today: string; actionsFor: (l: Listing) => ListingActions }) {
+  if (!item.listings.length) return <span className="text-[12px] text-muted-foreground">Not listed yet</span>;
+  return (
+    <div className="flex items-center gap-1 flex-wrap">
+      {item.listings.map((l) => (
+        <ListingMenu
+          key={l.platform}
+          item={item}
+          listing={l}
+          {...actionsFor(l)}
+          button={(toggle) => (
+            <button
+              type="button"
+              onClick={toggle}
+              aria-label={`${l.platform} listing: ${l.status}`}
+              title={`${l.platform}: ${LISTING_LABEL[l.status].toLowerCase()}${l.price != null ? ` at $${l.price}` : ""}`}
+              className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[12px] ${l.status === "delisted" ? "border-border text-muted-foreground line-through" : l.status === "sold" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-border text-foreground"}`}
+            >
+              <PlatformIcon platform={l.platform} className="w-3.5 h-3.5" />
+              {l.platform === "WhatNot" ? "Whatnot" : l.platform}
+              <RelistBadge listing={l} today={today} />
+            </button>
+          )}
+        />
+      ))}
+    </div>
+  );
+}
+
 function StatusChip({ item }: { item: InventoryItem }) {
   if (isPartiallyDelisted(item)) return <span className="px-1.5 rounded bg-amber-50 text-amber-800">Sold · still listed</span>;
   const cfg = {
@@ -643,7 +897,23 @@ function StatusChip({ item }: { item: InventoryItem }) {
   return <span className={`px-1.5 rounded ${cfg}`}>{item.status === "draft" ? (item.readyToList ? "Ready to list" : "Draft") : item.status === "listed" ? "Listed" : "Sold"}</span>;
 }
 
-function ItemMenu({ item, onEdit, onDelistAll, onCopy, onDelete }: { item: InventoryItem; onEdit: () => void; onDelistAll: () => void; onCopy: () => void; onDelete: () => void }) {
+function ItemMenu({
+  item,
+  onEdit,
+  onDelistAll,
+  onCopy,
+  onDelete,
+  onLabel,
+  onStats,
+}: {
+  item: InventoryItem;
+  onEdit: () => void;
+  onDelistAll: () => void;
+  onCopy: () => void;
+  onDelete: () => void;
+  onLabel: () => void;
+  onStats: () => void;
+}) {
   const run = (close: () => void, fn: () => void) => () => {
     close();
     fn();
@@ -659,10 +929,23 @@ function ItemMenu({ item, onEdit, onDelistAll, onCopy, onDelete }: { item: Inven
       {(close) => (
         <>
           <MenuItem onClick={run(close, onEdit)}>Edit</MenuItem>
-          {listedOn(item).length > 0 && <MenuItem onClick={run(close, onDelistAll)}>Delist everywhere</MenuItem>}
+          {listedOn(item).length > 0 && <MenuItem onClick={run(close, onDelistAll)}>{POSTS ? "Delist everywhere" : "Mark delisted everywhere"}</MenuItem>}
           <MenuItem onClick={run(close, onCopy)}>
             <Copy className="w-3.5 h-3.5" /> Copy
           </MenuItem>
+          <MenuItem onClick={run(close, onLabel)}>
+            <ScanLine className="w-3.5 h-3.5" /> Print SKU label
+          </MenuItem>
+          {STATS && item.listings.length > 0 && (
+            <MenuItem onClick={run(close, onStats)}>
+              <Eye className="w-3.5 h-3.5" /> Views and watchers
+            </MenuItem>
+          )}
+          {isOn("research") && (
+            <MenuItem onClick={run(close, () => go("research", { q: compQuery(item) }))}>
+              <Search className="w-3.5 h-3.5" /> Find comps
+            </MenuItem>
+          )}
           <MenuItem danger onClick={run(close, onDelete)}>
             <Trash2 className="w-3.5 h-3.5" /> Delete
           </MenuItem>
@@ -699,19 +982,19 @@ function ListingMenu({
     <Menu button={button}>
       {(close) => (
         <>
-          <p className="px-3 py-1 text-[11px] text-muted-foreground capitalize">
+          <p className="px-3 py-1 text-[12px] text-muted-foreground capitalize">
             {listing.platform} · {listing.status}
             {listing.price != null ? ` · $${listing.price}` : ""}
           </p>
-          {listing.url && (
-            <a href={listing.url} target="_blank" rel="noreferrer" className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-muted text-foreground">
+          {listingHref(listing.platform, listing) && (
+            <a href={listingHref(listing.platform, listing)} target="_blank" rel="noreferrer" className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-muted text-foreground">
               <ExternalLink className="w-3.5 h-3.5" /> View on {listing.platform}
             </a>
           )}
-          {listing.status === "active" && <MenuItem onClick={run(close, onDelist)}>Delist</MenuItem>}
+          {listing.status === "active" && <MenuItem onClick={run(close, onDelist)}>{POSTS ? "Delist" : "Mark delisted"}</MenuItem>}
           {listing.status !== "sold" && (
             <MenuItem onClick={run(close, onRelist)}>
-              <RotateCcw className="w-3.5 h-3.5" /> Relist
+              <RotateCcw className="w-3.5 h-3.5" /> {POSTS ? "Relist" : "Mark relisted"}
             </MenuItem>
           )}
           {item.listings.length > 1 && <MenuItem onClick={run(close, onMove)}>Move to new item</MenuItem>}
@@ -754,7 +1037,7 @@ function ListingCell({ item, listing, today, ...actions }: { item: InventoryItem
           className="relative inline-block w-10 h-10 rounded-md overflow-hidden border border-border align-middle"
         >
           {item.photo ? (
-            <img src={item.photo} alt="" className={`w-full h-full object-cover ${listing.status === "delisted" ? "grayscale opacity-40" : ""}`} />
+            <img src={item.photo} alt="" loading="lazy" decoding="async" className={`w-full h-full object-cover ${listing.status === "delisted" ? "grayscale opacity-40" : ""}`} />
           ) : (
             <span className="block w-full h-full bg-muted" />
           )}
@@ -763,7 +1046,7 @@ function ListingCell({ item, listing, today, ...actions }: { item: InventoryItem
               <CheckCircle2 className="w-4 h-4 text-white" />
             </span>
           )}
-          {listing.status === "active" && <span className="absolute top-0.5 left-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white" />}
+          {listing.status === "active" && <span className="absolute top-0.5 left-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-card" />}
           <span className="absolute bottom-0.5 right-0.5">
             <RelistBadge listing={listing} today={today} />
           </span>
@@ -789,6 +1072,7 @@ function BoardCard({
   onToggle,
   onEdit,
   onQuick,
+  onStats,
   onListOn,
   actionsFor,
   menu,
@@ -800,26 +1084,27 @@ function BoardCard({
   onToggle: () => void;
   onEdit: () => void;
   onQuick: () => void;
+  onStats?: () => void;
   onListOn: (p: Platform) => void;
   actionsFor: (l: Listing) => ListingActions;
   menu: ReactNode;
 }) {
   const notOn = ALL_PLATFORMS.filter((p) => !item.listings.some((l) => l.platform === p));
   return (
-    <article className={`bg-card border rounded-xl overflow-hidden flex flex-col ${selected ? "border-[#B5607A] ring-1 ring-[#B5607A]/40" : "border-border"}`}>
+    <article className={`bg-card border rounded-xl overflow-hidden flex flex-col ${selected ? "border-accent ring-1 ring-accent/40" : "border-border"}`}>
       <div className="relative aspect-[16/9] sm:aspect-[4/3] bg-muted">
-        {item.photo && <img src={item.photo} alt="" className="w-full h-full object-cover" />}
+        {item.photo && <img src={item.photo} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />}
         <label className="absolute top-2 left-2 bg-card/90 rounded p-1 flex">
           <input type="checkbox" aria-label={`Select ${item.title}`} checked={selected} onChange={onToggle} />
         </label>
-        <span className="absolute top-2 right-2 text-[11px]">
+        <span className="absolute top-2 right-2 text-[12px]">
           <StatusChip item={item} />
         </span>
       </div>
       <div className="p-3 flex-1 flex flex-col gap-2">
         <div>
           <div className="flex items-start gap-1">
-            <button type="button" onClick={onEdit} className="text-sm font-medium text-foreground text-left leading-snug hover:text-[#B5607A] flex-1 min-w-0">
+            <button type="button" onClick={onEdit} className="text-sm font-medium text-foreground text-left leading-snug hover:text-accent flex-1 min-w-0">
               {item.title || "Untitled"}
             </button>
             <button type="button" aria-label="Quick edit" title="Quick edit" onClick={onQuick} className="p-0.5 text-muted-foreground hover:text-foreground">
@@ -827,11 +1112,12 @@ function BoardCard({
             </button>
             {menu}
           </div>
-          <div className="flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground mt-0.5">
+          <div className="flex items-center gap-2 flex-wrap text-[12px] text-muted-foreground mt-0.5">
             <span className="font-mono">{item.sku}</span>
             {item.listPrice != null && <span>${item.listPrice}</span>}
             {(item.quantity ?? 1) > 1 && <span>qty {item.quantity}</span>}
             <LabelDots defs={settings.labels} ids={item.labels} />
+            {onStats && <StatsChip item={item} onOpen={onStats} />}
           </div>
         </div>
         <ul className="border-t border-border/70 divide-y divide-border/50 text-xs">
@@ -855,9 +1141,9 @@ function BoardCard({
             </li>
           ))}
         </ul>
-        {item.status !== "sold" && notOn.length > 0 && (
+        {POSTS && item.status !== "sold" && notOn.length > 0 && (
           <div className="mt-auto flex items-center gap-1 flex-wrap pt-1">
-            <span className="text-[11px] text-muted-foreground mr-0.5">List on</span>
+            <span className="text-[12px] text-muted-foreground mr-0.5">List on</span>
             {notOn.map((p) => (
               <button
                 key={p}
@@ -865,7 +1151,7 @@ function BoardCard({
                 title={`List on ${p}`}
                 aria-label={`List ${item.title} on ${p}`}
                 onClick={() => onListOn(p)}
-                className="w-6 h-6 rounded-md border border-dashed border-border hover:border-[#B5607A] hover:bg-rose-50/40 inline-flex items-center justify-center"
+                className="w-6 h-6 rounded-md border border-dashed border-border hover:border-accent hover:bg-rose-50/40 inline-flex items-center justify-center"
               >
                 <PlatformIcon platform={p} className="w-3 h-3" />
               </button>
@@ -877,8 +1163,84 @@ function BoardCard({
   );
 }
 
+// The S button in the Crosslist to all column. Dimmed when there's nowhere left to list the item.
+function CrosslistAllButton({ item, targets, tooLow, locked, onClick }: { item: InventoryItem; targets: Platform[]; tooLow: boolean; locked: boolean; onClick: () => void }) {
+  if (item.status === "sold") return <span className="inline-block w-10 h-10" />;
+  const done = targets.length === 0;
+  const title = locked
+    ? "Crosslisting comes with the Sync plan"
+    : tooLow
+      ? `Priced under ${minPriceLabel}. ${minPriceMessage}`
+      : done
+      ? "Already live on all your marketplaces"
+      : `Crosslist to ${targets.join(", ")}`;
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={`Crosslist ${item.title} to all your marketplaces`}
+      disabled={done && !locked}
+      onClick={onClick}
+      className="relative inline-flex rounded-lg ring-1 ring-border transition hover:ring-2 hover:ring-accent hover:scale-105 disabled:opacity-30 disabled:hover:ring-1 disabled:hover:ring-border disabled:hover:scale-100 disabled:cursor-default"
+    >
+      <BrandMark className="w-10 h-10" />
+      {!done && !locked && (
+        <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-accent text-accent-foreground text-[10px] font-bold leading-[18px] tabular-nums">{targets.length}</span>
+      )}
+    </button>
+  );
+}
+
+// The marketplaces where the item's price, after the seller's pricing rule, meets Hubby's minimum.
+// An item with no price yet isn't held back here; the listing form asks for one.
+function pricedOk(i: InventoryItem, platforms: Platform[], settings: Data["settings"]): Platform[] {
+  return platforms.filter((p) => !underMinimum(priceFor(i.listPrice, p, settings)));
+}
+
+// Puts an item up on each of `platforms`: a new listing where it has none, a relist where it was delisted.
+function crosslistItem(i: InventoryItem, platforms: Platform[], today: string, settings: Data["settings"]): InventoryItem {
+  const listings = [...i.listings];
+  pricedOk(i, platforms, settings).forEach((p) => {
+    const at = listings.findIndex((l) => l.platform === p);
+    const next: Listing = {
+      platform: p,
+      status: "active",
+      listedAt: today,
+      price: priceFor(i.listPrice, p, settings),
+    };
+    if (at === -1) listings.push(next);
+    else if (listings[at].status === "delisted")
+      listings[at] = {
+        ...listings[at],
+        status: "active",
+        relistedAt: today,
+      };
+  });
+  return {
+    ...i,
+    listings,
+    status: "listed" as const,
+    listedAt: i.listedAt ?? today,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 // Actions for the checked rows on this page.
-function BulkBar({ data, items, onDone, onDelist }: { data: Data; items: InventoryItem[]; onDone: (msg?: string) => void; onDelist: () => void }) {
+function BulkBar({
+  data,
+  items,
+  canCrosslist,
+  onDone,
+  onDelist,
+  onLabels,
+}: {
+  data: Data;
+  items: InventoryItem[];
+  canCrosslist: boolean;
+  onDone: (msg?: string) => void;
+  onDelist: () => void;
+  onLabels: () => void;
+}) {
   const { settings, saveInventory, deleteInventory } = data;
   const [mode, setMode] = useState<"" | "crosslist" | "label" | "edit">("");
   const [platforms, setPlatforms] = useState<Set<Platform>>(new Set());
@@ -886,52 +1248,30 @@ function BulkBar({ data, items, onDone, onDelist }: { data: Data; items: Invento
     condition: string;
     quantity: string;
     cost: string;
-    skuPrefix: string;
-  }>({ condition: "", quantity: "", cost: "", skuPrefix: "" });
+    location: string;
+  }>({ condition: "", quantity: "", cost: "", location: "" });
   const today = isoDay(new Date());
   const crosslist = () => {
-    saveInventory(
-      items
-        .filter((i) => i.status !== "sold")
-        .map((i) => {
-          const listings = [...i.listings];
-          platforms.forEach((p) => {
-            const at = listings.findIndex((l) => l.platform === p);
-            const next: Listing = {
-              platform: p,
-              status: "active",
-              listedAt: today,
-              price: priceFor(i.listPrice, p, settings),
-            };
-            if (at === -1) listings.push(next);
-            else if (listings[at].status === "delisted")
-              listings[at] = {
-                ...listings[at],
-                status: "active",
-                relistedAt: today,
-              };
-          });
-          return {
-            ...i,
-            listings,
-            status: "listed" as const,
-            listedAt: i.listedAt ?? today,
-            updatedAt: new Date().toISOString(),
-          };
-        }),
+    const open = items.filter((i) => i.status !== "sold");
+    const ok = open.filter((i) => pricedOk(i, [...platforms], settings).length > 0);
+    const held = open.length - ok.length;
+    saveInventory(ok.map((i) => crosslistItem(i, [...platforms], today, settings)));
+    onDone(
+      `Crosslisted ${ok.length} item${ok.length !== 1 ? "s" : ""} to ${[...platforms].join(", ")}.` +
+        (held ? ` ${held} priced under ${minPriceLabel} ${held === 1 ? "was" : "were"} left out. ${minPriceMessage}` : ""),
     );
-    onDone(`Crosslisted ${items.length} item${items.length !== 1 ? "s" : ""} to ${[...platforms].join(", ")}.`);
   };
   const applyEdit = () => {
     saveInventory(
-      items.map((i, n) => ({
+      items.map((i) => ({
         ...i,
         condition: (edit.condition || i.condition) as Condition | undefined,
         quantity: edit.quantity ? Math.max(1, parseInt(edit.quantity) || 1) : i.quantity,
         cost: edit.cost ? parseFloat(edit.cost) || 0 : i.cost,
-        sku: edit.skuPrefix ? `${edit.skuPrefix}-${String(n + 1).padStart(3, "0")}` : i.sku,
+        location: edit.location.trim() || i.location,
         updatedAt: new Date().toISOString(),
       })),
+      "Bulk edit",
     );
     onDone(`Updated ${items.length} item${items.length !== 1 ? "s" : ""}.`);
   };
@@ -939,27 +1279,34 @@ function BulkBar({ data, items, onDone, onDelist }: { data: Data; items: Invento
     <div className="fixed bottom-16 md:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-3xl bg-foreground text-background rounded-xl shadow-2xl p-3 text-sm">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="font-medium mr-2">{items.length} selected on this page</span>
-        <button type="button" onClick={() => setMode(mode === "crosslist" ? "" : "crosslist")} className="px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20">
-          Crosslist
-        </button>
-        <button type="button" onClick={() => setMode(mode === "label" ? "" : "label")} className="px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 flex items-center gap-1">
+        {POSTS && <button
+          type="button"
+          onClick={() => (canCrosslist ? setMode(mode === "crosslist" ? "" : "crosslist") : upgradeFor("crosslisting"))}
+          className="px-2.5 py-1 rounded-md bg-background/10 hover:bg-background/20 flex items-center gap-1"
+        >
+          Crosslist {!canCrosslist && <PlanTag feature="crosslisting" />}
+        </button>}
+        <button type="button" onClick={() => setMode(mode === "label" ? "" : "label")} className="px-2.5 py-1 rounded-md bg-background/10 hover:bg-background/20 flex items-center gap-1">
           <Tag className="w-3.5 h-3.5" /> Labels
         </button>
-        <button type="button" onClick={() => setMode(mode === "edit" ? "" : "edit")} className="px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20">
+        <button type="button" onClick={() => setMode(mode === "edit" ? "" : "edit")} className="px-2.5 py-1 rounded-md bg-background/10 hover:bg-background/20">
           Bulk edit
         </button>
-        <button type="button" onClick={onDelist} className="px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20">
-          Delist
+        <button type="button" onClick={onLabels} className="px-2.5 py-1 rounded-md bg-background/10 hover:bg-background/20 flex items-center gap-1">
+          <ScanLine className="w-3.5 h-3.5" /> SKU labels
+        </button>
+        <button type="button" onClick={onDelist} className="px-2.5 py-1 rounded-md bg-background/10 hover:bg-background/20">
+          {POSTS ? "Delist" : "Mark delisted"}
         </button>
         <button
           type="button"
           onClick={() => {
-            if (window.confirm(`Delete ${items.length} items from Reship? Live listings on marketplaces stay up.`)) {
+            if (window.confirm(`Delete ${items.length} items from Hubby? Live listings on marketplaces stay up.`)) {
               deleteInventory(items.map((i) => i.id));
               onDone();
             }
           }}
-          className="px-2.5 py-1 rounded-md bg-white/10 hover:bg-rose-500/70"
+          className="px-2.5 py-1 rounded-md bg-background/10 hover:bg-rose-500/70"
         >
           Delete
         </button>
@@ -982,12 +1329,12 @@ function BulkBar({ data, items, onDone, onDelist }: { data: Data; items: Invento
                   return n;
                 })
               }
-              className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs ${platforms.has(p) ? "bg-white text-foreground" : "bg-white/10"}`}
+              className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs ${platforms.has(p) ? "bg-background text-foreground" : "bg-background/10"}`}
             >
               <PlatformIcon platform={p} /> {p}
             </button>
           ))}
-          <button type="button" disabled={!platforms.size} onClick={crosslist} className="ml-auto px-3 py-1 rounded-md bg-[#B5607A] text-white text-xs font-medium disabled:opacity-50">
+          <button type="button" disabled={!platforms.size} onClick={crosslist} className="ml-auto px-3 py-1 rounded-md bg-accent text-accent-foreground text-xs font-medium disabled:opacity-50">
             List on {platforms.size || "…"}
           </button>
         </div>
@@ -1008,7 +1355,7 @@ function BulkBar({ data, items, onDone, onDelist }: { data: Data; items: Invento
                     })),
                   )
                 }
-                className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${all ? "bg-white text-foreground" : "bg-white/10"}`}
+                className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${all ? "bg-background text-foreground" : "bg-background/10"}`}
               >
                 <span className="w-2 h-2 rounded-full" style={{ background: l.color }} />
                 {all ? `Remove ${l.name}` : `Add ${l.name}`}
@@ -1027,8 +1374,8 @@ function BulkBar({ data, items, onDone, onDelist }: { data: Data; items: Invento
           </select>
           <input className={inputClass} placeholder="Quantity" inputMode="numeric" value={edit.quantity} onChange={(e) => setEdit({ ...edit, quantity: e.target.value })} />
           <input className={inputClass} placeholder="Cost each ($)" inputMode="decimal" value={edit.cost} onChange={(e) => setEdit({ ...edit, cost: e.target.value })} />
-          <input className={inputClass} placeholder="New SKU prefix" value={edit.skuPrefix} onChange={(e) => setEdit({ ...edit, skuPrefix: e.target.value.toUpperCase() })} />
-          <button type="button" onClick={applyEdit} className="px-3 py-1.5 rounded-md bg-[#B5607A] text-white text-xs font-medium">
+          <input className={inputClass} placeholder="Location" value={edit.location} onChange={(e) => setEdit({ ...edit, location: e.target.value })} />
+          <button type="button" onClick={applyEdit} className="px-3 py-1.5 rounded-md bg-accent text-accent-foreground text-xs font-medium">
             Apply to {items.length}
           </button>
         </div>

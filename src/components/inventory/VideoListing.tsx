@@ -7,6 +7,7 @@ import { MAX_AI_FRAMES, MAX_ITEMS, MAX_VIDEO_SECONDS, cleanDetected, emptyListin
 import { Modal, ModalHeader, Toggle, primaryButton, secondaryButton } from "../ui";
 import { DraftCard } from "./DraftCard";
 import { AI_IMAGE_SIDE, toAi, useListingDrafts } from "./useListingDrafts";
+import { minPriceLabel } from "@/lib/minPrice";
 
 type Data = ReturnType<typeof useReshipData>;
 type Step = { kind: "pick" } | { kind: "working"; label: string; progress?: number } | { kind: "review" } | { kind: "saving"; done: number; total: number };
@@ -14,7 +15,7 @@ type Step = { kind: "pick" } | { kind: "working"; label: string; progress?: numb
 // Film up to 25 items, get a draft listing for each: snips from the video, an optional clean AI
 // photo, and the title, details and price filled in.
 export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: () => void; onSaved: (message: string) => void }) {
-  const { ai, drafts, setDrafts, patch, patchListing, writeListing, makePhoto, fill, save: saveDrafts, photosOff, cancelled, busy, included } = useListingDrafts(data, "List with a video");
+  const { ai, drafts, setDrafts, patch, patchListing, writeListing, makePhoto, fill, save: saveDrafts, photosOff, cancelled, busy, included, tooLow } = useListingDrafts(data, "List with a video");
   const [step, setStep] = useState<Step>({ kind: "pick" });
   const [makePhotos, setMakePhotos] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
@@ -36,21 +37,23 @@ export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: 
         try {
           const frames = await Promise.all(picked.map((i) => shrinkImage(video.images[i], AI_IMAGE_SIDE).then(toAi)));
           found = cleanDetected(await ai.detect(frames, picked.map((i) => video.samples[i].t)), picked.length);
-          if (!found.length) setNotice("The AI didn't spot any items, so Reship split the video by scene instead.");
+          if (!found.length) setNotice("The AI didn't spot any items, so Hubby split the video by scene instead.");
         } catch (e) {
-          setNotice(`${(e as Error).message} Reship split the video by scene instead.`);
+          setNotice(`${(e as Error).message} Hubby split the video by scene instead.`);
         }
       } else {
-        setNotice("AI is off in demo mode, so Reship split your video into items by scene. With your Reship account, AI names, describes and prices each item and makes clean photos.");
+        setNotice("AI is off in demo mode, so Hubby split your video into items by scene. With your Hubby account, AI names, describes and prices each item and makes clean photos.");
       }
-      if (!found.length) found = itemsFromScenes(scenes, picked);
+      if (!found.length) found = itemsFromScenes(scenes, picked, video.samples);
       if (cancelled.current) return;
 
       setStep({ kind: "working", label: "Cutting snips from the video" });
       const made: VideoDraft[] = [];
       for (const [n, it] of found.entries()) {
-        const best = await cropFrame(video.images[picked[it.bestFrame]], it.box);
-        const others = await Promise.all(it.frames.filter((f) => f !== it.bestFrame).slice(0, 3).map((f) => cropFrame(video.images[picked[f]])));
+        // Snips get a touch-up (light, contrast, color cast, a little sharpening) so they read as
+        // real photos of the item, not dim video stills.
+        const best = await cropFrame(video.images[picked[it.bestFrame]], it.box, 1024, { touchUp: true });
+        const others = await Promise.all(it.frames.filter((f) => f !== it.bestFrame).slice(0, 3).map((f) => cropFrame(video.images[picked[f]], undefined, 1024, { touchUp: true })));
         made.push({ id: `v${n}`, include: true, label: it.label, snips: [best, ...others], cover: best, listing: { ...emptyListing(), title: ai ? "" : it.label }, priceText: "", state: ai ? "waiting" : "done" });
       }
       setDrafts(made);
@@ -82,9 +85,9 @@ export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: 
     <Modal onClose={step.kind === "review" || step.kind === "pick" ? close : () => {}} maxWidth="max-w-5xl" label="List with a video">
       <ModalHeader
         title="List with a video"
-        subtitle={step.kind === "review" ? `${drafts.length} item${drafts.length === 1 ? "" : "s"} found. Check each one, then save them as drafts.` : `Film up to ${MAX_ITEMS} items. Reship finds each one and writes its listing.`}
+        subtitle={step.kind === "review" ? `${drafts.length} item${drafts.length === 1 ? "" : "s"} found. Check each one, then save them as drafts.` : `Film up to ${MAX_ITEMS} items. Hubby finds each one and writes its listing.`}
         onClose={close}
-        icon={<Clapperboard className="w-5 h-5 text-[#B5607A]" />}
+        icon={<Clapperboard className="w-5 h-5 text-accent" />}
       />
       <div className="overflow-y-auto flex-1 p-5 sm:p-6 space-y-4">
         {error && (
@@ -96,8 +99,8 @@ export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: 
 
         {step.kind === "pick" && (
           <div className="grid md:grid-cols-2 gap-6">
-            <label className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-[#B5607A] hover:bg-rose-50/30">
-              <Upload className="w-8 h-8 text-[#B5607A]" />
+            <label className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-accent hover:bg-rose-50/30">
+              <Upload className="w-8 h-8 text-accent" />
               <span className="font-medium text-sm">Choose or record a video</span>
               <span className="text-xs text-muted-foreground">Up to {MAX_VIDEO_SECONDS / 60} minutes. The video stays on your device; only still frames are sent.</span>
               <input
@@ -113,7 +116,7 @@ export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: 
             </label>
             <div className="space-y-3 text-sm">
               <p className="font-medium">For the best results</p>
-              <ul className="space-y-1.5 text-muted-foreground text-[13px] list-disc pl-5">
+              <ul className="space-y-1.5 text-muted-foreground text-[14px] list-disc pl-5">
                 <li>Show one item at a time, for 2 to 3 seconds each.</li>
                 <li>Turn it to show the brand tag, size tag and any flaws.</li>
                 <li>Good light and a plain background help a lot.</li>
@@ -123,7 +126,7 @@ export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: 
                 <label className="flex items-center justify-between gap-3 pt-2">
                   <span>
                     Make clean AI photos
-                    <span className="block text-[11px] text-muted-foreground">A studio-style photo from the best snip. Your real snips are always kept too.</span>
+                    <span className="block text-[12px] text-muted-foreground">A studio-style photo from the best snip. Your real snips are always kept too.</span>
                   </span>
                   <Toggle label="Make clean AI photos" checked={makePhotos} onChange={() => setMakePhotos(!makePhotos)} />
                 </label>
@@ -134,11 +137,11 @@ export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: 
 
         {step.kind === "working" && (
           <div className="py-16 flex flex-col items-center gap-3 text-sm">
-            <Loader2 className="w-6 h-6 animate-spin text-[#B5607A]" />
+            <Loader2 className="w-6 h-6 animate-spin text-accent" />
             <p>{step.label}…</p>
             {step.progress != null && (
               <div className="w-64 h-1.5 rounded-full bg-muted overflow-hidden">
-                <div className="h-full bg-[#B5607A] transition-all" style={{ width: `${Math.round(step.progress * 100)}%` }} />
+                <div className="h-full bg-accent transition-all" style={{ width: `${Math.round(step.progress * 100)}%` }} />
               </div>
             )}
           </div>
@@ -146,7 +149,7 @@ export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: 
 
         {step.kind === "saving" && (
           <div className="py-16 flex flex-col items-center gap-3 text-sm">
-            <Loader2 className="w-6 h-6 animate-spin text-[#B5607A]" />
+            <Loader2 className="w-6 h-6 animate-spin text-accent" />
             <p>
               Saving drafts… {step.done} of {step.total}
             </p>
@@ -171,7 +174,7 @@ export function VideoListing({ data, onClose, onSaved }: { data: Data; onClose: 
           <button type="button" className={secondaryButton} onClick={() => setStep({ kind: "pick" })}>
             Another video
           </button>
-          <button type="button" className={primaryButton} disabled={!included || busy} onClick={() => void save()}>
+          <button type="button" className={primaryButton} disabled={!included || busy || tooLow > 0} title={tooLow ? `${tooLow} draft${tooLow === 1 ? " is" : "s are"} priced under ${minPriceLabel}` : undefined} onClick={() => void save()}>
             <Check className="w-4 h-4" /> Save {included} draft{included === 1 ? "" : "s"}
           </button>
         </div>

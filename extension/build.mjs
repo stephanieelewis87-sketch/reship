@@ -1,4 +1,4 @@
-// Builds the Reship browser extension into extension/dist (load it unpacked in Chrome).
+// Builds the Hubby browser extension into extension/dist (load it unpacked in Chrome).
 // Uses the same Supabase settings as the web app: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.
 import { build } from "esbuild";
 import { cpSync, mkdirSync, readFileSync, existsSync } from "fs";
@@ -26,6 +26,16 @@ await build({
     __SUPABASE_URL__: JSON.stringify(env.VITE_SUPABASE_URL ?? ""),
     __SUPABASE_ANON_KEY__: JSON.stringify(env.VITE_SUPABASE_ANON_KEY ?? ""),
   },
+});
+
+// Content scripts can't be modules, so the comment-box Templates button is built on its own.
+await build({
+  entryPoints: { templates: "extension/src/templates.ts" },
+  outdir: "extension/dist",
+  bundle: true,
+  format: "iife",
+  target: "chrome120",
+  minify: true,
 });
 
 if (!env.VITE_SUPABASE_URL) console.warn("Built without VITE_SUPABASE_URL; the extension can't sign in until it's set.");

@@ -2,3 +2,6 @@ node_modules
 dist
 .env
 .env.local
+link-report.md
+vite.log
+dist-waitlist

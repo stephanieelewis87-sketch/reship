@@ -30,9 +30,11 @@ create index if not exists inventory_items_user_sku_idx on public.inventory_item
 
 alter table public.inventory_items enable row level security;
 
+drop policy if exists "Users manage their own inventory" on public.inventory_items;
 create policy "Users manage their own inventory" on public.inventory_items
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+drop trigger if exists inventory_items_touch on public.inventory_items;
 create trigger inventory_items_touch before update on public.inventory_items
   for each row execute function public.touch_updated_at();
 
@@ -52,5 +54,6 @@ create index if not exists expenses_user_date_idx on public.expenses (user_id, e
 
 alter table public.expenses enable row level security;
 
+drop policy if exists "Users manage their own expenses" on public.expenses;
 create policy "Users manage their own expenses" on public.expenses
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

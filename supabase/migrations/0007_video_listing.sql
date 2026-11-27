@@ -7,12 +7,15 @@ insert into storage.buckets (id, name, public)
 values ('listing-photos', 'listing-photos', true)
 on conflict (id) do nothing;
 
+drop policy if exists "Users upload their own listing photos" on storage.objects;
 create policy "Users upload their own listing photos" on storage.objects
   for insert with check (bucket_id = 'listing-photos' and (storage.foldername(name))[1] = auth.uid()::text);
 
+drop policy if exists "Users replace their own listing photos" on storage.objects;
 create policy "Users replace their own listing photos" on storage.objects
   for update using (bucket_id = 'listing-photos' and (storage.foldername(name))[1] = auth.uid()::text);
 
+drop policy if exists "Users delete their own listing photos" on storage.objects;
 create policy "Users delete their own listing photos" on storage.objects
   for delete using (bucket_id = 'listing-photos' and (storage.foldername(name))[1] = auth.uid()::text);
 
@@ -28,5 +31,6 @@ create index if not exists ai_usage_user_kind_time on public.ai_usage (user_id, 
 
 alter table public.ai_usage enable row level security;
 
+drop policy if exists "Users see their own AI use" on public.ai_usage;
 create policy "Users see their own AI use" on public.ai_usage
   for select using (auth.uid() = user_id);

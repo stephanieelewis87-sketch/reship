@@ -70,6 +70,12 @@ describe("estimateFees", () => {
     expect(estimateFees("Poshmark", 10)).toBe(2.95);
     expect(estimateFees("Vinted", 40)).toBe(0);
   });
+
+  it("charges Facebook's 10% shipped-sale fee with its $0.80 minimum, and nothing on ThredUp Direct Listing", () => {
+    expect(estimateFees("Facebook", 50)).toBeCloseTo(5);
+    expect(estimateFees("Facebook", 5)).toBe(0.8);
+    expect(estimateFees("ThredUp", 60)).toBe(0);
+  });
 });
 
 describe("metrics", () => {

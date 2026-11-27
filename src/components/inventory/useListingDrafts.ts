@@ -4,7 +4,9 @@ import type { AiImage } from "@/lib/store";
 import { nextSku } from "@/lib/inventory";
 import { shrinkImage, splitDataUrl } from "@/lib/videoFrames";
 import type { ListingSuggestion, VideoDraft } from "@/lib/videoListing";
+import { MAX_LISTING_PHOTOS } from "@/lib/marketplaces";
 import { draftToItem, eachLimit, orderedPhotos, salesHints } from "@/lib/videoListing";
+import { atLeastMinimum, underMinimum } from "@/lib/minPrice";
 
 type Data = ReturnType<typeof useReshipData>;
 
@@ -31,7 +33,7 @@ export function useListingDrafts(data: Data, madeWith: string, photosPerItem = 4
     try {
       const images = await Promise.all(d.snips.slice(0, photosPerItem).map((s) => shrinkImage(s, AI_IMAGE_SIDE).then(toAi)));
       const listing = await ai.describe(images, d.label, data.settings.aiInstructions, salesHints(data.inventory));
-      patch(d.id, { listing, priceText: listing.price ? String(Math.round(listing.price.suggested)) : "", state: "done" });
+      patch(d.id, { listing, priceText: listing.price ? String(atLeastMinimum(Math.round(listing.price.suggested))) : "", state: "done" });
     } catch (e) {
       patch(d.id, { state: "failed", error: (e as Error).message });
     }
@@ -76,8 +78,8 @@ export function useListingDrafts(data: Data, madeWith: string, photosPerItem = 4
     let all = [...data.inventory];
     for (const [n, d] of chosen.entries()) {
       // Demo mode keeps photos in this browser, so they're kept small there.
-      const photos = await Promise.all(orderedPhotos(d).slice(0, ai ? 8 : 3).map(async (p) => data.store.saveListingPhoto(ai ? p : await shrinkImage(p, 480))));
-      const item = draftToItem(d, photos, nextSku(all), new Date(), madeWith);
+      const photos = await Promise.all(orderedPhotos(d).slice(0, ai ? MAX_LISTING_PHOTOS : 3).map(async (p) => data.store.saveListingPhoto(ai ? p : await shrinkImage(p, 480))));
+      const item = draftToItem(d, photos, nextSku(all, data.settings.skuFormat), new Date(), madeWith);
       all = [...all, item];
       items.push(item);
       onProgress(n + 1, chosen.length);
@@ -88,6 +90,8 @@ export function useListingDrafts(data: Data, madeWith: string, photosPerItem = 4
 
   const busy = drafts.some((d) => d.state === "writing" || d.state === "waiting");
   const included = drafts.filter((d) => d.include).length;
+  // Included drafts priced under Hubby's minimum. They have to be repriced or left out to save.
+  const tooLow = drafts.filter((d) => d.include && d.priceText.trim() !== "" && underMinimum(parseFloat(d.priceText))).length;
 
-  return { ai, drafts, setDrafts, patch, patchListing, writeListing, makePhoto, fill, save, photosOff, cancelled, busy, included };
+  return { ai, drafts, setDrafts, patch, patchListing, writeListing, makePhoto, fill, save, photosOff, cancelled, busy, included, tooLow };
 }

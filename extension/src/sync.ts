@@ -13,21 +13,27 @@ export interface PlatformResult {
 
 export interface KnownOrder {
   hasLabel: boolean;
-  // No item in Reship has a SKU yet, so one found on the marketplace can be filled in.
+  // No item in Hubby has a SKU yet, so one found on the marketplace can be filled in.
   missingSku: boolean;
+  // Has a label but not the drop-off QR code, so one found on the marketplace can be added.
+  missingQr?: boolean;
   shipment?: ShipmentStatus;
 }
 
-// Where synced orders go: the seller's Reship account.
+// Where synced orders go: the seller's Hubby account.
 export interface OrderSink {
-  // Orders already in Reship for this marketplace, by order number.
+  // Orders already in Hubby for this marketplace, by order number.
   knownOrders(platform: Platform): Promise<Map<string, KnownOrder>>;
   saveOrder(order: ImportedOrder, label: Blob | null): Promise<void>;
   attachLabel(order: ImportedOrder, label: Blob): Promise<void>;
-  // Copies the marketplace's SKUs onto an order already in Reship.
+  // Copies the marketplace's SKUs onto an order already in Hubby.
   fillSkus(order: ImportedOrder): Promise<void>;
+  // Adds the drop-off QR code to an order already in Reship.
+  attachQrCode(order: ImportedOrder): Promise<void>;
   // Records where a shipped order is now (in transit, delivered and so on).
   updateShipment(platform: Platform, orderNumber: string, status: ShipmentStatus): Promise<void>;
+  // A new sale came in: mark its listing sold and take the same item down on other marketplaces.
+  recordSale?(order: ImportedOrder): Promise<void>;
 }
 
 const hasSku = (order: ImportedOrder) => order.items.some((i) => i.sku);
@@ -49,11 +55,14 @@ export async function syncAll(connectors: Connector[], enabled: Set<Platform>, s
       for (const order of await c.listOrdersToShip()) {
         const existing = known.get(order.orderNumber);
         if (existing?.missingSku && hasSku(order)) await sink.fillSkus(order);
+        if (existing?.missingQr && order.qrCode) await sink.attachQrCode(order);
         if (existing?.hasLabel) continue;
         // A label can be missing because the marketplace hadn't made it yet; later syncs retry.
         const label = await c.downloadLabel(order).catch(() => null);
         if (!existing) {
           await sink.saveOrder(order, label);
+          // Delisting elsewhere is extra; a failure here never fails the import.
+          await sink.recordSale?.(order).catch(() => {});
           result.imported++;
           if (label) result.labels++;
         } else if (label) {

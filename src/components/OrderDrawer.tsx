@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { isOn } from "@/lib/features";
 import { ExternalLink, FileText, Plus, ShoppingCart, Trash2, Upload, X } from "lucide-react";
 import type { LabelStatus, Order, OrderItem, PackageType, Platform } from "@/lib/types";
 import { ALL_PLATFORMS, CARRIER_SERVICES, PACKAGE_TYPES, emptyAddress } from "@/lib/types";
 import { newId } from "@/lib/ids";
 import { estimateFees, guessBrand, guessCategory } from "@/lib/analytics";
+import { labelPolicy } from "@/lib/labelPolicy";
 import { AddressFields } from "./AddressFields";
 import { Field, PhotoCollage, SectionLabel, STATUS_CONFIG, inputClass, primaryButton, secondaryButton } from "./ui";
 
@@ -100,7 +102,7 @@ export function OrderDrawer({
             {!isNew && <PhotoCollage photos={draft.items.map((i) => i.photo)} size="sm" />}
             <div className="min-w-0">
               <h2 className="font-display text-sm font-semibold text-foreground">{isNew ? "Add Order" : "Order Details"}</h2>
-              {!isNew && <p className="font-mono text-[11px] text-muted-foreground truncate">{order.orderId}</p>}
+              {!isNew && <p className="font-mono text-[12px] text-muted-foreground truncate">{order.orderId}</p>}
             </div>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 rounded-md hover:bg-muted transition-colors">
@@ -147,10 +149,10 @@ export function OrderDrawer({
             <SectionLabel>Shipping label</SectionLabel>
             {currentLabelName ? (
               <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-2">
-                <FileText className="w-4 h-4 text-[#B5607A] shrink-0" />
+                <FileText className="w-4 h-4 text-accent shrink-0" />
                 <p className="text-sm text-foreground truncate flex-1">{currentLabelName}</p>
                 {!labelFile && order.label && (
-                  <button type="button" onClick={() => onViewLabel(order)} className="text-xs text-[#B5607A] hover:underline flex items-center gap-1">
+                  <button type="button" onClick={() => onViewLabel(order)} className="text-xs text-accent hover:underline flex items-center gap-1">
                     View <ExternalLink className="w-3 h-3" />
                   </button>
                 )}
@@ -170,7 +172,7 @@ export function OrderDrawer({
               <p className="text-xs text-muted-foreground">Upload the label PDF the marketplace gave you for this order.</p>
             )}
             <div className="flex items-center gap-3 flex-wrap">
-              <label className="text-xs text-[#B5607A] hover:underline flex items-center gap-1 cursor-pointer">
+              <label className="text-xs text-accent hover:underline flex items-center gap-1 cursor-pointer">
                 <Upload className="w-3 h-3" /> {currentLabelName ? "Replace label PDF" : "Upload label PDF"}
                 <input
                   type="file"
@@ -185,9 +187,10 @@ export function OrderDrawer({
                   }}
                 />
               </label>
-              {!isNew && (
+              {!isNew && (isOn("buyLabels") || order.ownLabel) && (
                 <button type="button" onClick={() => onBuyLabel(order)} className="text-xs text-muted-foreground hover:text-foreground hover:underline flex items-center gap-1">
-                  <ShoppingCart className="w-3 h-3" /> Buy a different label
+                  <ShoppingCart className="w-3 h-3" />{" "}
+                  {order.ownLabel ? "Hubby label & tracking" : { compare: "Buy a label", reship: "Buy a label", marketplace: "Prepaid label help" }[labelPolicy(order)]}
                 </button>
               )}
             </div>
@@ -250,7 +253,7 @@ export function OrderDrawer({
             <button
               type="button"
               onClick={() => setDraft((d) => ({ ...d, items: [...d.items, { name: "" }] }))}
-              className="text-xs text-[#B5607A] hover:underline flex items-center gap-1"
+              className="text-xs text-accent hover:underline flex items-center gap-1"
             >
               <Plus className="w-3 h-3" /> Add another item (bundle)
             </button>
@@ -278,7 +281,7 @@ export function OrderDrawer({
                 />
               </Field>
             </div>
-            <p className="text-[11px] text-muted-foreground">Left blank, fees are estimated from {draft.platform}'s fee schedule for analytics.</p>
+            <p className="text-[12px] text-muted-foreground">Left blank, fees are estimated from {draft.platform}'s fee schedule for analytics.</p>
           </section>
 
           <section className="space-y-3">
@@ -317,7 +320,7 @@ export function OrderDrawer({
         <div className="px-5 py-3 border-t border-border flex items-center gap-2 shrink-0">
           {!isNew &&
             (confirmDelete ? (
-              <button type="button" onClick={() => onDelete(order.id)} className="px-3 py-2 rounded-md bg-destructive text-white text-sm font-medium">
+              <button type="button" onClick={() => onDelete(order.id)} className="px-3 py-2 rounded-md bg-destructive text-destructive-foreground text-sm font-medium">
                 Confirm delete
               </button>
             ) : (

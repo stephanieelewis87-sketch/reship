@@ -50,7 +50,7 @@ export function FeedbackPage({ data, tab: initialTab }: { data: Data; tab?: stri
               type="button"
               onClick={() => setTab(t.key)}
               aria-current={tab === t.key ? "page" : undefined}
-              className={`py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px ${tab === t.key ? "border-[#B5607A] text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              className={`py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px ${tab === t.key ? "border-accent text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
             >
               {t.label}
             </button>
@@ -110,13 +110,13 @@ function SendFeedback({ data, mine, onSent }: { data: Data; mine: Feedback[]; on
               role="radio"
               aria-checked={kind === k}
               onClick={() => setKind(k)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs ${kind === k ? "border-[#B5607A] bg-rose-50/60 text-[#B5607A]" : "border-border text-muted-foreground hover:bg-muted"}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs ${kind === k ? "border-accent bg-rose-50/60 text-accent" : "border-border text-muted-foreground hover:bg-muted"}`}
             >
               <Icon className="w-3.5 h-3.5" /> {label}
             </button>
           ))}
         </div>
-        <Field label="Which part of Reship?">
+        <Field label="Which part of Hubby?">
           <select className={inputClass} value={area} onChange={(e) => setArea(e.target.value)}>
             {FEEDBACK_AREAS.map((a) => (
               <option key={a}>{a}</option>
@@ -136,11 +136,11 @@ function SendFeedback({ data, mine, onSent }: { data: Data; mine: Feedback[]; on
           />
         </Field>
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-1" aria-label="How happy are you with Reship overall?">
+          <div className="flex items-center gap-1" aria-label="How happy are you with Hubby overall?">
             <span className="text-xs text-muted-foreground mr-1">Overall</span>
             {[1, 2, 3, 4, 5].map((n) => (
               <button key={n} type="button" aria-label={`${n} star${n > 1 ? "s" : ""}`} aria-pressed={rating === n} onClick={() => setRating(rating === n ? undefined : n)} className="p-0.5">
-                <Star className={`w-4 h-4 ${rating && n <= rating ? "fill-[#B5607A] text-[#B5607A]" : "text-muted-foreground"}`} />
+                <Star className={`w-4 h-4 ${rating && n <= rating ? "fill-accent text-accent" : "text-muted-foreground"}`} />
               </button>
             ))}
           </div>
@@ -173,13 +173,13 @@ function FeedbackRow({ f, onStatus }: { f: Feedback; onStatus?: (s: FeedbackStat
   const meta = KINDS.find((k) => k.kind === f.kind)!;
   return (
     <li className="rounded-lg border border-border bg-card px-3 py-2.5 text-sm">
-      <div className="flex items-center justify-between gap-2 mb-1 text-[11px] text-muted-foreground">
+      <div className="flex items-center justify-between gap-2 mb-1 text-[12px] text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <meta.icon className="w-3.5 h-3.5" /> {meta.label} · {f.area} · {when(f.createdAt)}
           {f.rating ? ` · ${f.rating}★` : ""}
         </span>
         {onStatus ? (
-          <select aria-label="Status" className="text-[11px] border border-border rounded px-1 py-0.5 bg-background capitalize" value={f.status} onChange={(e) => onStatus(e.target.value as FeedbackStatus)}>
+          <select aria-label="Status" className="text-[12px] border border-border rounded px-1 py-0.5 bg-background capitalize" value={f.status} onChange={(e) => onStatus(e.target.value as FeedbackStatus)}>
             {STATUSES.map((s) => (
               <option key={s} value={s}>
                 {s}
@@ -251,7 +251,7 @@ function Summaries({ data, summaries, onRan }: { data: Data; summaries: Feedback
       <div className="rounded-xl border border-border bg-card p-4 flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
           <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-[#B5607A]" /> Claude reads new feedback and writes you a summary
+            <Sparkles className="w-4 h-4 text-accent" /> Claude reads new feedback and writes you a summary
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">It runs on the schedule you set up and emails you each one. Only you can see this page.</p>
         </div>
@@ -273,20 +273,20 @@ function SummaryCard({ s }: { s: FeedbackSummary }) {
   return (
     <article className="rounded-xl border border-border bg-card p-4 space-y-4">
       <header>
-        <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+        <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
           {s.sample ? "Example summary · " : ""}
           {when(s.periodStart)} – {when(s.periodEnd)} · {s.count} messages · {d.sentiment}
         </p>
         <h2 className="font-display text-base font-semibold text-foreground mt-1">{d.headline}</h2>
         {s.emailedTo && (
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+          <p className="text-[12px] text-muted-foreground flex items-center gap-1 mt-0.5">
             <Mail className="w-3 h-3" /> Emailed to {s.emailedTo}
           </p>
         )}
       </header>
       {d.decisions.length > 0 && (
-        <section className="rounded-lg bg-rose-50/60 border border-[#B5607A]/20 p-3">
-          <h3 className="text-xs font-semibold text-[#B5607A] mb-2">Decisions for you</h3>
+        <section className="rounded-lg bg-rose-50/60 border border-accent/20 p-3">
+          <h3 className="text-xs font-semibold text-accent mb-2">Decisions for you</h3>
           <ul className="space-y-2 text-sm">
             {d.decisions.map((x) => (
               <li key={x.question}>
@@ -303,8 +303,8 @@ function SummaryCard({ s }: { s: FeedbackSummary }) {
           <div key={t.title} className="border-l-2 border-border pl-3">
             <p className="text-sm font-medium text-foreground flex items-center gap-2 flex-wrap">
               {t.title}
-              <span className={`text-[10px] px-1.5 py-0.5 rounded ${PRIORITY_TONE[t.priority]}`}>{t.priority}</span>
-              <span className="text-[11px] text-muted-foreground font-normal">
+              <span className={`text-[11px] px-1.5 py-0.5 rounded ${PRIORITY_TONE[t.priority]}`}>{t.priority}</span>
+              <span className="text-[12px] text-muted-foreground font-normal">
                 {t.mentions} mention{t.mentions !== 1 ? "s" : ""}
               </span>
             </p>
@@ -314,7 +314,7 @@ function SummaryCard({ s }: { s: FeedbackSummary }) {
                 "{q}"
               </p>
             ))}
-            <p className="text-xs text-[#B5607A] mt-1">{t.suggestion}</p>
+            <p className="text-xs text-accent mt-1">{t.suggestion}</p>
           </div>
         ))}
       </section>

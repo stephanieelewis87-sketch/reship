@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Package } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { Logo } from "./brand/Logo";
 import type { Provider } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { Field, inputClass, primaryButton, secondaryButton } from "./ui";
@@ -31,8 +32,19 @@ function useEnabledProviders() {
 }
 
 // recovery: the person arrived from a password reset email and is choosing a new password.
-export function AuthScreen({ recovery = false, onRecovered }: { recovery?: boolean; onRecovered?: () => void }) {
-  const [mode, setMode] = useState<Mode>(recovery ? "reset" : "signin");
+// onBack: shows a link back to the homepage.
+export function AuthScreen({
+  recovery = false,
+  onRecovered,
+  initialMode = "signin",
+  onBack,
+}: {
+  recovery?: boolean;
+  onRecovered?: () => void;
+  initialMode?: "signin" | "signup";
+  onBack?: () => void;
+}) {
+  const [mode, setMode] = useState<Mode>(recovery ? "reset" : initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -59,7 +71,7 @@ export function AuthScreen({ recovery = false, onRecovered }: { recovery?: boole
       else if (!data.session) setMessage("Check your email to confirm your account, then sign in.");
     } else if (mode === "forgot") {
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: back });
-      setMessage(error ? error.message : "If that email has a Reship account, a reset link is on its way. Open it on this device.");
+      setMessage(error ? error.message : "If that email has a Hubby account, a reset link is on its way. Open it on this device.");
     } else {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) setMessage(error.message);
@@ -79,13 +91,15 @@ export function AuthScreen({ recovery = false, onRecovered }: { recovery?: boole
   const showProviders = providers.length > 0 && (mode === "signin" || mode === "signup");
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 gap-4">
+      {onBack && (
+        <button type="button" onClick={onBack} className="w-full max-w-sm flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to home
+        </button>
+      )}
       <form onSubmit={submit} className="w-full max-w-sm bg-card border border-border rounded-xl shadow-sm p-6 space-y-4">
-        <div className="flex items-center gap-2.5 mb-2">
-          <div className="w-8 h-8 rounded-lg bg-[#B5607A] flex items-center justify-center">
-            <Package className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-display font-semibold text-foreground text-lg">Reship</span>
+        <div className="mb-2">
+          <Logo size="lg" tagline />
         </div>
         <h1 className="font-display text-base font-semibold">{title}</h1>
 
@@ -98,7 +112,7 @@ export function AuthScreen({ recovery = false, onRecovered }: { recovery?: boole
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+            <div className="flex items-center gap-3 text-[12px] text-muted-foreground">
               <span className="h-px flex-1 bg-border" />
               or use email
               <span className="h-px flex-1 bg-border" />
@@ -125,7 +139,7 @@ export function AuthScreen({ recovery = false, onRecovered }: { recovery?: boole
           </Field>
         )}
         {mode === "signin" && (
-          <button type="button" onClick={() => switchTo("forgot")} className="-mt-2 text-xs text-[#B5607A] hover:underline">
+          <button type="button" onClick={() => switchTo("forgot")} className="-mt-2 text-xs text-accent hover:underline">
             Forgot password?
           </button>
         )}
@@ -137,7 +151,7 @@ export function AuthScreen({ recovery = false, onRecovered }: { recovery?: boole
           <button
             type="button"
             onClick={() => switchTo(mode === "signin" ? "signup" : "signin")}
-            className="w-full text-xs text-[#B5607A] hover:underline"
+            className="w-full text-xs text-accent hover:underline"
           >
             {mode === "signin" ? "New here? Create an account" : mode === "signup" ? "Already have an account? Sign in" : "Back to sign in"}
           </button>

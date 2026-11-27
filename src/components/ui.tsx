@@ -4,7 +4,6 @@ import { CheckCircle2, Clock, Layers, Package, Tag, Truck, X } from "lucide-reac
 import type { LabelStatus, Order, Platform } from "@/lib/types";
 import { SHIPMENT_LABEL, shipUrgency } from "@/lib/orderStatus";
 
-export const ACCENT = "#B5607A";
 
 export const PLATFORM_CONFIG: Record<Platform, { color: string; bg: string; domain?: string }> = {
   Poshmark: { color: "text-rose-700", bg: "bg-rose-50", domain: "poshmark.com" },
@@ -14,11 +13,19 @@ export const PLATFORM_CONFIG: Record<Platform, { color: string; bg: string; doma
   WhatNot: { color: "text-purple-700", bg: "bg-purple-50", domain: "whatnot.com" },
   Etsy: { color: "text-orange-700", bg: "bg-orange-50", domain: "etsy.com" },
   eBay: { color: "text-yellow-800", bg: "bg-yellow-50", domain: "ebay.com" },
+  Facebook: { color: "text-sky-700", bg: "bg-sky-50", domain: "facebook.com" },
+  ThredUp: { color: "text-indigo-700", bg: "bg-indigo-50", domain: "thredup.com" },
+  OfferUp: { color: "text-emerald-700", bg: "bg-emerald-50", domain: "offerup.com" },
+  Curtsy: { color: "text-pink-700", bg: "bg-pink-50", domain: "curtsyapp.com" },
+  Grailed: { color: "text-zinc-800", bg: "bg-zinc-100", domain: "grailed.com" },
+  Vestiaire: { color: "text-amber-800", bg: "bg-amber-50", domain: "vestiairecollective.com" },
+  Shopify: { color: "text-lime-700", bg: "bg-lime-50", domain: "shopify.com" },
+  SellSource: { color: "text-accent", bg: "bg-accent/10" },
   Other: { color: "text-stone-700", bg: "bg-stone-100" },
 };
 
 export const STATUS_CONFIG: Record<LabelStatus, { label: string; textColor: string; dot: string; icon: ComponentType<{ className?: string }> }> = {
-  pending: { label: "To Print", textColor: "text-amber-600", dot: "bg-amber-400", icon: Clock },
+  pending: { label: "To print", textColor: "text-amber-600", dot: "bg-amber-400", icon: Clock },
   printed: { label: "Printed", textColor: "text-violet-600", dot: "bg-violet-400", icon: CheckCircle2 },
   shipped: { label: "Shipped", textColor: "text-emerald-600", dot: "bg-emerald-400", icon: Truck },
 };
@@ -29,6 +36,7 @@ export const orderTitle = (o: Order) =>
 
 export function PlatformIcon({ platform, className = "w-3 h-3" }: { platform: Platform; className?: string }) {
   const domain = PLATFORM_CONFIG[platform].domain;
+  if (platform === "SellSource") return <img src="/sellsync-mark.png" alt="" className={`${className} rounded-sm bg-black object-cover`} />;
   if (!domain) return <Package className={`${className} text-muted-foreground`} />;
   return <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" className={`${className} rounded-sm`} />;
 }
@@ -41,7 +49,7 @@ export function Toggle({ checked, onChange, label }: { checked: boolean; onChang
       aria-checked={checked}
       aria-label={label}
       onClick={onChange}
-      className={`relative shrink-0 rounded-full transition-colors duration-200 focus:outline-none ${checked ? "bg-[#B5607A]" : "bg-[#C8BAC0]"}`}
+      className={`relative shrink-0 rounded-full transition-colors duration-200 focus:outline-none ${checked ? "bg-accent" : "bg-switch-background"}`}
       style={{ width: "2rem", height: "1.125rem" }}
     >
       <span
@@ -80,7 +88,7 @@ export function SkuCell({ sku, onSave }: { sku?: string; onSave: (val: string) =
             setEditing(false);
           }
         }}
-        className="w-full font-mono text-[11px] px-1.5 py-0.5 rounded border border-[#B5607A] bg-background text-foreground focus:outline-none"
+        className="w-full font-mono text-[12px] px-1.5 py-0.5 rounded border border-accent bg-background text-foreground focus:outline-none"
         placeholder="e.g. LV-JEAN-28"
       />
     );
@@ -93,7 +101,7 @@ export function SkuCell({ sku, onSave }: { sku?: string; onSave: (val: string) =
           setDraft(sku);
           setEditing(true);
         }}
-        className="inline-flex items-center gap-1 font-mono text-[11px] text-muted-foreground hover:text-foreground transition-colors group"
+        className="inline-flex items-center gap-1 font-mono text-[12px] text-muted-foreground hover:text-foreground transition-colors group"
         title="Click to edit SKU"
       >
         <Tag className="w-2.5 h-2.5 opacity-60 group-hover:opacity-100" />
@@ -108,7 +116,7 @@ export function SkuCell({ sku, onSave }: { sku?: string; onSave: (val: string) =
         setDraft("");
         setEditing(true);
       }}
-      className="text-[11px] text-muted-foreground/50 hover:text-[#B5607A] transition-colors"
+      className="text-[12px] text-muted-foreground/50 hover:text-accent transition-colors"
       title="Add SKU"
     >
       + SKU
@@ -151,7 +159,7 @@ export function OrderStatusCell({ order }: { order: Order }) {
         <StatusBadge status={order.status} />
       )}
       {urgency !== "ok" && (
-        <span className={`text-[10px] font-medium ${urgency === "late" ? "text-rose-700" : "text-amber-700"}`}>{urgency === "late" ? "Late to ship" : "Ship today"}</span>
+        <span className={`text-[11px] font-medium ${urgency === "late" ? "text-rose-700" : "text-amber-700"}`}>{urgency === "late" ? "Late to ship" : "Ship today"}</span>
       )}
     </div>
   );
@@ -173,7 +181,7 @@ function Photo({ src, className }: { src?: string; className: string }) {
         <Package className="w-1/3 h-1/3 max-w-8 max-h-8 text-muted-foreground/60" />
       </div>
     );
-  return <img src={src} alt="" className={`${className} object-cover`} />;
+  return <img src={src} alt="" loading="lazy" decoding="async" className={`${className} object-cover`} />;
 }
 
 export function PhotoCollage({ photos, size = "sm" }: { photos: (string | undefined)[]; size?: "sm" | "lg" }) {
@@ -208,7 +216,7 @@ export function PhotoCollage({ photos, size = "sm" }: { photos: (string | undefi
 }
 
 export function SectionLabel({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <p className={`font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground ${className}`}>{children}</p>;
+  return <p className={`font-mono text-[11px] font-medium uppercase tracking-widest text-muted-foreground ${className}`}>{children}</p>;
 }
 
 export function Modal({
@@ -263,19 +271,73 @@ export function ModalHeader({ title, subtitle, onClose, icon }: { title: string;
 }
 
 export const inputClass =
-  "w-full text-sm px-2.5 py-1.5 rounded-md border border-border bg-background text-foreground focus:border-[#B5607A] focus:outline-none placeholder:text-muted-foreground/70";
+  "w-full text-sm px-2.5 py-1.5 rounded-md border border-border bg-background text-foreground focus:border-accent focus:outline-none placeholder:text-muted-foreground/70";
 export const selectClass =
-  "text-xs border border-border rounded-md px-2 py-1.5 bg-background text-foreground focus:border-[#B5607A] focus:outline-none";
+  "text-xs border border-border rounded-md px-2 py-1.5 bg-background text-foreground focus:border-accent focus:outline-none";
 export const primaryButton =
-  "px-4 py-2 rounded-md bg-[#B5607A] text-white text-sm font-medium hover:bg-[#9E4D6A] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2";
+  "px-4 py-2 rounded-md bg-accent text-accent-foreground text-sm font-medium hover:bg-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2";
 export const secondaryButton =
   "px-4 py-2 rounded-md border border-border text-sm font-medium text-foreground hover:bg-muted transition-colors flex items-center justify-center gap-2";
 
 export function Field({ label, children, className = "" }: { label: string; children: ReactNode; className?: string }) {
   return (
     <label className={`block ${className}`}>
-      <span className="block text-[11px] font-medium text-muted-foreground mb-1">{label}</span>
+      <span className="block text-[12px] font-medium text-muted-foreground mb-1">{label}</span>
       {children}
     </label>
+  );
+}
+
+// A button that opens a small menu below it, closed by clicking anywhere else.
+export function Menu({ button, children, align = "left" }: { button: (toggle: () => void) => ReactNode; children: (close: () => void) => ReactNode; align?: "left" | "right" }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const on = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
+    document.addEventListener("mousedown", on);
+    return () => document.removeEventListener("mousedown", on);
+  }, [open]);
+  return (
+    <div ref={ref} className="relative">
+      {button(() => setOpen((o) => !o))}
+      {open && (
+        <div className={`absolute z-30 mt-1 min-w-44 rounded-lg border border-border bg-card shadow-lg py-1 text-sm ${align === "right" ? "right-0" : "left-0"}`}>{children(() => setOpen(false))}</div>
+      )}
+    </div>
+  );
+}
+
+export const MenuItem = ({ onClick, children, danger }: { onClick: () => void; children: ReactNode; danger?: boolean }) => (
+  <button type="button" onClick={onClick} className={`w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-muted ${danger ? "text-destructive" : "text-foreground"}`}>
+    {children}
+  </button>
+);
+
+// What an empty list shows: an icon, one line on what belongs here, and the next thing to do.
+export function EmptyState({
+  icon: Icon,
+  title,
+  text,
+  action,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  title: string;
+  text?: string;
+  action?: { label: string; onClick: () => void };
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center text-center py-12 px-6">
+      <span className="w-10 h-10 rounded-full bg-accent/10 text-accent flex items-center justify-center mb-3">
+        <Icon className="w-5 h-5" />
+      </span>
+      <p className="text-sm font-medium text-foreground">{title}</p>
+      {text && <p className="text-xs text-muted-foreground mt-1 max-w-sm">{text}</p>}
+      {action && (
+        <button type="button" onClick={action.onClick} className="mt-4 px-3 py-1.5 rounded-md bg-accent text-accent-foreground text-xs font-medium hover:bg-accent-hover">
+          {action.label}
+        </button>
+      )}
+    </div>
   );
 }

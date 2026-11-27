@@ -1,11 +1,17 @@
-import type { Expense, Feedback, FeedbackStatus, FeedbackSummary, InventoryItem, Order, Settings } from "./types";
+import type { Expense, Feedback, FeedbackStatus, FeedbackSummary, InventoryBackup, InventoryItem, ItemChange, Order, Settings } from "./types";
 import { DEFAULT_SETTINGS } from "./types";
 import { SAMPLE_EXPENSES, SAMPLE_HISTORY_ORDERS, SAMPLE_INVENTORY, SAMPLE_ORDERS, sampleLabelPdf } from "./sampleData";
 import { SAMPLE_FEEDBACK, SAMPLE_SUMMARY } from "./sampleFeedback";
-import { supabase } from "./supabase";
+import { anonKey, supabase, url as supabaseUrl } from "./supabase";
+import type { ChatMessage } from "./assistant";
 import type { DetectedItem, ListingSuggestion } from "./videoListing";
 import type { PhotoGroup } from "./photoListing";
 import { asCondition } from "./videoListing";
+import { type AffiliateApi, LocalAffiliates, SupabaseAffiliates } from "./affiliateStore";
+import { type CommunityApi, LocalCommunity, SupabaseCommunity } from "./communityStore";
+import { type CompsApi, type LiveCompsResult, sampleLiveComps } from "./comps";
+import { LocalSellSource, type SellSourceApi, SupabaseSellSource } from "./sellsourceStore";
+import { type ShopApi, type ShopSearch, applyFilters, sampleShop } from "./shop";
 
 // One interface, two backends: Supabase when it's configured, otherwise this browser's storage (demo mode).
 export interface Store {
@@ -21,6 +27,13 @@ export interface Store {
   listInventory(): Promise<InventoryItem[]>;
   saveInventory(items: InventoryItem[]): Promise<void>;
   deleteInventory(ids: string[]): Promise<void>;
+  // Inventory Guardian: dated copies of the inventory, and each item's change history.
+  listBackups(): Promise<InventoryBackup[]>; // without their items
+  getBackup(id: string): Promise<InventoryBackup | null>;
+  saveBackup(backup: InventoryBackup): Promise<void>;
+  deleteBackups(ids: string[]): Promise<void>;
+  addHistory(entries: ItemChange[]): Promise<void>;
+  listHistory(itemId?: string): Promise<ItemChange[]>; // newest first
   listExpenses(): Promise<Expense[]>;
   saveExpenses(items: Expense[]): Promise<void>;
   deleteExpenses(ids: string[]): Promise<void>;
@@ -35,6 +48,30 @@ export interface Store {
   listingAi: ListingAi | null;
   // Keeps a listing photo and returns the address to use for it.
   saveListingPhoto(dataUrl: string): Promise<string>;
+  // Referral links, referred sellers, and what the program owes each affiliate.
+  affiliates: AffiliateApi;
+  // Research: live comps from marketplaces with official APIs (samples in demo mode).
+  comps: CompsApi;
+  // The AI helper chat. Null in demo mode, where the helper gives canned answers instead.
+  assistant: AssistantApi | null;
+  // Community: sellers trading tips and ideas, with reports, blocks and admin moderation.
+  community: CommunityApi;
+  // Shop: search other marketplaces' official APIs for things to buy (samples in demo mode).
+  shop: ShopApi;
+  // SellSource, Hubby's own marketplace, and live shows.
+  sellsource: SellSourceApi;
+}
+
+export interface AssistantQuestion {
+  messages: ChatMessage[]; // the chat so far, ending with the new question
+  page: string; // the section the seller has open, e.g. "inventory"
+  shop?: string; // shopSnapshot(), sent only on plans where the helper sees the shop
+}
+
+export interface AssistantApi {
+  // Streams the answer through onText as it's written; resolves with the whole answer and how
+  // many questions are left today.
+  ask(q: AssistantQuestion, onText: (soFar: string) => void, signal?: AbortSignal): Promise<{ text: string; left: number | null }>;
 }
 
 // An image for the AI: inline JPEG/PNG data, or a public address.
@@ -68,6 +105,31 @@ async function labelTx<T>(mode: IDBTransactionMode, run: (s: IDBObjectStore) => 
   });
 }
 
+// Storage names keep the app's old name (reship) so data already saved in a browser still loads.
+// Backups and change history in demo mode, also in IndexedDB since backups hold the whole inventory.
+const GUARDIAN_DB = "reship-guardian";
+function guardianDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(GUARDIAN_DB, 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore("backups", { keyPath: "id" });
+      req.result.createObjectStore("history", { keyPath: "id" }).createIndex("itemId", "itemId");
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function guardianTx<T>(store: "backups" | "history", mode: IDBTransactionMode, run: (s: IDBObjectStore) => IDBRequest | void): Promise<T> {
+  const db = await guardianDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, mode);
+    const req = run(tx.objectStore(store));
+    tx.oncomplete = () => resolve((req ? req.result : undefined) as T);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 // v3 added a year of sold orders behind the samples, for analytics.
 const ORDERS_KEY = "reship.orders.v3";
 // v2 tracks each marketplace listing separately.
@@ -76,6 +138,36 @@ const EXPENSES_KEY = "reship.expenses.v1";
 const FEEDBACK_KEY = "reship.feedback.v1";
 
 // Keeps a list of records by id in memory and in this browser's storage.
+// Supabase sends at most 1,000 rows per request, so bigger lists are read in pages and saved in chunks.
+const PAGE_ROWS = 1000;
+const SAVE_CHUNK = 500;
+
+type RangeQuery<R> = { range(from: number, to: number): PromiseLike<{ data: R[] | null; error: { message: string } | null }> };
+
+export async function fetchAllRows<R>(query: () => RangeQuery<R>, pageRows = PAGE_ROWS): Promise<R[]> {
+  const all: R[] = [];
+  for (let from = 0; ; from += pageRows) {
+    const { data, error } = await query().range(from, from + pageRows - 1);
+    if (error) throw error;
+    all.push(...(data ?? []));
+    if (!data || data.length < pageRows) return all;
+  }
+}
+
+export function chunks<T>(items: T[], size = SAVE_CHUNK): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+// New records first, then the existing ones with any changes applied. Linear, so big lists stay quick.
+export function mergeById<T extends { id: string }>(current: T[], changed: T[]): T[] {
+  const byId = new Map(changed.map((i) => [i.id, i]));
+  const existing = new Set(current.map((c) => c.id));
+  const fresh = changed.filter((i) => !existing.has(i.id));
+  return [...fresh, ...current.map((c) => byId.get(c.id) ?? c)];
+}
+
 class LocalList<T extends { id: string }> {
   private mem: T[] | null = null;
   constructor(
@@ -87,14 +179,12 @@ class LocalList<T extends { id: string }> {
     return this.mem;
   }
   async save(items: T[]) {
-    const current = await this.list();
-    const byId = new Map(items.map((i) => [i.id, i]));
-    const fresh = items.filter((i) => !current.some((c) => c.id === i.id));
-    this.mem = [...fresh, ...current.map((c) => byId.get(c.id) ?? c)];
+    this.mem = mergeById(await this.list(), items);
     writeJson(this.key, this.mem);
   }
   async remove(ids: string[]) {
-    this.mem = (await this.list()).filter((i) => !ids.includes(i.id));
+    const gone = new Set(ids);
+    this.mem = (await this.list()).filter((i) => !gone.has(i.id));
     writeJson(this.key, this.mem);
   }
   reset() {
@@ -143,6 +233,17 @@ export class LocalStore implements Store {
   saveExpenses = (items: Expense[]) => this.expenses.save(items);
   deleteExpenses = (ids: string[]) => this.expenses.remove(ids);
 
+  listBackups = async () =>
+    (await guardianTx<InventoryBackup[]>("backups", "readonly", (s) => s.getAll()))
+      .map(({ items: _items, ...meta }) => meta)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  getBackup = async (id: string) => (await guardianTx<InventoryBackup | undefined>("backups", "readonly", (s) => s.get(id))) ?? null;
+  saveBackup = (b: InventoryBackup) => guardianTx<void>("backups", "readwrite", (s) => void s.put(b));
+  deleteBackups = (ids: string[]) => guardianTx<void>("backups", "readwrite", (s) => ids.forEach((id) => s.delete(id)));
+  addHistory = (entries: ItemChange[]) => guardianTx<void>("history", "readwrite", (s) => entries.forEach((e) => s.put(e)));
+  listHistory = async (itemId?: string) =>
+    (await guardianTx<ItemChange[]>("history", "readonly", (s) => (itemId ? s.index("itemId").getAll(itemId) : s.getAll()))).sort((a, b) => b.at.localeCompare(a.at));
+
   // In demo mode you're the owner, so both sides of feedback show. Summaries need the backend.
   private feedback = new LocalList<Feedback>(FEEDBACK_KEY, () => SAMPLE_FEEDBACK);
   sendFeedback = (f: Omit<Feedback, "id" | "status" | "createdAt">) =>
@@ -159,7 +260,33 @@ export class LocalStore implements Store {
   // No AI in demo mode; List with a video splits the video by scene instead, and List from photos
   // groups photos by when they were taken. Photos stay in this browser as small data URLs.
   listingAi = null;
+  assistant = null;
   saveListingPhoto = async (dataUrl: string) => dataUrl;
+
+  affiliates = new LocalAffiliates();
+
+  comps: CompsApi = { search: async (q) => sampleLiveComps(q) };
+
+  community = new LocalCommunity();
+
+  shop: ShopApi = {
+    search: async (q, f) => {
+      const s = sampleShop(q);
+      return { ...s, results: applyFilters(s.results, f) };
+    },
+  };
+
+  sellsource = new LocalSellSource({
+    // Read fresh: a sale may have been recorded from the storefront in another tab.
+    orders: async () => {
+      this.memOrders = null;
+      return this.listOrders();
+    },
+    addOrder: async (o) => {
+      this.memOrders = null;
+      await this.saveOrders([o]);
+    },
+  });
 
   // Puts the demo back to its sample orders, all of them as they started.
   reset() {
@@ -167,6 +294,14 @@ export class LocalStore implements Store {
     this.inventory.reset();
     this.expenses.reset();
     this.feedback.reset();
+    this.affiliates.reset();
+    this.community.reset();
+    this.sellsource.reset();
+    try {
+      indexedDB.deleteDatabase(GUARDIAN_DB);
+    } catch {
+      // Nothing saved yet.
+    }
     try {
       localStorage.removeItem(ORDERS_KEY);
     } catch {
@@ -175,18 +310,14 @@ export class LocalStore implements Store {
   }
 
   async saveOrders(orders: Order[]) {
-    const current = await this.listOrders();
-    const byId = new Map(current.map((o) => [o.id, o]));
-    orders.forEach((o) => byId.set(o.id, o));
     // New orders first, matching the newest-first sort the dashboard uses.
-    const fresh = orders.filter((o) => !current.some((c) => c.id === o.id));
-    this.memOrders = [...fresh, ...current.map((o) => byId.get(o.id)!)];
+    this.memOrders = mergeById(await this.listOrders(), orders);
     writeJson(ORDERS_KEY, this.memOrders);
   }
 
   async deleteOrders(ids: string[]) {
-    const current = await this.listOrders();
-    this.memOrders = current.filter((o) => !ids.includes(o.id));
+    const gone = new Set(ids);
+    this.memOrders = (await this.listOrders()).filter((o) => !gone.has(o.id));
     writeJson(ORDERS_KEY, this.memOrders);
   }
 
@@ -234,6 +365,7 @@ interface OrderRow {
   shipment?: Order["shipment"] | null;
   fees?: number | null;
   shipping_cost?: number | null;
+  own_label?: Order["ownLabel"] | null;
 }
 
 const toRow = (o: Order, userId: string) => ({
@@ -255,10 +387,11 @@ const toRow = (o: Order, userId: string) => ({
   shipment: o.shipment ?? null,
   fees: o.fees ?? null,
   shipping_cost: o.shippingCost ?? null,
+  own_label: o.ownLabel ?? null,
 });
 
-// Columns added by migrations 0003 and 0004; saving still works on a database that doesn't have them yet.
-const NEWER_COLUMNS = ["printed_at", "shipment", "fees", "shipping_cost"] as const;
+// Columns added by migrations 0003, 0004 and 0012; saving still works on a database that doesn't have them yet.
+const NEWER_COLUMNS = ["printed_at", "shipment", "fees", "shipping_cost", "own_label"] as const;
 
 const fromRow = (r: OrderRow): Order => ({
   id: r.id,
@@ -278,6 +411,7 @@ const fromRow = (r: OrderRow): Order => ({
   shipment: r.shipment ?? undefined,
   fees: r.fees ?? undefined,
   shippingCost: r.shipping_cost ?? undefined,
+  ownLabel: r.own_label ?? undefined,
 });
 
 interface InventoryRow {
@@ -324,7 +458,9 @@ const inventoryToRow = (i: InventoryItem, userId: string) => ({
     quantity: i.quantity,
     labels: i.labels,
     notes: i.notes,
+    location: i.location,
     photos: i.photos,
+    coverEdit: i.coverEdit,
     readyToList: i.readyToList,
     soldOrders: i.soldOrders,
   },
@@ -350,7 +486,14 @@ const inventoryFromRow = (r: InventoryRow): InventoryItem => ({
 });
 
 export class SupabaseStore implements Store {
-  constructor(private userId: string) {}
+  constructor(private userId: string) {
+    this.affiliates = new SupabaseAffiliates(userId);
+    this.community = new SupabaseCommunity(userId);
+    this.sellsource = new SupabaseSellSource(userId);
+  }
+  affiliates: SupabaseAffiliates;
+  community: SupabaseCommunity;
+  sellsource: SupabaseSellSource;
 
   private get db() {
     if (!supabase) throw new Error("Supabase is not configured");
@@ -358,14 +501,17 @@ export class SupabaseStore implements Store {
   }
 
   async listOrders() {
-    const { data, error } = await this.db.from("orders").select("*").order("order_date", { ascending: false });
-    if (error) throw error;
-    return (data as OrderRow[]).map(fromRow);
+    // The id tiebreak keeps paging stable when many orders share a date.
+    const rows = await fetchAllRows<OrderRow>(() => this.db.from("orders").select("*").order("order_date", { ascending: false }).order("id"));
+    return rows.map(fromRow);
   }
 
   async saveOrders(orders: Order[]) {
     if (!orders.length) return;
-    const rows = orders.map((o) => toRow(o, this.userId));
+    for (const part of chunks(orders)) await this.upsertOrders(part.map((o) => toRow(o, this.userId)));
+  }
+
+  private async upsertOrders(rows: ReturnType<typeof toRow>[]) {
     const { error } = await this.db.from("orders").upsert(rows);
     if (error && NEWER_COLUMNS.some((c) => error.message.includes(c))) {
       const older = rows.map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => !(NEWER_COLUMNS as readonly string[]).includes(k))));
@@ -375,8 +521,10 @@ export class SupabaseStore implements Store {
   }
 
   async deleteOrders(ids: string[]) {
-    const { error } = await this.db.from("orders").delete().in("id", ids);
-    if (error) throw error;
+    for (const part of chunks(ids, 200)) {
+      const { error } = await this.db.from("orders").delete().in("id", part);
+      if (error) throw error;
+    }
   }
 
   async getSettings() {
@@ -415,25 +563,80 @@ export class SupabaseStore implements Store {
 
   // Before migration 0004 there's no inventory table; analytics then works from orders alone.
   async listInventory() {
-    const { data, error } = await this.db.from("inventory_items").select("*");
-    if (error) return [];
-    return (data as InventoryRow[]).map(inventoryFromRow);
+    try {
+      const rows = await fetchAllRows<InventoryRow>(() => this.db.from("inventory_items").select("*").order("id"));
+      return rows.map(inventoryFromRow);
+    } catch {
+      return [];
+    }
   }
 
   async saveInventory(items: InventoryItem[]) {
     if (!items.length) return;
-    const { error } = await this.db.from("inventory_items").upsert(items.map((i) => inventoryToRow(i, this.userId)));
-    if (error) throw error;
+    for (const part of chunks(items)) {
+      const { error } = await this.db.from("inventory_items").upsert(part.map((i) => inventoryToRow(i, this.userId)));
+      if (error) throw error;
+    }
   }
 
   async deleteInventory(ids: string[]) {
-    const { error } = await this.db.from("inventory_items").delete().in("id", ids);
+    for (const part of chunks(ids, 200)) {
+      const { error } = await this.db.from("inventory_items").delete().in("id", part);
+      if (error) throw error;
+    }
+  }
+
+  // Backups and history need migration 0010; without it there are none and saving says so.
+  async listBackups() {
+    const { data, error } = await this.db.from("inventory_backups").select("id, created_at, reason, item_count").order("created_at", { ascending: false }).limit(200);
+    if (error) return [];
+    return (data as BackupRow[]).map(backupFromRow);
+  }
+
+  async getBackup(id: string) {
+    const { data, error } = await this.db.from("inventory_backups").select("*").eq("id", id).maybeSingle();
+    if (error || !data) return null;
+    return backupFromRow(data as BackupRow);
+  }
+
+  async saveBackup(b: InventoryBackup) {
+    const { error } = await this.db
+      .from("inventory_backups")
+      .insert({ id: b.id, user_id: this.userId, created_at: b.createdAt, reason: b.reason, item_count: b.itemCount, items: b.items ?? [] });
+    if (error) throw new Error(`Couldn't save the backup (${error.message}). Run supabase/migrations/0010_inventory_guardian.sql.`);
+  }
+
+  async deleteBackups(ids: string[]) {
+    if (!ids.length) return;
+    const { error } = await this.db.from("inventory_backups").delete().in("id", ids);
     if (error) throw error;
   }
 
-  async listExpenses() {
-    const { data, error } = await this.db.from("expenses").select("*").order("expense_date", { ascending: false });
+  async addHistory(entries: ItemChange[]) {
+    if (!entries.length) return;
+    // History is a nice-to-have: a database without the table just doesn't keep it.
+    await this.db.from("inventory_history").insert(
+      entries.map((e) => ({ id: e.id, user_id: this.userId, item_id: e.itemId, sku: e.sku, at: e.at, source: e.source, kind: e.kind, changes: e.changes })),
+    );
+  }
+
+  async listHistory(itemId?: string) {
+    let q = this.db.from("inventory_history").select("*").order("at", { ascending: false }).limit(itemId ? 200 : 500);
+    if (itemId) q = q.eq("item_id", itemId);
+    const { data, error } = await q;
     if (error) return [];
+    return (data as HistoryRow[]).map(
+      (r): ItemChange => ({ id: r.id, itemId: r.item_id, sku: r.sku, at: r.at, source: r.source, kind: r.kind, changes: r.changes ?? [] }),
+    );
+  }
+
+  async listExpenses() {
+    let data: unknown[];
+    try {
+      data = await fetchAllRows(() => this.db.from("expenses").select("*").order("expense_date", { ascending: false }).order("id"));
+    } catch {
+      return [];
+    }
     return (data as { id: string; expense_date: string; category: string; amount: number; note: string | null; miles: number | null }[]).map(
       (r): Expense => ({ id: r.id, date: r.expense_date, category: r.category, amount: Number(r.amount), note: r.note ?? undefined, miles: r.miles ?? undefined }),
     );
@@ -509,6 +712,54 @@ export class SupabaseStore implements Store {
     throw Object.assign(new Error(detail?.error ?? `The AI service didn't answer (${error.message}).`), { unavailable: !!detail?.unavailable });
   }
 
+  // Live comps from eBay and Etsy's official APIs, through the comps-search Edge Function.
+  comps: CompsApi = {
+    search: async (q) => {
+      const { data, error } = await this.db.functions.invoke("comps-search", { body: { q } });
+      if (!error) return data as LiveCompsResult;
+      const detail = await (error as { context?: Response }).context?.json?.().catch(() => null);
+      throw new Error(detail?.error ?? `Live comps didn't load (${error.message}).`);
+    },
+  };
+
+  // Shop: eBay and Etsy listings through the shop-search Edge Function.
+  shop: ShopApi = {
+    search: async (q, filters) => {
+      const { data, error } = await this.db.functions.invoke("shop-search", { body: { q, ...filters } });
+      if (!error) return data as ShopSearch;
+      const detail = await (error as { context?: Response }).context?.json?.().catch(() => null);
+      throw new Error(detail?.error ?? `Search didn't load (${error.message}).`);
+    },
+  };
+
+  // The AI helper, through the assistant Edge Function. The answer streams back as plain text.
+  assistant: AssistantApi = {
+    ask: async (q, onText, signal) => {
+      if (!supabaseUrl || !anonKey) throw new Error("Supabase is not configured");
+      const { data } = await this.db.auth.getSession();
+      const res = await fetch(`${supabaseUrl}/functions/v1/assistant`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: anonKey, Authorization: `Bearer ${data.session?.access_token ?? anonKey}` },
+        body: JSON.stringify(q),
+        signal,
+      });
+      if (!res.ok || !res.body) {
+        const detail = await res.json().catch(() => null);
+        throw new Error(detail?.error ?? `The helper didn't answer (${res.status}).`);
+      }
+      const leftHeader = res.headers.get("X-Questions-Left");
+      const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+      let text = "";
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        text += value;
+        onText(text);
+      }
+      return { text, left: leftHeader == null ? null : Number(leftHeader) };
+    },
+  };
+
   // Listing photos go in the public "listing-photos" bucket under the user's own folder.
   async saveListingPhoto(dataUrl: string) {
     const blob = await (await fetch(dataUrl)).blob();
@@ -547,4 +798,24 @@ interface SummaryRow {
   summary: FeedbackSummary["summary"];
   emailed_to: string | null;
   created_at: string;
+}
+
+interface BackupRow {
+  id: string;
+  created_at: string;
+  reason: string;
+  item_count: number;
+  items?: InventoryItem[];
+}
+
+const backupFromRow = (r: BackupRow): InventoryBackup => ({ id: r.id, createdAt: r.created_at, reason: r.reason, itemCount: r.item_count, items: r.items });
+
+interface HistoryRow {
+  id: string;
+  item_id: string;
+  sku: string;
+  at: string;
+  source: string;
+  kind: ItemChange["kind"];
+  changes: ItemChange["changes"] | null;
 }

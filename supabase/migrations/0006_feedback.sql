@@ -9,6 +9,7 @@ create table if not exists public.app_admins (
 
 alter table public.app_admins enable row level security;
 
+drop policy if exists "Admins can see that they are admins" on public.app_admins;
 create policy "Admins can see that they are admins" on public.app_admins
   for select using (auth.uid() = user_id);
 
@@ -34,10 +35,13 @@ create index if not exists feedback_unsummarized_idx on public.feedback (created
 
 alter table public.feedback enable row level security;
 
+drop policy if exists "Users send feedback" on public.feedback;
 create policy "Users send feedback" on public.feedback
   for insert with check (auth.uid() = user_id);
+drop policy if exists "Users read their own feedback" on public.feedback;
 create policy "Users read their own feedback" on public.feedback
   for select using (auth.uid() = user_id or public.is_app_admin());
+drop policy if exists "Admins update feedback status" on public.feedback;
 create policy "Admins update feedback status" on public.feedback
   for update using (public.is_app_admin()) with check (public.is_app_admin());
 
@@ -55,5 +59,6 @@ create table if not exists public.feedback_summaries (
 
 alter table public.feedback_summaries enable row level security;
 
+drop policy if exists "Admins read summaries" on public.feedback_summaries;
 create policy "Admins read summaries" on public.feedback_summaries
   for select using (public.is_app_admin());

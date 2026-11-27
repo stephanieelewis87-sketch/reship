@@ -1,17 +1,20 @@
 {
-  "name": "reship",
+  "name": "hubby",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:waitlist": "tsc --noEmit && vite build --config vite.waitlist.config.ts",
     "preview": "vite preview",
+    "preview:waitlist": "vite preview --config vite.waitlist.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.49.4",
+    "livekit-client": "2.22.4",
     "lucide-react": "0.487.0",
     "papaparse": "5.5.2",
     "pdf-lib": "1.17.1",

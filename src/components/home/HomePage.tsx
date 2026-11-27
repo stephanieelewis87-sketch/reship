@@ -1,21 +1,21 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { AlertTriangle, CheckCircle2, Circle, Clock, Copy, PackageX, Plus, Printer, Sparkles, Tag, Trash2, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, CheckCircle2, Circle, Clock, Copy, DollarSign, Gift, PackageX, Plus, Printer, ShoppingBag, Sparkles, Tag, Target, Trash2, TrendingUp, X, Zap } from "lucide-react";
 import type { Goal, GoalMetric, GoalPeriod } from "@/lib/types";
 import type { useReshipData } from "@/lib/useReshipData";
 import { isoDay, linesIn, metrics, saleLines } from "@/lib/analytics";
 import { GOAL_METRICS, GOAL_PERIODS, goalProgress } from "@/lib/goals";
 import { duplicateSkus, isPartiallyDelisted, listedOn, relistState } from "@/lib/inventory";
 import { summarize } from "@/lib/orderStatus";
-import { isAddressComplete } from "@/lib/types";
+import { automationOn, isAddressComplete } from "@/lib/types";
 import { newId } from "@/lib/ids";
 import { usePrintLabels, type PrintNotice } from "@/lib/usePrintLabels";
 import { Card, Pills } from "../analytics/parts";
 import { CHART, fmtMoney } from "../analytics/charts";
-import { PageHeader } from "../shell/PageHeader";
 import { go } from "../shell/route";
 import { WithdrawShortcuts } from "../WithdrawShortcuts";
-import { inputClass, orderTitle, selectClass } from "../ui";
+import { isOn } from "@/lib/features";
+import { EmptyState, inputClass, orderTitle, selectClass } from "../ui";
 
 type Data = ReturnType<typeof useReshipData>;
 
@@ -25,12 +25,25 @@ export function HomePage({ data }: { data: Data }) {
   const greeting = new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening";
   return (
     <div>
-      <PageHeader
-        title={`${greeting}${data.settings.displayName ? `, ${data.settings.displayName}` : ""}`}
-        subtitle={new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-      >
-        <PrintAllButton data={data} onNotice={setNotice} />
-      </PageHeader>
+      <header className="relative overflow-hidden border-b border-border px-4 md:px-8 py-6 md:py-8">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{ background: "radial-gradient(60% 120% at 0% 0%, color-mix(in oklab, var(--chart-profit) 16%, transparent), transparent 60%), radial-gradient(40% 90% at 100% 0%, color-mix(in oklab, var(--chart-profit) 10%, transparent), transparent 70%)" }}
+        />
+        <div className="relative flex items-center justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
+            <p className="text-sm text-muted-foreground">{new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</p>
+            <h1 className="font-serif text-3xl md:text-4xl font-medium tracking-tight text-metal mt-1">
+              {greeting}
+              {data.settings.displayName ? `, ${data.settings.displayName}` : ""}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <PrintAllButton data={data} onNotice={setNotice} />
+          </div>
+        </div>
+      </header>
       {notice && (
         <div className={`px-4 md:px-8 py-2 border-b text-xs flex items-center gap-2 ${notice.ok ? "bg-emerald-50 border-emerald-200 text-emerald-900" : "bg-amber-50 border-amber-200 text-amber-900"}`}>
           <span className="flex-1">{notice.text}</span>
@@ -39,14 +52,14 @@ export function HomePage({ data }: { data: Data }) {
           </button>
         </div>
       )}
-      <div className="px-4 md:px-8 py-5 space-y-4">
+      <div className="px-4 md:px-8 py-6 space-y-5">
         <GettingStarted data={data} />
         <TodaySummary data={data} today={today} />
-        <div className="grid lg:grid-cols-2 gap-4">
+        <div className="grid lg:grid-cols-2 gap-5">
           <NeedsAttention data={data} today={today} />
           <Goals data={data} today={today} />
         </div>
-        <WhatsNew />
+        {isOn("affiliates") && <AffiliatesCard />}
         <WithdrawShortcuts platforms={[...new Set(data.orders.map((o) => o.platform))]} />
       </div>
     </div>
@@ -91,38 +104,65 @@ function GettingStarted({ data }: { data: Data }) {
     { id: "connect", label: "Connect your marketplaces", done: data.orders.some((o) => o.source === "sync"), href: "#/settings?tab=connections" },
     { id: "ship-from", label: "Add your ship-from address", done: isAddressComplete(settings.shipFrom), href: "#/settings?tab=shipping" },
     { id: "inventory", label: "Add or import your inventory", done: data.inventory.length > 0, href: "#/inventory" },
-    { id: "video", label: "List up to 25 items from one video", done: data.inventory.some((i) => i.notes?.includes("Made with List with a video.")), href: "#/inventory?video" },
-    { id: "crosslist", label: "Crosslist an item to a second marketplace", done: data.inventory.some((i) => listedOn(i).length > 1), href: "#/inventory" },
-    { id: "automation", label: "Turn on an automation", done: Object.values(settings.automations).some((a) => Object.values(a ?? {}).some((x) => x?.enabled)), href: "#/automations" },
+    ...(isOn("aiListing") ? [{ id: "video", label: "List up to 25 items from one video", done: data.inventory.some((i) => i.notes?.includes("Made with List with a video.")), href: "#/inventory?video" }] : []),
+    ...(isOn("crosslisting") ? [{ id: "crosslist", label: "Crosslist an item to a second marketplace", done: data.inventory.some((i) => listedOn(i).length > 1), href: "#/inventory" }] : []),
+    ...(isOn("automations") ? [{ id: "automation", label: "Turn on an automation", done: automationOn(settings.automations), href: "#/automations" }] : []),
     { id: "goal", label: "Set a goal", done: settings.goals.length > 0, href: "#/home" },
     { id: "expense", label: "Log a business expense", done: data.expenses.length > 0, href: "#/analytics?tab=expenses" },
   ].map((s) => ({ ...s, done: s.done || settings.gettingStartedDone.includes(s.id) }));
   const left = steps.filter((s) => !s.done).length;
+  const [expanded, setExpanded] = useState(false);
   if (left === 0 || settings.gettingStartedDone.includes("hidden")) return null;
+  const next = steps.find((s) => !s.done)!;
+  const hide = () => saveSettings({ ...settings, gettingStartedDone: [...settings.gettingStartedDone, "hidden"] });
   return (
-    <Card
-      title="Getting started"
-      subtitle={`${steps.length - left} of ${steps.length} done`}
-      right={
-        <button type="button" onClick={() => saveSettings({ ...settings, gettingStartedDone: [...settings.gettingStartedDone, "hidden"] })} className="text-xs text-muted-foreground hover:text-foreground">
-          Hide
+    <section className="bg-card border border-border rounded-xl px-4 md:px-5 py-3.5">
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative w-9 h-9 shrink-0" aria-hidden>
+          <svg viewBox="0 0 36 36" className="w-9 h-9 -rotate-90">
+            <circle cx="18" cy="18" r="15" fill="none" strokeWidth="3.5" className="stroke-muted" />
+            <circle
+              cx="18"
+              cy="18"
+              r="15"
+              fill="none"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+              stroke={CHART.profit}
+              strokeDasharray={`${((steps.length - left) / steps.length) * 94.2} 94.2`}
+            />
+          </svg>
+          <span className="absolute inset-0 flex items-center justify-center text-[11px] font-mono text-foreground">
+            {steps.length - left}/{steps.length}
+          </span>
+        </div>
+        <div className="min-w-0 flex-1 basis-[calc(100%-3.5rem)] sm:basis-0">
+          <p className="text-sm font-medium text-foreground">Getting started</p>
+          <p className="text-xs text-muted-foreground truncate">Next: {next.label}</p>
+        </div>
+        <a href={next.href} className="px-3 py-1.5 rounded-md bg-accent text-accent-foreground text-xs font-medium hover:bg-accent-hover">
+          Do this next
+        </a>
+        <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-xs text-muted-foreground hover:text-foreground">
+          {expanded ? "Show less" : "All steps"}
         </button>
-      }
-    >
-      <div className="h-1.5 rounded-full bg-muted overflow-hidden mb-3">
-        <div className="h-full rounded-full" style={{ width: `${((steps.length - left) / steps.length) * 100}%`, background: CHART.profit }} />
+        <button type="button" onClick={hide} aria-label="Hide getting started" className="text-muted-foreground hover:text-foreground">
+          <X className="w-3.5 h-3.5" />
+        </button>
       </div>
-      <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1.5">
-        {steps.map((s) => (
-          <li key={s.id}>
-            <a href={s.done ? undefined : s.href} className={`flex items-center gap-2 text-sm ${s.done ? "text-muted-foreground line-through" : "text-foreground hover:text-[#B5607A]"}`}>
-              {s.done ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <Circle className="w-4 h-4 text-muted-foreground shrink-0" />}
-              {s.label}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </Card>
+      {expanded && (
+        <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 mt-3 pt-3 border-t border-border">
+          {steps.map((s) => (
+            <li key={s.id}>
+              <a href={s.done ? undefined : s.href} className={`flex items-center gap-2 text-sm ${s.done ? "text-muted-foreground line-through" : "text-foreground hover:text-accent"}`}>
+                {s.done ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <Circle className="w-4 h-4 text-muted-foreground shrink-0" />}
+                {s.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -134,38 +174,47 @@ function TodaySummary({ data, today }: { data: Data; today: string }) {
   const listedToday = data.inventory.reduce((n, i) => n + i.listings.filter((l) => l.listedAt === today).length, 0);
   const relistsToday = data.inventory.reduce((n, i) => n + i.listings.filter((l) => l.relistedAt === today).length, 0);
   const autos = data.settings.automations;
-  const on = (kind: "shares" | "offers" | "follows" | "relists") => Object.values(autos).some((a) => a?.[kind]?.enabled);
-  const Stat = ({ label, value, hint, href }: { label: string; value: string; hint?: string; href: string }) => (
-    <a href={href} className="bg-card border border-border rounded-xl px-4 py-3 hover:border-[#B5607A]/40 transition-colors">
-      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
-      <p className="font-display text-2xl font-semibold text-foreground mt-1">{value}</p>
-      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+  const Stat = ({ label, value, hint, href, icon: Icon }: { label: string; value: string; hint?: string; href: string; icon: typeof Tag }) => (
+    <a href={href} className="group bg-card border border-border rounded-2xl px-4 py-4 hover:border-accent/50 hover:-translate-y-0.5 transition-all">
+      <span className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        <span className="w-7 h-7 rounded-lg bg-accent/10 text-accent flex items-center justify-center">
+          <Icon className="w-3.5 h-3.5" />
+        </span>
+      </span>
+      <p className="font-display text-2xl md:text-[1.7rem] font-semibold text-foreground mt-2 tabular-nums">{value}</p>
+      {hint && <p className="text-[12px] text-muted-foreground mt-0.5">{hint}</p>}
     </a>
   );
   return (
     <section>
-      <h2 className="font-display text-sm font-semibold text-foreground mb-2">Today's summary</h2>
+      <h2 className="font-display text-sm font-semibold text-foreground mb-2.5">Today</h2>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Stat label="Units listed" value={String(listedToday)} hint="new listings today" href="#/inventory" />
-        <Stat label="Units sold" value={String(m.units)} hint={`${m.orders} order${m.orders !== 1 ? "s" : ""}`} href="#/orders" />
-        <Stat label="Revenue" value={fmtMoney(m.revenue)} href="#/analytics" />
-        <Stat label="Profit" value={fmtMoney(m.profit)} hint="after fees and cost" href="#/analytics" />
+        <Stat label="Listed" value={String(listedToday)} hint="new listings today" href="#/inventory" icon={Tag} />
+        <Stat label="Sold" value={String(m.units)} hint={`${m.orders} order${m.orders !== 1 ? "s" : ""}`} href="#/orders" icon={ShoppingBag} />
+        <Stat label="Revenue" value={fmtMoney(m.revenue)} hint="before fees" href="#/analytics" icon={DollarSign} />
+        <Stat label="Profit" value={fmtMoney(m.profit)} hint="after fees and cost" href="#/analytics" icon={TrendingUp} />
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+      {isOn("automations") && <a href="#/automations" className="mt-3 flex items-center gap-3 flex-wrap bg-card border border-border rounded-2xl px-4 py-3 text-sm hover:border-accent/50">
+        <span className="flex items-center gap-1.5 text-foreground font-medium">
+          <Zap className="w-3.5 h-3.5 text-accent" /> Automations
+        </span>
         {(
           [
-            ["Shares", "shares", null],
             ["Relists", "relists", relistsToday],
             ["Offers", "offers", null],
-            ["Follows", "follows", null],
           ] as const
-        ).map(([label, kind, n]) => (
-          <a key={kind} href="#/automations" className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-2.5 hover:border-[#B5607A]/40">
-            <span className="text-sm text-foreground">{label}</span>
-            <span className="text-sm tabular-nums text-muted-foreground">{n != null ? n : on(kind) ? "On" : "Off"}</span>
-          </a>
-        ))}
-      </div>
+        ).map(([label, kind, n]) => {
+          const isOn = automationOn(autos, kind);
+          return (
+            <span key={kind} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className={`w-1.5 h-1.5 rounded-full ${isOn ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
+              {label} {isOn ? (n != null ? `· ${n} today` : "on") : "off"}
+            </span>
+          );
+        })}
+        <span className="ml-auto text-xs text-accent">{automationOn(autos) ? "Manage" : "Turn on"}</span>
+      </a>}
     </section>
   );
 }
@@ -230,7 +279,7 @@ function NeedsAttention({ data, today }: { data: Data; today: string }) {
       id: `ready-${ready}`,
       icon: <Sparkles className="w-3.5 h-3.5" />,
       title: `${ready} draft${ready !== 1 ? "s are" : " is"} ready to list`,
-      detail: "Publish them from Inventory.",
+      detail: isOn("crosslisting") ? "Publish them from Inventory." : "Once they're up on a marketplace, mark them listed in Inventory.",
       href: "#/inventory?status=draft",
       tone: "info",
     });
@@ -275,17 +324,21 @@ function NeedsAttention({ data, today }: { data: Data; today: string }) {
       }
     >
       {shown.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4 text-center">{tab === "open" ? "All clear." : "Nothing dismissed."}</p>
+        tab === "open" ? (
+          <EmptyState icon={CheckCircle2} title="All clear" text="Nothing needs you right now. Problems with orders and listings show up here." />
+        ) : (
+          <p className="text-sm text-muted-foreground py-4 text-center">Nothing dismissed.</p>
+        )
       ) : (
         <ul className="divide-y divide-border">
           {shown.slice(0, 8).map((i) => (
             <li key={i.id} className="flex items-start gap-2.5 py-2.5">
               <span className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${i.tone === "warn" ? "bg-amber-50 text-amber-700" : "bg-sky-50 text-sky-700"}`}>{i.icon}</span>
               <a href={i.href} className="min-w-0 flex-1 group">
-                <p className="text-sm font-medium text-foreground truncate group-hover:text-[#B5607A]">{i.title}</p>
+                <p className="text-sm font-medium text-foreground truncate group-hover:text-accent">{i.title}</p>
                 <p className="text-xs text-muted-foreground truncate">{i.detail}</p>
               </a>
-              <button type="button" onClick={() => toggle(i.id)} className="text-[11px] text-muted-foreground hover:text-foreground shrink-0 mt-1">
+              <button type="button" onClick={() => toggle(i.id)} className="text-[12px] text-muted-foreground hover:text-foreground shrink-0 mt-1">
                 {tab === "open" ? "Dismiss" : "Restore"}
               </button>
             </li>
@@ -322,7 +375,7 @@ function Goals({ data, today }: { data: Data; today: string }) {
         subtitle="Profit, sales, listings or sell-through, by week, month, quarter or year"
         right={
           !adding && (
-            <button type="button" onClick={() => setAdding(true)} className="flex items-center gap-1 text-xs text-[#B5607A] hover:underline">
+            <button type="button" onClick={() => setAdding(true)} className="flex items-center gap-1 text-xs text-accent hover:underline">
               <Plus className="w-3 h-3" /> Add goal
             </button>
           )
@@ -358,7 +411,7 @@ function Goals({ data, today }: { data: Data; today: string }) {
               onChange={(e) => setDraft({ ...draft, target: e.target.value })}
               aria-label="Target"
             />
-            <button type="submit" className="px-3 py-1.5 rounded-md bg-[#B5607A] text-white text-xs font-medium">
+            <button type="submit" className="px-3 py-1.5 rounded-md bg-accent text-accent-foreground text-xs font-medium">
               Save
             </button>
             <button type="button" onClick={() => setAdding(false)} className="px-2 text-xs text-muted-foreground">
@@ -367,7 +420,7 @@ function Goals({ data, today }: { data: Data; today: string }) {
           </form>
         )}
         {settings.goals.length === 0 && !adding ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">No goals yet. Add one to see your pace every day.</p>
+          <EmptyState icon={Target} title="No goals yet" text="Set a profit, sales or listing goal and see your pace here every day." action={{ label: "Add a goal", onClick: () => setAdding(true) }} />
         ) : (
           <ul className="space-y-4">
             {settings.goals.map((g) => {
@@ -391,7 +444,7 @@ function Goals({ data, today }: { data: Data; today: string }) {
                     <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${Math.min(1, p.share) * 100}%`, background: CHART.profit }} />
                     {g.metric !== "sellThrough" && <div className="absolute top-0 bottom-0 w-px bg-foreground/50" style={{ left: `${p.expected * 100}%` }} />}
                   </div>
-                  <p className={`text-[11px] mt-1 ${ahead ? "text-emerald-700" : "text-amber-700"}`}>
+                  <p className={`text-[12px] mt-1 ${ahead ? "text-emerald-700" : "text-amber-700"}`}>
                     {p.share >= 1 ? "Goal reached." : g.metric === "sellThrough" ? "Below target so far." : ahead ? "Ahead of pace." : "Behind pace. The line marks where an even pace would be today."}
                   </p>
                 </li>
@@ -404,37 +457,26 @@ function Goals({ data, today }: { data: Data; today: string }) {
   );
 }
 
-// --- What's new ---------------------------------------------------------------------------------
+// --- Affiliates ---------------------------------------------------------------------------------
 
-const RELEASES = [
-  { date: "Oct 31, 2026", text: "List from photos: upload photos of up to 25 items at once, and AI sorts them into one listing per item, then writes each one with a suggested price." },
-  { date: "Oct 30, 2026", text: "List with a video: film up to 25 items, and AI finds each one, keeps snips from the video, makes a clean photo, and writes the listing with a suggested price." },
-  { date: "Oct 29, 2026", text: "A new layout: Home, Inventory, Automations, Orders, Analytics and Settings, with goals and a needs-attention list here on Home." },
-  { date: "Oct 28, 2026", text: "Analytics: true profit after fees, shipping and item cost, marketplaces side by side, inventory aging with suggested markdowns, and sourcing returns." },
-  { date: "Oct 26, 2026", text: "Mercari orders and labels sync through the browser extension." },
-];
-
-function WhatsNew() {
-  const [open, setOpen] = useState(true);
-  if (!open) return null;
+// Points sellers at the affiliate dashboard, which is easy to miss in the menu.
+function AffiliatesCard() {
   return (
-    <Card
-      title="What's new"
-      right={
-        <button type="button" aria-label="Hide what's new" onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
-          <X className="w-3.5 h-3.5" />
-        </button>
-      }
+    <a
+      href="#/affiliates"
+      className="relative overflow-hidden flex items-center gap-4 flex-wrap rounded-2xl border border-accent/30 px-5 py-4 hover:border-accent/60 transition-colors"
+      style={{ background: "linear-gradient(110deg, var(--accent-soft), var(--card) 60%)" }}
     >
-      <ul className="space-y-2">
-        {RELEASES.map((r) => (
-          <li key={r.date} className="text-sm flex gap-3">
-            <span className="text-xs text-muted-foreground w-24 shrink-0 pt-0.5">{r.date}</span>
-            <span className="text-foreground">{r.text}</span>
-          </li>
-        ))}
-      </ul>
-    </Card>
+      <span className="w-10 h-10 rounded-xl bg-accent/20 text-accent flex items-center justify-center shrink-0">
+        <Gift className="w-5 h-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-display text-sm font-semibold text-foreground">Earn with Hubby Affiliates</span>
+        <span className="block text-xs text-muted-foreground mt-0.5">Get a seller's first month, then 5% of what they pay, for life. Your link and earnings are on your Affiliates dashboard.</span>
+      </span>
+      <span className="flex items-center gap-1 text-xs font-medium text-accent">
+        Open dashboard <ArrowRight className="w-3.5 h-3.5" />
+      </span>
+    </a>
   );
 }
-
