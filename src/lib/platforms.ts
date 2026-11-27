@@ -26,9 +26,9 @@ export const PLATFORM_INFO: Record<Platform, PlatformInfo> = {
   },
   eBay: {
     name: "eBay",
-    orders: "Import CSV from Seller Hub.",
+    orders: "Connect eBay above to import orders from the last 90 days, or import a Seller Hub CSV.",
     label: "Buy a Hubby label, then add tracking in eBay.",
-    listing: "Link listings by hand for now.",
+    listing: "Connect eBay above to bring in your active listings, linked to your items by SKU.",
   },
   Etsy: {
     name: "Etsy",

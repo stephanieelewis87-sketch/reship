@@ -28,7 +28,7 @@ Without any setup, Hubby runs in **demo mode**: it starts with sample orders and
 ## Use real accounts and a shared database (Supabase)
 
 1. Create a free project at [supabase.com](https://supabase.com).
-2. In the project's SQL editor, run the files in `supabase/migrations/` in order (0004 adds inventory and profit tracking for Analytics, 0009 the affiliate program, 0011 the current plans, 0013 the AI helper, 0014 and 0016 the Community).
+2. In the project's SQL editor, paste all of `supabase/setup-all.sql` and press Run. It holds every file in `supabase/migrations/` in order, and it's safe to run again whenever migrations are added (`node scripts/build-setup-sql.mjs` rebuilds it).
 3. Copy `.env.example` to `.env.local` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from Settings > API.
 4. Restart `npm run dev`. Hubby now asks you to sign in, and each account only sees its own orders.
 
@@ -92,6 +92,22 @@ To turn on live comps:
 2. Create an app at [developer.ebay.com](https://developer.ebay.com) (production keys) and at [etsy.com/developers](https://www.etsy.com/developers).
 3. `supabase secrets set EBAY_CLIENT_ID=... EBAY_CLIENT_SECRET=... ETSY_API_KEY=... ETSY_SHARED_SECRET=...` (optional: `COMPS_DAILY_SEARCHES`, default 200 per user per day). After eBay grants Marketplace Insights access, also set `EBAY_SOLD_COMPS=on`.
 4. `supabase functions deploy comps-search`.
+
+## eBay connection (official API)
+
+Settings > Connections > **Connect eBay** sends the seller to eBay's own sign-in page. After they approve Hubby, **Import from eBay** brings in:
+
+- **Active listings** (eBay's Trading API, which sees listings made on ebay.com): new ones become inventory items with title, price, photos, quantity, condition and watchers. A listing whose Custom label (SKU) matches an item is linked to that item instead. Listings already linked are skipped.
+- **Orders from the last 90 days** (eBay's Sell Fulfillment API) with the buyer's address and eBay's fees. An order already in Hubby is never duplicated; one eBay now says has shipped is marked shipped. Each sale is matched to its item by SKU, or by the eBay listing it came from.
+
+Hubby only asks eBay for read access, never sees the password, and keeps eBay's token in a table the browser can't read. Disconnect removes the token.
+
+Setup (one time):
+
+1. Run `supabase/migrations/0017_marketplace_connections.sql` (included in `setup-all.sql`).
+2. At [developer.ebay.com](https://developer.ebay.com), with production keys: under User Tokens, add an eBay Redirect URL whose "auth accepted" and "auth declined" URLs are `https://<project-ref>.supabase.co/functions/v1/ebay`, and copy its RuName. Under Alerts & Notifications, choose account deletion notifications with that same URL as the endpoint and a verification token you make up.
+3. Secrets: `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_RUNAME`, `EBAY_VERIFICATION_TOKEN`, `APP_URL`. Optional `EBAY_ENV=sandbox` for eBay's test site.
+4. Deploy: `supabase functions deploy ebay --no-verify-jwt` (or paste `supabase/functions/ebay/index.ts` into a new function in the Supabase dashboard and turn off "Enforce JWT verification"). eBay calls this function directly, so it checks the seller's Hubby sign-in itself.
 
 ## Coming soon page and waitlist (Hubby)
 

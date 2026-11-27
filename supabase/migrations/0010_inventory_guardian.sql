@@ -15,6 +15,7 @@ create index if not exists inventory_backups_user_created_idx on public.inventor
 
 alter table public.inventory_backups enable row level security;
 
+drop policy if exists "Users manage their own inventory backups" on public.inventory_backups;
 create policy "Users manage their own inventory backups" on public.inventory_backups
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
@@ -34,7 +35,9 @@ create index if not exists inventory_history_user_item_idx on public.inventory_h
 alter table public.inventory_history enable row level security;
 
 -- History is append-only from the app: people can read and add their own, not rewrite it.
+drop policy if exists "Users read their own inventory history" on public.inventory_history;
 create policy "Users read their own inventory history" on public.inventory_history
   for select using (auth.uid() = user_id);
+drop policy if exists "Users add to their own inventory history" on public.inventory_history;
 create policy "Users add to their own inventory history" on public.inventory_history
   for insert with check (auth.uid() = user_id);

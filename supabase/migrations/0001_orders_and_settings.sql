@@ -32,9 +32,11 @@ create table if not exists public.settings (
 alter table public.orders enable row level security;
 alter table public.settings enable row level security;
 
+drop policy if exists "Users manage their own orders" on public.orders;
 create policy "Users manage their own orders" on public.orders
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+drop policy if exists "Users manage their own settings" on public.settings;
 create policy "Users manage their own settings" on public.settings
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
@@ -45,7 +47,9 @@ begin
 end;
 $$;
 
+drop trigger if exists orders_touch on public.orders;
 create trigger orders_touch before update on public.orders
   for each row execute function public.touch_updated_at();
+drop trigger if exists settings_touch on public.settings;
 create trigger settings_touch before update on public.settings
   for each row execute function public.touch_updated_at();

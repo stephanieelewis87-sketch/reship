@@ -1,7 +1,7 @@
 import { guessColumns, parseCsv } from "./csvImport";
 import { MARKETPLACES, MAX_LISTING_PHOTOS, parseListingLink, platformOfUrl } from "./marketplaces";
 import { nextSku } from "./sku";
-import type { Condition, InventoryItem, Platform, SkuFormat } from "./types";
+import type { Condition, InventoryItem, Listing, Platform, SkuFormat } from "./types";
 import { CONDITIONS } from "./types";
 
 // Bringing listings a seller already has on a marketplace into Hubby's inventory, two ways:
@@ -93,7 +93,7 @@ const key = (platform: Platform, id: string) => `${platform}|${id.toLowerCase()}
 function place(
   draft: Omit<InventoryItem, "id" | "sku" | "listings" | "status"> & { sku?: string },
   platform: Platform,
-  listing: { listingId?: string; url?: string; price?: number },
+  listing: Partial<Omit<Listing, "platform" | "status">>,
   state: { all: InventoryItem[]; byListing: Set<string>; bySku: Map<string, InventoryItem>; result: ImportResult; skuFormat?: SkuFormat; today: string; now: string },
 ) {
   const { result } = state;
@@ -123,7 +123,7 @@ function place(
       sku: sku || nextSku(state.all, state.skuFormat),
       status: "listed",
       listings: [entry],
-      listedAt: state.today,
+      listedAt: entry.listedAt,
       createdAt: state.now,
       updatedAt: state.now,
     };
@@ -229,6 +229,18 @@ export function linksToItems(text: string, existing: InventoryItem[], skuFormat?
       state,
     );
   }
+  return state.result;
+}
+
+// Listings read from a marketplace's official API (eBay today), already in Hubby's shape.
+export interface ApiListing {
+  draft: Omit<InventoryItem, "id" | "sku" | "listings" | "status"> & { sku?: string };
+  listing: Partial<Omit<Listing, "platform" | "status">>;
+}
+
+export function apiListingsToItems(platform: Platform, listings: ApiListing[], existing: InventoryItem[], skuFormat?: SkuFormat, now = new Date()): ImportResult {
+  const state = startState(existing, skuFormat, now);
+  for (const l of listings) place(l.draft, platform, l.listing, state);
   return state.result;
 }
 

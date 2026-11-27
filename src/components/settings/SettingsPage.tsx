@@ -8,6 +8,7 @@ import type { useReshipData } from "@/lib/useReshipData";
 import { AddressFields } from "../AddressFields";
 import { Field, PlatformIcon, Toggle, inputClass, primaryButton, secondaryButton, selectClass } from "../ui";
 import { PageHeader } from "../shell/PageHeader";
+import { EbayConnection } from "./EbayConnection";
 import { go } from "../shell/route";
 import { cleanPrefix, nextSku } from "@/lib/sku";
 import { hasFeature, isPlanId, type Feature } from "@/lib/plans";
@@ -133,7 +134,7 @@ export function SettingsPage({
           ))}
         </nav>
         <div className="flex-1 min-w-0 px-4 md:px-8 py-5 max-w-2xl space-y-6">
-          {tab === "connections" && <Connections />}
+          {tab === "connections" && <Connections data={data} demoMode={demoMode} />}
           {tab === "sale" && (
             <Section title="Sale detection" text={isOn("crosslisting") ? "When an item sells on one marketplace, Hubby marks it sold and can take it down everywhere else." : "When an item sells on one marketplace, Hubby marks it sold and reminds you on Home to take it down everywhere else."}>
               <Row title="Adjust quantity on sale" text="For items with more than one in stock, take one off the count instead of marking the item sold.">
@@ -387,9 +388,10 @@ export function SettingsPage({
 // Marketplaces the browser extension syncs orders from today.
 const CONNECTOR_PLATFORMS: Platform[] = ["Poshmark", "Mercari"];
 
-function Connections() {
+function Connections({ data, demoMode }: { data: Data; demoMode: boolean }) {
   return (
-    <Section title="Connections" text="Hubby works with your marketplace accounts through its browser extension, using the sign-ins you already have.">
+    <Section title="Connections" text="Connect marketplaces that offer an official connection, and use the Hubby browser extension for the rest.">
+      <EbayConnection data={data} demoMode={demoMode} />
       <div className="rounded-lg border border-amber-200 bg-amber-50 text-amber-900 text-xs px-3 py-2.5 flex gap-2">
         <Puzzle className="w-4 h-4 shrink-0" />
         <p>Poshmark and Mercari orders and labels come in through the Hubby browser extension. For other marketplaces, use Add orders on the Orders page to add them by hand or from a CSV export.</p>
@@ -404,7 +406,7 @@ function Connections() {
                 <PlatformIcon platform={p} className="w-4 h-4" /> {info.name}
               </span>
               <span className="flex items-center gap-2 text-[12px] text-muted-foreground">
-                {CONNECTOR_PLATFORMS.includes(p) ? "Syncs with the extension" : "Manual and CSV"}
+                {p === "eBay" ? "Official connection" : CONNECTOR_PLATFORMS.includes(p) ? "Syncs with the extension" : "Manual and CSV"}
                 <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
               </span>
             </summary>
