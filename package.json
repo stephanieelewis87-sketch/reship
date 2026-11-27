@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:waitlist": "tsc --noEmit && vite build --config vite.waitlist.config.ts",
     "preview": "vite preview",
+    "preview:waitlist": "vite preview --config vite.waitlist.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

@@ -33,6 +33,17 @@ Without any setup, Reship runs in **demo mode**: it starts with sample orders an
 - Works on phones
 - **Analytics**: sales, true profit (after marketplace fees, shipping you paid and item cost), margin, days to sell, sell-through and money tied up in inventory, for any period and compared with the one before. Pages for profit (where the money went), marketplaces side by side, brands and categories, inventory health with suggested markdowns for stale listings, sourcing (which thrift stores pay off), a monthly profit goal, "what to do next" tips, and CSV reports for taxes. Click any point or row to see the sales behind it. Fees are estimated from each marketplace's fee schedule when an order doesn't say. The demo has a made-up year of sales so every page has something to show.
 
+## Coming soon page and waitlist (Hubby)
+
+`waitlist/` is a standalone "coming soon" page for Hubby that collects emails for early access. It loads none of the app (no demo, no sign in), so it is safe to put on the public domain while the app stays private.
+
+1. In the Supabase SQL editor, run `supabase/migrations/0016_waitlist.sql`. It needs `0006_feedback.sql` first (for `is_app_admin`). Visitors can only add themselves through two functions; only app admins can read the list.
+2. Preview it with `npm run dev` and open `/waitlist/`. Without Supabase settings, signups are kept in your browser so you can try it.
+3. Publish it on its own: `npm run build:waitlist` builds just the page into `dist-waitlist/` (as `index.html`). On Vercel, make a separate project from this repo with build command `npm run build:waitlist` and output directory `dist-waitlist`, and point your public domain at it. The normal app build also includes the page at `/waitlist/`.
+4. See who joined: `select email, marketplaces, stage, source, created_at from public.waitlist order by created_at;`
+
+Add `?ref=tiktok` (or any `utm_source`) to links you share and the signup records where people came from.
+
 ## Browser extension (marketplace sync)
 
 Marketplaces don't offer label APIs, so the extension in `extension/` reads sold orders and labels using the seller's own logged-in browser session. It never asks for or stores marketplace passwords, and it shows an at-your-own-risk notice before it turns on.
