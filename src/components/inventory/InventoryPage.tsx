@@ -984,7 +984,7 @@ function ItemMenu({
             <Copy className="w-3.5 h-3.5" /> Copy
           </MenuItem>
           <MenuItem onClick={run(close, onLabel)}>
-            <ScanLine className="w-3.5 h-3.5" /> Print SKU label
+            <ScanLine className="w-3.5 h-3.5" /> Print QR sticker
           </MenuItem>
           {STATS && item.listings.length > 0 && (
             <MenuItem onClick={run(close, onStats)}>
@@ -1343,7 +1343,7 @@ function BulkBar({
           Bulk edit
         </button>
         <button type="button" onClick={onLabels} className="px-2.5 py-1 rounded-md bg-background/10 hover:bg-background/20 flex items-center gap-1">
-          <ScanLine className="w-3.5 h-3.5" /> SKU labels
+          <ScanLine className="w-3.5 h-3.5" /> QR stickers
         </button>
         <button type="button" onClick={onDelist} className="px-2.5 py-1 rounded-md bg-background/10 hover:bg-background/20">
           {POSTS ? "Delist" : "Mark delisted"}

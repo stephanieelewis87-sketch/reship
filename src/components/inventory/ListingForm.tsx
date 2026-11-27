@@ -8,7 +8,8 @@ import type { ListingAi, Store } from "@/lib/store";
 import type { ItemChange } from "@/lib/types";
 import { MARKETPLACES, MAX_LISTING_PHOTOS, PLAIN_COVER_PLATFORMS, parseListingLink } from "@/lib/marketplaces";
 import { HistoryList } from "./GuardianPage";
-import { Barcode } from "./SkuTools";
+import { QrCode } from "./SkuTools";
+import { itemStickerLink } from "@/lib/stickers";
 import type { ListingSuggestion } from "@/lib/videoListing";
 import { shrinkImage, splitDataUrl } from "@/lib/videoFrames";
 import { CoverPhotoEditor } from "./CoverPhotoEditor";
@@ -356,10 +357,10 @@ export function ListingForm({
             </div>
             {d.sku.trim() && (
               <div className="flex items-center gap-3">
-                <Barcode value={d.sku.trim()} className="h-8 w-40 rounded-sm border border-border" />
+                <QrCode value={itemStickerLink(d.sku)} className="h-12 w-12 rounded-sm border border-border" />
                 {onPrintLabel && (
                   <button type="button" onClick={() => onPrintLabel(build(false))} className="flex items-center gap-1.5 text-xs text-accent hover:underline">
-                    <ScanLine className="w-3.5 h-3.5" /> Print SKU label
+                    <ScanLine className="w-3.5 h-3.5" /> Print QR sticker
                   </button>
                 )}
               </div>

@@ -186,7 +186,7 @@ export function SettingsPage({
                 <Row title="Next SKU">
                   <span className="font-mono text-sm">{nextSku(data.inventory, { ...draft.skuFormat, prefix: draft.skuFormat.prefix || "RS" })}</span>
                 </Row>
-                <Note>Existing items keep their SKUs. Print barcode labels from Inventory (an item's menu, or select items and press SKU labels), and find items with Scan.</Note>
+                <Note>Existing items keep their SKUs. Print QR stickers from Inventory (an item's menu, or select items and press QR stickers), and find items with Scan.</Note>
               </Section>
               <Section title="Inventory Guardian" text="Keeps your inventory safe from a bad sync, a slip of the finger or a marketplace glitch.">
                 <Row title="Sync protection" text="Pause any change that would delete, delist, mark sold or overwrite many items at once, and ask you first.">

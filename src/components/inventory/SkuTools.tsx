@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Loader2, Printer, X } from "lucide-react";
 import type { InventoryItem } from "@/lib/types";
-import { SKU_LABEL_SIZES, barRects, canEncode, labelsFor, skuLabelsPdf, type SkuLabelSize } from "@/lib/sku";
+import { barRects, canEncode, labelsFor } from "@/lib/sku";
 import { download } from "@/lib/guardian";
 import { STICKER_SIZES, itemSticker, qrMatrix, stickersPdf, type StickerSize } from "@/lib/stickers";
 import { primaryButton, secondaryButton, selectClass } from "../ui";
@@ -46,25 +46,22 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
   );
 }
 
-// Makes a PDF of labels to stick on items or bags: QR stickers any phone can scan, or Code 128
-// barcodes for USB scanners.
+// Makes a PDF of QR stickers to put on items or bags. Old Code 128 barcode labels still scan.
 export function SkuLabelsModal({ items, onClose }: { items: InventoryItem[]; onClose: () => void }) {
-  const [style, setStyle] = useState<"qr" | "barcode">("qr");
-  const [size, setSize] = useState<SkuLabelSize | StickerSize>("sheet");
+  const [size, setSize] = useState<StickerSize>("sheet");
   const [perUnit, setPerUnit] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const labels = useMemo(() => labelsFor(items, perUnit), [items, perUnit]);
   const skipped = items.filter((i) => !canEncode(i.sku.trim())).length;
   const first = labels[0];
-  const sizes = style === "qr" ? STICKER_SIZES : SKU_LABEL_SIZES;
 
   const make = async () => {
     setBusy(true);
     setErr(null);
     try {
-      const bytes = style === "qr" ? await stickersPdf(labels.map((i) => itemSticker(i)), size) : await skuLabelsPdf(labels, size);
-      download(`${style === "qr" ? "qr-stickers" : "sku-labels"}-${new Date().toISOString().slice(0, 10)}.pdf`, bytes, "application/pdf");
+      const bytes = await stickersPdf(labels.map((i) => itemSticker(i)), size);
+      download(`qr-stickers-${new Date().toISOString().slice(0, 10)}.pdf`, bytes, "application/pdf");
       onClose();
     } catch (e) {
       setErr((e as Error).message);
@@ -74,47 +71,20 @@ export function SkuLabelsModal({ items, onClose }: { items: InventoryItem[]; onC
   };
 
   return (
-    <Modal title="Print item stickers" onClose={onClose}>
-      <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Sticker style">
-        {(
-          [
-            ["qr", "QR sticker", "Any phone camera can scan it"],
-            ["barcode", "Barcode", "For a USB or Bluetooth scanner"],
-          ] as const
-        ).map(([k, t, hint]) => (
-          <button
-            key={k}
-            type="button"
-            role="radio"
-            aria-checked={style === k}
-            onClick={() => setStyle(k)}
-            className={`text-left rounded-lg border px-3 py-2 ${style === k ? "border-accent bg-accent/5" : "border-border"}`}
-          >
-            <span className="block text-sm font-medium">{t}</span>
-            <span className="block text-[12px] text-muted-foreground">{hint}</span>
-          </button>
-        ))}
-      </div>
-      {first &&
-        (style === "qr" ? (
-          <div className="mx-auto w-60 border border-border rounded-md bg-white text-black p-2 flex items-center gap-2">
-            <QrCode value={itemSticker(first).link} className="w-16 h-16 shrink-0" />
-            <div className="min-w-0">
-              <div className="font-mono font-bold text-sm">{first.sku}</div>
-              <div className="text-[10px] truncate">{first.title}</div>
-            </div>
-          </div>
-        ) : (
-          <div className="mx-auto w-56 border border-border rounded-md bg-white text-black p-2 text-center">
-            <Barcode value={first.sku.trim()} className="w-full h-10" />
-            <div className="font-mono font-bold text-xs mt-1">{first.sku}</div>
+    <Modal title="Print QR stickers" onClose={onClose}>
+      {first && (
+        <div className="mx-auto w-60 border border-border rounded-md bg-white text-black p-2 flex items-center gap-2">
+          <QrCode value={itemSticker(first).link} className="w-16 h-16 shrink-0" />
+          <div className="min-w-0">
+            <div className="font-mono font-bold text-sm">{first.sku}</div>
             <div className="text-[10px] truncate">{first.title}</div>
           </div>
-        ))}
+        </div>
+      )}
       <label className="block text-xs space-y-1">
         <span className="text-muted-foreground">Label paper</span>
-        <select className={`${selectClass} w-full`} value={size} onChange={(e) => setSize(e.target.value as SkuLabelSize)}>
-          {sizes.map((s) => (
+        <select className={`${selectClass} w-full`} value={size} onChange={(e) => setSize(e.target.value as StickerSize)}>
+          {STICKER_SIZES.map((s) => (
             <option key={s.key} value={s.key}>
               {s.label}
             </option>
@@ -123,11 +93,11 @@ export function SkuLabelsModal({ items, onClose }: { items: InventoryItem[]; onC
       </label>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={perUnit} onChange={(e) => setPerUnit(e.target.checked)} />
-        One label for each one in stock
+        One sticker for each one in stock
       </label>
       <p className="text-[12px] text-muted-foreground">
-        {labels.length} label{labels.length !== 1 ? "s" : ""}
-        {skipped ? `. ${skipped} item${skipped > 1 ? "s" : ""} skipped: no SKU, or characters a label can't hold.` : "."} Scan them back with Scan in Inventory.
+        {labels.length} sticker{labels.length !== 1 ? "s" : ""}
+        {skipped ? `. ${skipped} item${skipped > 1 ? "s" : ""} skipped: no SKU, or characters a sticker can't hold.` : "."} Scan them with Scan in Inventory or your phone's camera.
       </p>
       {err && <p className="text-xs text-destructive">{err}</p>}
       <div className="flex justify-end gap-2">
