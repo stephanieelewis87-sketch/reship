@@ -254,7 +254,7 @@ const PILLARS: { icon: ComponentType<{ className?: string }>; title: string; bod
   {
     icon: ScanLine,
     title: "Inventory that knows where things are",
-    body: "Every item gets a SKU barcode label and a bin or shelf. Scan or search it to find it, move it, or see what it cost.",
+    body: "Stick a QR sticker on each item and give it a bin. Scan it with your phone to add it, find it, move it, or mark it sold.",
     href: "#inventory",
   },
   {
@@ -410,11 +410,11 @@ function FeatureInventory() {
       id="inventory"
       eyebrow="Inventory"
       title="Know what you have, and where it is."
-      body="Add an item once with its photo, cost, size and bin. Print a SKU barcode label for it, then scan or search it later to pull it up in a second."
+      body="Print a sheet of QR stickers at home. Stick one on a new find, scan it, and add the photo, cost, size and bin right there. Scan it again later to pull it up in a second."
       points={[
-        "Automatic SKUs that never repeat, with barcode labels to print",
+        "QR stickers on standard Avery 5160 label sheets, with SKUs that never repeat",
         "Bin and shelf locations, so packing an order means grabbing, not searching",
-        "Scan a label with a barcode scanner (or your phone camera on Android) to find or move an item",
+        "Scan with your phone camera, iPhone or Android, to find an item, move it to a bin, or mark it sold",
         "A record of where each item is listed, and a reminder when something sold but is still up elsewhere",
       ]}
       visual={<ItemCard className="max-w-xs mx-auto shadow-lg" />}
@@ -444,7 +444,7 @@ function FeatureProfit() {
 
 const STEPS = [
   { title: "Add the extension", body: "Install the Hubby browser extension and stay logged in to Poshmark and Mercari. We never ask for your passwords." },
-  { title: "Bring in your items", body: "Add items by hand or import your listings, give each one a bin, and print SKU labels." },
+  { title: "Bring in your items", body: "Sticker each item, scan it to add its photo, cost and bin, or import the listings you already have." },
   { title: "Ship and see your profit", body: "Print the day's labels in one batch, then see what each sale really made you." },
 ];
 
@@ -522,7 +522,7 @@ const FAQS = [
   },
   {
     q: "Does it work on my phone?",
-    a: "Yes. Hubby works in your phone's browser. Scanning SKU labels with the camera works on Android today, and iPhone support is on the way.",
+    a: "Yes. Hubby works in your phone's browser, and scanning stickers with the camera works on iPhone and Android.",
   },
 ];
 

@@ -19,6 +19,7 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
+  QrCode,
   ScanLine,
   Download,
   Search,
@@ -47,7 +48,8 @@ import { PhotoListing } from "./PhotoListing";
 import { ImportListingsModal } from "./ImportListingsModal";
 import { listingHref } from "@/lib/marketplaces";
 import { VideoListing } from "./VideoListing";
-import { ScanModal, SkuLabelsModal } from "./SkuTools";
+import { SkuLabelsModal } from "./SkuTools";
+import { BinsModal, BlankStickersModal, ScanModal } from "./Stickers";
 import { GuardianPage } from "./GuardianPage";
 import { StatsChip, StatsImportModal, StatsModal } from "./ListingStats";
 import { itemStats } from "@/lib/listingStats";
@@ -125,7 +127,26 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
   const [labelIn, setLabelIn] = useState<string[]>([]);
   const [labelOut, setLabelOut] = useState<string[]>([]);
   const [location, setLocation] = useState("");
-  const [scan, setScan] = useState(false);
+  // #/inventory?scan=CODE is what a QR sticker holds, so a phone's camera app lands here with the
+  // item showing. #/inventory?bin=NAME (a bin sticker) shows what's in that bin.
+  const [scan, setScan] = useState<false | { code?: string }>(() => (route.params.get("scan") ? { code: route.params.get("scan")! } : false));
+  const [blankStickers, setBlankStickers] = useState(false);
+  const [bins, setBins] = useState(false);
+  useEffect(() => {
+    const code = route.params.get("scan");
+    if (code) setScan({ code });
+    const bin = route.params.get("bin");
+    if (bin) {
+      setLocation(bin);
+      setShowFilters(true);
+    }
+    if (code || bin) go("inventory");
+  }, [route]);
+  const showBin = (bin: string) => {
+    setLocation(bin);
+    setStatus("all");
+    setShowFilters(true);
+  };
   const [skuLabels, setSkuLabels] = useState<InventoryItem[] | null>(null);
   const [showFilters, setShowFilters] = useState(!!route.params.get("issue"));
   const [page, setPage] = useState(0);
@@ -401,6 +422,14 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
               </>
             )}
           </Menu>
+          <button
+            type="button"
+            onClick={() => setScan({})}
+            title="Scan a QR sticker or barcode: add, find, move or sell an item"
+            className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-md border border-accent text-accent text-sm font-medium hover:bg-accent/5"
+          >
+            <ScanLine className="w-4 h-4" /> Scan
+          </button>
           {isOn("aiListing") && <button
             type="button"
             onClick={gated("videoListing", () => setVideo(true))}
@@ -433,7 +462,8 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
                   </>
                 )}
                 <AddOption icon={Download} title="Import listings" hint="From links or a marketplace export" onClick={() => (close(), setImporting(true))} />
-                <AddOption icon={ScanLine} title="Scan a barcode" hint="Find or add an item by its SKU" onClick={() => (close(), setScan(true))} />
+                <AddOption icon={ScanLine} title="Scan a sticker" hint="Add an item by scanning a new QR sticker" onClick={() => (close(), setScan({}))} />
+                <AddOption icon={QrCode} title="Print blank QR stickers" hint="Stick on, scan, add. No typing SKUs" onClick={() => (close(), setBlankStickers(true))} />
               </div>
             )}
           </Menu>
@@ -523,14 +553,17 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
               </select>
             </label>
             <label className="flex items-center gap-2">
-              <span className="text-muted-foreground w-14">Location</span>
+              <span className="text-muted-foreground w-14">Bin</span>
               <select className={selectClass} value={location} onChange={(e) => setLocation(e.target.value)}>
                 <option value="">Anywhere</option>
-                <option value="-">No location yet</option>
+                <option value="-">No bin yet</option>
                 {locations.map((l) => (
                   <option key={l}>{l}</option>
                 ))}
               </select>
+              <button type="button" className="text-accent font-medium hover:underline whitespace-nowrap" onClick={() => setBins(true)}>
+                All bins
+              </button>
             </label>
             <div className="flex items-start gap-2">
               <span className="text-muted-foreground w-14 pt-1">Labels</span>
@@ -829,12 +862,29 @@ export function InventoryPage({ data, route }: { data: Data; route: Route }) {
       {scan && (
         <ScanModal
           inventory={inventory}
+          today={today}
+          initialCode={scan.code}
           onClose={() => setScan(false)}
           onOpen={(item) => {
             setScan(false);
             setForm({ item, isNew: false });
           }}
-          onMove={(item, loc) => saveInventory([{ ...item, location: loc || undefined, updatedAt: new Date().toISOString() }])}
+          onSave={(items) => saveInventory(items)}
+          onShowBin={showBin}
+          savePhoto={(d) => data.store.saveListingPhoto(d)}
+        />
+      )}
+      {blankStickers && <BlankStickersModal inventory={inventory} skuFormat={settings.skuFormat} onReserve={(f) => data.saveSettings({ ...settings, skuFormat: f })} onClose={() => setBlankStickers(false)} />}
+      {bins && (
+        <BinsModal
+          inventory={inventory}
+          onShowBin={showBin}
+          onRename={(from, to) => {
+            const now = new Date().toISOString();
+            saveInventory(inventory.filter((i) => i.location?.trim() === from).map((i) => ({ ...i, location: to, updatedAt: now })));
+            if (location === from) setLocation(to);
+          }}
+          onClose={() => setBins(false)}
         />
       )}
       {quick && (
