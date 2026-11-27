@@ -8,4 +8,13 @@ export default defineConfig({
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },
   },
+  build: {
+    rollupOptions: {
+      // The app, plus the Hubby coming soon page at /waitlist/ (see vite.waitlist.config.ts to publish it alone).
+      input: {
+        main: path.resolve(__dirname, "index.html"),
+        waitlist: path.resolve(__dirname, "waitlist/index.html"),
+      },
+    },
+  },
 });
