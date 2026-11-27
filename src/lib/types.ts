@@ -150,6 +150,8 @@ export interface Expense {
   amount: number;
   note?: string;
   miles?: number;
+  // A photo of the receipt: a stored file's path for real accounts, or the image itself in demo mode.
+  receipt?: string;
 }
 
 export const EXPENSE_CATEGORIES = ["Inventory sourcing", "Shipping supplies", "Mileage", "Software and subscriptions", "Marketplace fees (other)", "Equipment", "Other"];
@@ -209,6 +211,8 @@ export interface Settings {
   printPackingSlip: boolean;
   // Print drop-off QR codes instead of labels for orders that have one.
   printQrCodes: boolean;
+  // Dollars per business mile, for mileage expenses. Missing means the default in lib/money.ts.
+  mileageRate?: number;
   // Analytics goal; 0 means no goal. Kept for older saved settings; goals replaces it.
   monthlyProfitGoal: number;
   goals: Goal[];

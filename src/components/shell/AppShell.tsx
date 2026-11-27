@@ -1,4 +1,4 @@
-import { type ComponentType, useEffect, useState } from "react";
+import { type ComponentType, useEffect, useMemo, useState } from "react";
 import { AlertCircle, BarChart3, Gift, Heart, Home, MessageSquare, MoreHorizontal, Radio, Search, Settings as SettingsIcon, Shirt, ShoppingBag, Store, Truck, Users, X, Zap } from "lucide-react";
 import type { useReshipData } from "@/lib/useReshipData";
 import { isPartiallyDelisted } from "@/lib/inventory";
@@ -118,6 +118,8 @@ export function AppShell({
   const issues = data.inventory.filter(isPartiallyDelisted).length;
   const badge: Partial<Record<Section, number>> = { orders: toPrint, inventory: issues };
   useSellSourceSync(data, isOn("sellsource"));
+  const store = data.store;
+  const receipts = useMemo(() => ({ save: (d: string) => store.saveReceipt(d), url: (r: string) => store.receiptUrl(r) }), [store]);
 
   return (
     <div className="h-screen bg-background flex overflow-hidden">
@@ -212,6 +214,7 @@ export function AppShell({
                   saveExpenses={data.saveExpenses}
                   deleteExpenses={data.deleteExpenses}
                   initialTab={route.params.get("tab")}
+                  receipts={receipts}
                 />
               )}
               {route.section === "affiliates" && <AffiliatesPage key={route.params.get("tab") ?? ""} data={data} email={email} tab={route.params.get("tab")} />}

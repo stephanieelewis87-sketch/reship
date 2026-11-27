@@ -434,8 +434,8 @@ function FeatureProfit() {
       points={[
         "Profit, margin and days to sell for any period",
         "Marketplaces, brands and sourcing spots side by side",
-        "Business expenses next to your sales",
-        "CSV reports to hand to whoever does your taxes",
+        "Expenses with receipt photos, and sourcing trips counted by the mile",
+        "A Schedule C worksheet for tax time, ready for you or your tax preparer",
       ]}
       visual={<ProfitCard className="max-w-xs mx-auto shadow-lg" />}
     />

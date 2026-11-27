@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import Papa from "papaparse";
-import { AlertTriangle, Download, Lightbulb, Plus, Sparkles, Trash2, TrendingUp, X } from "lucide-react";
+import { AlertTriangle, Download, Lightbulb, Sparkles, TrendingUp, X } from "lucide-react";
 import type { Expense, InventoryItem, Order, Platform, Settings } from "@/lib/types";
-import { EXPENSE_CATEGORIES } from "@/lib/types";
 import {
   RANGE_PRESETS,
   type DateRange,
@@ -28,18 +27,20 @@ import {
   soldDates,
 } from "@/lib/analytics";
 import { listedOn } from "@/lib/inventory";
-import { PlatformIcon, inputClass, primaryButton } from "../ui";
+import { PlatformIcon } from "../ui";
 import { PageHeader } from "../shell/PageHeader";
 import { PlatformFilter } from "../shell/PlatformFilter";
 import { CHART, ColumnChart, InlineBar, Legend, TrendChart, Waterfall, fmtCompactMoney, fmtMoney, fmtPct } from "./charts";
 import { Card, Kpi, Pills, SalesTable, SortTable } from "./parts";
+import { ExpensesPage, TaxesPage, type MoneyCtx, type ReceiptStore } from "./Money";
 
-export type AnalyticsTab = "insights" | "orders" | "expenses" | "pnl";
+export type AnalyticsTab = "insights" | "orders" | "expenses" | "pnl" | "taxes";
 const TABS: { key: AnalyticsTab; label: string }[] = [
   { key: "insights", label: "Insights" },
   { key: "orders", label: "Orders" },
   { key: "expenses", label: "Expenses" },
   { key: "pnl", label: "Profit & Loss" },
+  { key: "taxes", label: "Taxes" },
 ];
 type InsightSub = Exclude<InsightPage, "profit">;
 const INSIGHT_PAGES: { key: InsightSub; label: string }[] = [
@@ -50,10 +51,7 @@ const INSIGHT_PAGES: { key: InsightSub; label: string }[] = [
   { key: "sourcing", label: "Sourcing" },
 ];
 
-// Miles are deducted at the IRS standard rate for business driving.
-export const MILEAGE_RATE = 0.7;
-
-interface Ctx {
+interface Ctx extends MoneyCtx {
   today: string;
   range: DateRange;
   lines: SaleLine[];
@@ -84,6 +82,7 @@ export function AnalyticsView({
   saveExpenses,
   deleteExpenses,
   initialTab,
+  receipts,
 }: {
   orders: Order[];
   inventory: InventoryItem[];
@@ -95,6 +94,7 @@ export function AnalyticsView({
   saveExpenses: (items: Expense[]) => void;
   deleteExpenses: (ids: string[]) => void;
   initialTab?: string | null;
+  receipts: ReceiptStore;
 }) {
   const [tab, setTab] = useState<AnalyticsTab>(TABS.some((t) => t.key === initialTab) ? (initialTab as AnalyticsTab) : "insights");
   const [page, setPage] = useState<InsightSub>("overview");
@@ -142,10 +142,12 @@ export function AnalyticsView({
       saveInventory,
       saveExpenses,
       deleteExpenses,
+      everyLine,
+      receipts,
     };
-  }, [everyLine, inventory, sold, expenses, platforms, brand, category, preset, today, settings, onOpenOrder, saveSettings, saveInventory, saveExpenses, deleteExpenses]);
+  }, [everyLine, inventory, sold, expenses, platforms, brand, category, preset, today, settings, onOpenOrder, saveSettings, saveInventory, saveExpenses, deleteExpenses, receipts]);
 
-  const showRange = !(tab === "insights" && page === "inventory");
+  const showRange = !(tab === "insights" && page === "inventory") && tab !== "taxes";
   return (
     <div>
       <PageHeader title="Analytics" subtitle="Sales, profit and what to do next, across every marketplace">
@@ -206,6 +208,7 @@ export function AnalyticsView({
         {tab === "orders" && <OrdersReport ctx={ctx} />}
         {tab === "expenses" && <ExpensesPage ctx={ctx} />}
         {tab === "pnl" && <ProfitAndLoss ctx={ctx} />}
+        {tab === "taxes" && <TaxesPage ctx={ctx} />}
       </div>
     </div>
   );
@@ -794,100 +797,6 @@ function OrdersReport({ ctx }: { ctx: Ctx }) {
 }
 
 // --- Expenses -----------------------------------------------------------------------------------
-
-function ExpensesPage({ ctx }: { ctx: Ctx }) {
-  const [date, setDate] = useState(ctx.today);
-  const [category, setCategory] = useState(EXPENSE_CATEGORIES[1]);
-  const [amount, setAmount] = useState("");
-  const [miles, setMiles] = useState("");
-  const [note, setNote] = useState("");
-  const mileage = category === "Mileage";
-  const total = sumExpenses(ctx.expenses);
-  const cats = EXPENSE_CATEGORIES.map((c) => ({ c, v: sumExpenses(ctx.expenses.filter((e) => e.category === c)) })).filter((r) => r.v > 0).sort((a, b) => b.v - a.v);
-  const max = Math.max(1, ...cats.map((c) => c.v));
-  const add = () => {
-    const m = parseFloat(miles) || 0;
-    const value = mileage ? Math.round(m * MILEAGE_RATE * 100) / 100 : parseFloat(amount) || 0;
-    if (value <= 0) return;
-    ctx.saveExpenses([{ id: crypto.randomUUID(), date, category, amount: value, note: note.trim() || undefined, miles: mileage ? m : undefined }]);
-    setAmount("");
-    setMiles("");
-    setNote("");
-  };
-  return (
-    <div className="space-y-4">
-      <div className="grid lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2" title="Add an expense" subtitle="Supplies, subscriptions, mileage and other costs that aren't tied to one item">
-          <form
-            className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-end"
-            onSubmit={(e) => {
-              e.preventDefault();
-              add();
-            }}
-          >
-            <input type="date" aria-label="Date" className={inputClass} value={date} onChange={(e) => setDate(e.target.value)} />
-            <select aria-label="Category" className={inputClass} value={category} onChange={(e) => setCategory(e.target.value)}>
-              {EXPENSE_CATEGORIES.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-            {mileage ? (
-              <input aria-label="Miles driven" className={inputClass} inputMode="decimal" placeholder="Miles" value={miles} onChange={(e) => setMiles(e.target.value)} />
-            ) : (
-              <input aria-label="Amount in dollars" className={inputClass} inputMode="decimal" placeholder="Amount ($)" value={amount} onChange={(e) => setAmount(e.target.value)} />
-            )}
-            <input aria-label="Note" className={inputClass} placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
-            <button type="submit" className={`${primaryButton} flex items-center justify-center gap-1.5`}>
-              <Plus className="w-3.5 h-3.5" /> Add
-            </button>
-          </form>
-          {mileage && <p className="text-[12px] text-muted-foreground mt-2">Mileage counts at ${MILEAGE_RATE.toFixed(2)} a mile, the IRS standard rate.</p>}
-        </Card>
-        <Card title="By category" subtitle={`${fmtMoney(total)} total, ${rangeText(ctx.range)}`}>
-          {cats.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No expenses in this period.</p>
-          ) : (
-            <ul className="space-y-2.5">
-              {cats.map((r) => (
-                <li key={r.c} className="text-xs">
-                  <div className="flex justify-between mb-1">
-                    <span>{r.c}</span>
-                    <span className="tabular-nums font-medium">{fmtMoney(r.v)}</span>
-                  </div>
-                  <InlineBar value={r.v} max={max} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      </div>
-      <Card title="Expense log" subtitle={`${ctx.expenses.length} expenses, ${rangeText(ctx.range)}`}>
-        <SortTable
-          rows={ctx.expenses}
-          rowKey={(e) => e.id}
-          initialSort={{ key: "date", desc: true }}
-          limit={25}
-          columns={[
-            { key: "date", label: "Date", render: (e) => shortDate(e.date), sort: (e) => e.date },
-            { key: "cat", label: "Category", render: (e) => e.category, sort: (e) => e.category },
-            { key: "note", label: "Note", className: "hidden sm:table-cell", render: (e) => <span className="text-muted-foreground">{e.miles ? `${e.miles} mi${e.note ? ` · ${e.note}` : ""}` : (e.note ?? "")}</span> },
-            { key: "amount", label: "Amount", align: "right", render: (e) => fmtMoney(e.amount, true), sort: (e) => e.amount },
-            {
-              key: "del",
-              label: "",
-              align: "right",
-              render: (e) => (
-                <button type="button" aria-label={`Delete ${e.category} expense`} onClick={() => ctx.deleteExpenses([e.id])} className="p-1 text-muted-foreground hover:text-rose-700">
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              ),
-            },
-          ]}
-        />
-      </Card>
-    </div>
-  );
-}
 
 // --- Exports ------------------------------------------------------------------------------------
 

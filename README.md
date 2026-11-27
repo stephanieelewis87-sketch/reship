@@ -55,6 +55,13 @@ Without any setup, Hubby runs in **demo mode**: it starts with sample orders and
 - **Bins.** Filter > All bins lists every bin with its item count, renames or empties a bin into another, and prints bin stickers (`#/inventory?bin=NAME`). Scan a bin sticker to see what's inside, or scan an item and then a bin to move it there.
 - Every item has a storage location (bin, shelf). Filter by it, search by it, set it in bulk, and it's printed on the SKU label.
 
+## Money: profit, receipts, mileage and taxes
+
+- Every item shows **what it made**: sale price, marketplace fees, shipping and what you paid. Unsold items show what they'd make at their price, after that marketplace's fees.
+- Analytics > **Expenses**: add an expense with a **receipt photo** (snap it with the phone camera), or a **sourcing trip** (miles, round trip, where and why), counted at the mileage rate. The rate starts at $0.70 a mile, the IRS standard rate for 2025, and can be changed there for each new year. Add a receipt to an older expense from the camera icon in the log.
+- Analytics > **Taxes**: a Schedule C worksheet for any year. Sales on line 1, cost of goods sold on line 4 (item costs plus Inventory sourcing expenses), mileage on line 9 with the miles for line 44a, marketplace fees on line 10, equipment on line 13, software on line 18, shipping supplies on line 22, and shipping paid and other costs on line 27a. Download it as CSV. It's a worksheet, not tax advice.
+- Receipts need migration `0018_receipts.sql` (included in `setup-all.sql`): a `receipt` column on expenses and a private `receipts` storage bucket. Only the owner can open a receipt, through a link that lasts an hour.
+
 ## Views and watchers
 
 Each item shows its views and watchers (likes, favorites or saves, in each marketplace's own word) from all its marketplaces as one small line in Inventory, with a per-marketplace breakdown and the change since the last reading when you click it. Sort by Most viewed or Most watched; turn the line off under Filter if you'd rather not see it. Items without numbers show nothing extra.
